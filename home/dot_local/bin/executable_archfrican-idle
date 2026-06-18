@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# Archfrican idle/lock driver (spawned by niri). Locks the screen on suspend ALWAYS,
+# and after N idle seconds (from ~/.config/archfrican/lock.conf; 0 disables idle-lock
+# but keeps the suspend lock). Replaces a bare `swayidle -w` that never locked anything.
+set -euo pipefail
+conf="${XDG_CONFIG_HOME:-$HOME/.config}/archfrican/lock.conf"
+ARCHFRICAN_LOCK_TIMEOUT=900
+# shellcheck source=/dev/null
+[ -r "$conf" ] && . "$conf"
+locker='swaylock -f'
+args=(-w before-sleep "$locker" lock "$locker")
+if [ "${ARCHFRICAN_LOCK_TIMEOUT:-0}" -gt 0 ] 2>/dev/null; then
+  args+=(timeout "$ARCHFRICAN_LOCK_TIMEOUT" "$locker" resume 'true')
+fi
+exec swayidle "${args[@]}"

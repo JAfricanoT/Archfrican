@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# Open an inbound port in the Archfrican firewall (live + persistent).
+#   fw-allow 3000/tcp      fw-allow 5353/udp
+set -euo pipefail
+self="$(readlink -f "$0" 2>/dev/null || echo "$0")"
+ROOT="${ARCHFRICAN_ROOT:-$(cd "$(dirname "$self")/.." && pwd)}"
+# shellcheck source=/dev/null
+source "$ROOT/lib/common.sh"
+# shellcheck source=/dev/null
+source "$ROOT/lib/security.sh"
+fw_allow "${1:-}"
