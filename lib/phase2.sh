@@ -60,7 +60,9 @@ run_phase2() {                # run_phase2 [single-module]
   GPU="$DETECTED_GPU"
 
   # ---- comfortable wizard (only with a real terminal) -----------------------
-  if ui_interactive; then
+  # ARCHFRICAN_NONINTERACTIVE=1 forces the headless path even when /dev/tty exists
+  # (the ISO first-boot resume service sets it — see templates/archfrican-resume.service).
+  if [ "${ARCHFRICAN_NONINTERACTIVE:-0}" != 1 ] && ui_interactive; then
     ui_install_gum
     ui_header "Archfrican setup"
     HOST="$(ui_input 'Hostname' "$HOST")"
@@ -72,6 +74,15 @@ run_phase2() {                # run_phase2 [single-module]
     THEME="$(ui_choose 'Initial theme' macos-dark macos-light catppuccin-mocha tokyo-night)"
     GPU="$(ui_choose "GPU profile (detected: $DETECTED_GPU)" \
            "$DETECTED_GPU" amd intel nvidia hybrid-intel-nvidia hybrid-amd-nvidia hybrid-amd-intel)"
+  elif [ -r "$HOME/.archfrican-answers" ]; then
+    # ISO resume: the Stage-1 wizard's picks, staged by lib/phase1.sh::inject_resume.
+    # shellcheck source=/dev/null
+    . "$HOME/.archfrican-answers"
+    HOST="${ARCHFRICAN_HOST:-$HOST}";   USER_NAME="${ARCHFRICAN_USER:-$USER_NAME}"
+    TZ="${ARCHFRICAN_TZ:-$TZ}";         LOCALE="${ARCHFRICAN_LOCALE:-$LOCALE}"
+    XKB="${ARCHFRICAN_XKB:-$XKB}";      THEME="${ARCHFRICAN_THEME:-$THEME}"
+    GPU="${ARCHFRICAN_GPU:-$GPU}"
+    log "resume: loaded wizard answers (host=$HOST user=$USER_NAME gpu=$GPU theme=$THEME)"
   else
     warn "non-interactive — using detected defaults (host=$HOST user=$USER_NAME gpu=$GPU theme=$THEME)"
   fi
@@ -116,7 +127,10 @@ run_phase2() {                # run_phase2 [single-module]
   ok "Done. Kernel linux-cachyos (fallback linux-lts in GRUB) · compositor niri · GPU $GPU · theme $THEME."
 
   # ---- reboot modal ---------------------------------------------------------
-  if ui_interactive && ui_confirm 'Reboot now to enter your new session?'; then
+  # Skip on the headless ISO resume — the resume service self-cleans and the login
+  # manager is already enabled; the user reboots/logs in on their own terms.
+  if [ "${ARCHFRICAN_NONINTERACTIVE:-0}" != 1 ] && ui_interactive \
+     && ui_confirm 'Reboot now to enter your new session?'; then
     ok "rebooting"; sudo systemctl reboot
   else
     warn "Reboot when ready: sudo systemctl reboot  (NVIDIA needs it before the first niri session)."

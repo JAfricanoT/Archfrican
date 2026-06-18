@@ -1,0 +1,32 @@
+# Archfrican first-boot resume (Stage 2). Installed into the NEW system by
+# lib/phase1.sh::inject_resume after archinstall lays down the base. It finishes
+# what the base install can't: the niri desktop + dev layer (the same modules the
+# booted Stage-1 path runs). The @USER@ placeholder is substituted at install time.
+#
+# Lifecycle: runs ONCE as the wheel user. phase 2 is non-interactive here
+# (ARCHFRICAN_NONINTERACTIVE=1, no TTY) so it reads ~/.archfrican-answers instead
+# of prompting. On SUCCESS the ExecStartPost lines disable this unit and remove the
+# temporary NOPASSWD sudoers drop-in — so the elevated window is exactly one boot.
+# On failure it stays enabled and retries next boot (phase-2 .done checkpoints make
+# that safe), keeping the drop-in until it finally succeeds.
+[Unit]
+Description=Archfrican first-boot install (niri desktop + dev layer)
+After=network-online.target systemd-user-sessions.service
+Wants=network-online.target
+ConditionPathExists=/home/@USER@/.archfrican/install.sh
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+User=@USER@
+WorkingDirectory=/home/@USER@/.archfrican
+Environment=HOME=/home/@USER@
+Environment=ARCHFRICAN_NONINTERACTIVE=1
+TimeoutStartSec=infinity
+ExecStart=/usr/bin/bash /home/@USER@/.archfrican/install.sh
+# Order matters: disable while we still have NOPASSWD, then drop NOPASSWD last.
+ExecStartPost=/usr/bin/sudo /usr/bin/systemctl disable archfrican-resume.service
+ExecStartPost=/usr/bin/sudo /usr/bin/rm -f /etc/sudoers.d/00-archfrican-resume
+
+[Install]
+WantedBy=multi-user.target
