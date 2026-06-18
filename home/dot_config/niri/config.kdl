@@ -1,0 +1,116 @@
+// ╭──────────────────────────────────────────────────────────────────────╮
+// │ Archfrican · niri config — scrolling WM with macOS-friendly bindings        │
+// │ Rule: the ⌘ (Mod/Super) key uses ONLY non-letter or Shift combos here,  │
+// │ so it never collides with the ⌘+letter app shortcuts handled by keyd.  │
+// ╰──────────────────────────────────────────────────────────────────────╯
+
+input {
+    keyboard { xkb { layout "us"; } }
+    touchpad {
+        tap
+        natural-scroll          // macOS-style scrolling
+        dwt                     // disable-while-typing
+        click-method "clickfinger"
+        scroll-factor 0.6
+    }
+    // 3-finger swipe between columns/workspaces, like Mac spaces, is built in.
+    mouse { accel-profile "flat"; }
+    focus-follows-mouse max-scroll-amount="0%"
+}
+
+layout {
+    gaps 12
+    center-focused-column "on-overflow"
+    preset-column-widths { proportion 0.33; proportion 0.5; proportion 0.67; }
+    default-column-width { proportion 0.5; }
+
+    // THEME-START (managed by theme-switch)
+    focus-ring {
+        width 2
+        active-color "#0a84ff"
+        inactive-color "#3a3a3c"
+    }
+    // THEME-END
+}
+
+prefer-no-csd
+hotkey-overlay { skip-at-startup; }
+
+// macOS-like frosted glass on windows (niri 26.04+)
+// layer-rule / window blur is enabled per-rule below.
+window-rule {
+    geometry-corner-radius 10
+    clip-to-geometry true
+}
+
+environment {
+    // Electron/Chromium apps (VS Code) -> native Wayland
+    ELECTRON_OZONE_PLATFORM_HINT "wayland"
+    NIXOS_OZONE_WL "1"
+    // NVIDIA-friendly defaults (harmless on AMD/Intel)
+    __GL_GSYNC_ALLOWED "0"
+}
+
+spawn-at-startup "waybar"
+spawn-at-startup "mako"
+spawn-at-startup "swww-daemon"
+spawn-at-startup "swayidle" "-w"
+spawn-at-startup "/usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1"
+spawn-at-startup "sh" "-c" "wl-paste --watch cliphist store &"
+spawn-at-startup "nwg-dock" "-d" "-i" "48"   // macOS-style dock
+
+binds {
+    // launchers / core
+    Mod+Return        { spawn "ghostty"; }
+    Mod+Space         { spawn "fuzzel"; }          // ⌘+Space = Spotlight
+    Mod+Tab           { toggle-overview; }         // Mission-Control-like
+    Mod+Shift+Q       { close-window; }            // ⌘+W closes app tabs via keyd
+    Mod+Shift+E       { quit; }
+    Mod+Shift+Slash   { show-hotkey-overlay; }
+
+    // scrolling navigation (the niri core)
+    Mod+Left          { focus-column-left; }
+    Mod+Right         { focus-column-right; }
+    Mod+Up            { focus-window-up; }
+    Mod+Down          { focus-window-down; }
+    Mod+Shift+Left    { move-column-left; }
+    Mod+Shift+Right   { move-column-right; }
+    Mod+Shift+Up      { move-window-up; }
+    Mod+Shift+Down    { move-window-down; }
+    Mod+Home          { focus-column-first; }
+    Mod+End           { focus-column-last; }
+
+    // columns / sizing
+    Mod+Comma         { consume-window-into-column; }
+    Mod+Period        { expel-window-from-column; }
+    Mod+Minus         { set-column-width "-10%"; }
+    Mod+Equal         { set-column-width "+10%"; }
+    Mod+Shift+F       { maximize-column; }
+    Mod+Shift+M       { fullscreen-window; }
+    Mod+Shift+Space   { toggle-window-floating; }
+
+    // workspaces
+    Mod+1 { focus-workspace 1; }
+    Mod+2 { focus-workspace 2; }
+    Mod+3 { focus-workspace 3; }
+    Mod+4 { focus-workspace 4; }
+    Mod+5 { focus-workspace 5; }
+    Mod+Shift+1 { move-column-to-workspace 1; }
+    Mod+Shift+2 { move-column-to-workspace 2; }
+    Mod+Shift+3 { move-column-to-workspace 3; }
+
+    // screenshots (mac: ⌘+Shift+4 region -> here Print / Mod+Shift+S)
+    Print             { screenshot; }
+    Mod+Shift+S       { screenshot; }
+    Mod+Shift+P       { screenshot-screen; }
+
+    // media / brightness
+    XF86AudioRaiseVolume { spawn "wpctl" "set-volume" "@DEFAULT_AUDIO_SINK@" "5%+"; }
+    XF86AudioLowerVolume { spawn "wpctl" "set-volume" "@DEFAULT_AUDIO_SINK@" "5%-"; }
+    XF86AudioMute        { spawn "wpctl" "set-mute"   "@DEFAULT_AUDIO_SINK@" "toggle"; }
+    XF86MonBrightnessUp   { spawn "brightnessctl" "set" "5%+"; }
+    XF86MonBrightnessDown { spawn "brightnessctl" "set" "5%-"; }
+
+    // lock
+    Mod+Shift+L { spawn "swaylock"; }
+}

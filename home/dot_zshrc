@@ -1,0 +1,31 @@
+# Archfrican · .zshrc — fast Zsh (no oh-my-zsh). Startup target: <50ms.
+export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
+export EDITOR=nvim
+
+# ---- zinit (lightweight plugin manager) ----------------------------------
+ZINIT_HOME="${XDG_DATA_HOME:-$HOME/.local/share}/zinit/zinit.git"
+[ -d "$ZINIT_HOME" ] || { mkdir -p "$(dirname "$ZINIT_HOME")"; \
+  git clone https://github.com/zdharma-continuum/zinit.git "$ZINIT_HOME"; }
+source "$ZINIT_HOME/zinit.zsh"
+
+# the only three plugins that actually earn their place (loaded turbo/deferred)
+zinit wait lucid for \
+  atinit"zicompinit; zicdreplay" zdharma-continuum/fast-syntax-highlighting \
+  atload"_zsh_autosuggest_start"  zsh-users/zsh-autosuggestions \
+                                  zsh-users/zsh-completions
+
+# ---- history / options ----------------------------------------------------
+HISTFILE=~/.zsh_history; HISTSIZE=50000; SAVEHIST=50000
+setopt share_history hist_ignore_all_dups hist_reduce_blanks autocd
+
+# ---- modern cli aliases ---------------------------------------------------
+alias ls='eza --icons --group-directories-first'
+alias ll='eza -la --icons --git'
+alias cat='bat -pp'
+alias cd='z'
+command -v zoxide  &>/dev/null && eval "$(zoxide init zsh)"
+command -v fnm     &>/dev/null && eval "$(fnm env --use-on-cd)"
+command -v direnv  &>/dev/null && eval "$(direnv hook zsh)"
+
+# ---- prompt (cross-shell, portable) ---------------------------------------
+eval "$(starship init zsh)"

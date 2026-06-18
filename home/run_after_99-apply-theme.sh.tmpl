@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# chezmoi run_after: re-apply the saved Archfrican theme AFTER the dotfiles are
+# deployed. This (1) splices the themed block into the niri config.kdl that
+# chezmoi just wrote (theme-switch is skipped at install time because config.kdl
+# doesn't exist yet), and (2) (re)generates the chezmoi-ignored color files so
+# the user's chosen theme survives every `chezmoi apply` instead of reverting.
+# Reads ~/.config/.archfrican-theme (written by theme-switch); defaults to macos-dark.
+set -euo pipefail
+ARCHFRICAN_ROOT="{{ .chezmoi.homeDir }}/.archfrican"
+theme="$(cat "$HOME/.config/.archfrican-theme" 2>/dev/null || echo macos-dark)"
+[ -x "$ARCHFRICAN_ROOT/bin/theme-switch" ] || exit 0   # repo clone absent: nothing to do
+env ARCHFRICAN_ROOT="$ARCHFRICAN_ROOT" "$ARCHFRICAN_ROOT/bin/theme-switch" "$theme" \
+  || echo "archfrican: theme re-apply failed for '$theme' (run: theme-switch $theme)" >&2

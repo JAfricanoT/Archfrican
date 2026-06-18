@@ -1,0 +1,21 @@
+# Archfrican · Starship (cross-shell, survives a shell swap)
+add_newline = false
+format = "$directory$git_branch$git_status$rust$golang$python$nodejs$character"
+[directory]
+style = "bold blue"
+truncation_length = 3
+truncate_to_repo = true
+[git_branch]
+symbol = " "
+style = "purple"
+[character]
+success_symbol = "[❯](bold green)"
+error_symbol = "[❯](bold red)"
+[python]
+symbol = " "
+[golang]
+symbol = " "
+[rust]
+symbol = " "
+[nodejs]
+symbol = " "
