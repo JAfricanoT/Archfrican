@@ -17,8 +17,7 @@ jobs:
       - name: shellcheck all shell scripts
         run: |
           shellcheck -x -e SC1091 \
-            install.sh lib/*.sh modules/*.sh bin/theme-switch bin/fw-allow \
-            bin/archfrican-doctor home/dot_local/bin/executable_archfrican-idle
+            install.sh lib/*.sh modules/*.sh bin/* home/dot_local/bin/executable_*
 
   bashn:
     runs-on: ubuntu-latest
@@ -26,8 +25,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: bash -n (syntax)
         run: |
-          for f in install.sh lib/*.sh modules/*.sh bin/theme-switch bin/fw-allow \
-                   bin/archfrican-doctor home/dot_local/bin/executable_archfrican-idle \
+          for f in install.sh lib/*.sh modules/*.sh bin/* home/dot_local/bin/executable_* \
                    themes/*/colors.sh; do bash -n "$f"; done
 
   firewall-ruleset:

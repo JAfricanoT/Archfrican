@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+# archfrican-update — a READ-ONLY pre-update safety gate, then (optionally) the upgrade.
+#   archfrican-update          run the checks + print the exact commands (does NOT change anything)
+#   archfrican-update --run     run an interactive `sudo pacman -Syu` after the checks
+# AUR stays separate + manual (paru -Sua). Never --noconfirm; nothing is auto-removed. (informant is
+# deliberately not used — its PreTransaction hook would block our own modules + the resume service.)
+set -uo pipefail
+set +e
+warn=0
+_ok()   { printf '  \e[32m✓\e[0m %s\n' "$*"; }
+_note() { printf '  \e[33m!\e[0m %s\n' "$*"; warn=$((warn+1)); }
+
+printf '\n\e[1m  Archfrican — pre-update check\e[0m\n\n'
+
+# disk headroom (a new kernel + a big upgrade need room on / and /boot)
+ar="$(df -BM --output=avail / 2>/dev/null | tail -1 | tr -dc 0-9)"
+if [ -n "$ar" ] && [ "$ar" -ge 3000 ]; then _ok "root: ${ar}M free"
+else _note "root low on space (${ar:-?}M) — a large upgrade may fail"; fi
+if mountpoint -q /boot 2>/dev/null; then
+  ab="$(df -BM --output=avail /boot 2>/dev/null | tail -1 | tr -dc 0-9)"
+  if [ -n "$ab" ] && [ "$ab" -ge 100 ]; then _ok "/boot: ${ab}M free"
+  else _note "/boot tight (${ab:-?}M) — remove an old kernel first"; fi
+fi
+
+# snapshot safety net (snap-pac checkpoints each pacman transaction)
+command -v snapper >/dev/null 2>&1 && _ok "snapshots active (snap-pac will checkpoint this upgrade)"
+
+# mirror freshness
+if [ -f /etc/pacman.d/mirrorlist ]; then
+  age=$(( ( $(date +%s) - $(stat -c %Y /etc/pacman.d/mirrorlist 2>/dev/null || echo 0) ) / 86400 ))
+  if [ "$age" -le 30 ]; then _ok "mirrorlist ${age}d old"
+  else _note "mirrorlist ${age}d old — refresh (reflector) if downloads are slow"; fi
+fi
+
+# Arch news (light Atom-feed peek — read the site before a big upgrade)
+news="$(curl -fsS --max-time 8 'https://archlinux.org/feeds/news/' 2>/dev/null | grep -oE '<title>[^<]+' | sed -n '2p' | sed 's/<title>//')"
+if [ -n "$news" ]; then _note "latest Arch news: \"$news\" — check https://archlinux.org/news/ before upgrading"
+else _ok "Arch news feed unreachable (skipped)"; fi
+
+# CVE pre-check + available count
+if command -v arch-audit >/dev/null 2>&1; then
+  n="$(arch-audit --quiet --upgradable 2>/dev/null | grep -c .)"
+  if [ "${n:-0}" -eq 0 ]; then _ok "no known fixable CVEs"
+  else _note "$n package(s) with fixable CVEs — this upgrade should clear them"; fi
+fi
+command -v checkupdates >/dev/null 2>&1 && printf '\n  %s update(s) available.\n' "$(checkupdates 2>/dev/null | grep -c .)"
+
+printf '\n  Update (interactive, never --noconfirm):\n    sudo pacman -Syu\n'
+printf '  Then AUR, separately + reviewed:\n    paru -Sua\n\n'
+
+if [ "${1:-}" = "--run" ]; then
+  [ "$warn" -gt 0 ] && printf '  \e[33m%d caution(s) above.\e[0m\n\n' "$warn"
+  exec sudo pacman -Syu
+fi

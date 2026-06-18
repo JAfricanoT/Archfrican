@@ -19,7 +19,7 @@ on_err() {
 module_label() { case "$1" in
   00-base) echo "Base system";; 10-gpu) echo "GPU drivers";; 20-niri-desktop) echo "Desktop (niri)";;
   30-dev) echo "Dev toolchains";; 40-theming) echo "Theming";; 50-snapshots) echo "Snapshots";;
-  55-multiboot) echo "Multi-boot";; 60-security) echo "Security";;
+  55-multiboot) echo "Multi-boot";; 60-security) echo "Security";; 70-hygiene) echo "Hygiene";;
   *) echo "$1";; esac; }
 module_desc() { case "$1" in
   00-base) echo "CachyOS repos, dual kernel (cachyos + lts), paru";;
@@ -30,6 +30,7 @@ module_desc() { case "$1" in
   50-snapshots) echo "snapper + grub-btrfs rollback";;
   55-multiboot) echo "os-prober: detect another installed OS (GRUB)";;
   60-security) echo "firewall, dev-safe hardening, screen lock, FIDO2";;
+  70-hygiene) echo "maintenance timers + weekly health check (notify, never auto-change)";;
   *) echo "";; esac; }
 
 run_module() {                # run_module <name> [arg]
@@ -114,7 +115,7 @@ run_phase2() {                # run_phase2 [single-module]
   log "GPU profile: $GPU"
 
   ui_header "Installing Archfrican"
-  step_total 11
+  step_total 12
 
   # ---- apply host/user BEFORE the modules (idempotent) ----------------------
   step "Applying your choices" "hostname · user · timezone · locale · keyboard"
@@ -138,6 +139,7 @@ run_phase2() {                # run_phase2 [single-module]
   run_module 50-snapshots
   run_module 55-multiboot "$MULTIBOOT"
   run_module 60-security
+  run_module 70-hygiene
 
   step "Dotfiles" "deploying your config (niri, zsh, waybar, …) with chezmoi"
   current_module="dotfiles (chezmoi)"

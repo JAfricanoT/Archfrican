@@ -1,37 +1,70 @@
 #!/usr/bin/env bash
-# archfrican doctor — one-shot, READ-ONLY system health report.
-# Exit 0 = healthy; otherwise the count of amber+red items. Never mutates the system.
+# archfrican doctor — system health. READ-ONLY by default. Modes:
+#   archfrican-doctor            human report (exit 0 healthy, else count of amber+red)
+#   archfrican-doctor --json     one line of waybar JSON (text/class/tooltip)
+#   archfrican-doctor --notify   quiet unless amber/red, then one notify-send
+#   archfrican-doctor --fix      run ONLY provably-safe fixes (paccache/reset-failed/pacdiff); never -Syu/-Rns
 set -uo pipefail
 self="$(readlink -f "$0" 2>/dev/null || echo "$0")"
 ROOT="${ARCHFRICAN_ROOT:-$(cd "$(dirname "$self")/.." && pwd)}"
 # shellcheck source=/dev/null
 source "$ROOT/lib/health.sh"
-
-# Health checks intentionally tolerate non-zero exits from their tools (checkupdates=2, etc.).
 set +e +u +o pipefail
 
-printf '\n\e[1m  Archfrican — system health\e[0m\n\n'
-check_failed_units
-check_journal
-check_disk
-check_snapshots
-check_scrub
-check_smart
-check_orphans
-check_pacnew
-check_updates
-check_cve
-check_firmware
-check_reboot
-check_foreign
-check_timers
-printf '\n'
+MODE="${1:-report}"
 
-if [ "$H_RED" -gt 0 ]; then
-  printf '  \e[31m✗ %d critical, %d to review\e[0m — see the commands above.\n\n' "$H_RED" "$H_AMBER"
-elif [ "$H_AMBER" -gt 0 ]; then
-  printf '  \e[33m! %d item(s) to review\e[0m — nothing critical.\n\n' "$H_AMBER"
-else
-  printf '  \e[32m✓ System is healthy.\e[0m\n\n'
+# ---- --fix: safe allowlist only (no checks needed) --------------------------
+if [ "$MODE" = "--fix" ]; then
+  echo "archfrican-doctor --fix — safe maintenance only (nothing destructive):"
+  command -v paccache >/dev/null 2>&1 && { echo "→ paccache -rk3 (keep 3 cached versions)"; sudo paccache -rk3; }
+  echo "→ clearing failed unit states (reset-failed)"; sudo systemctl reset-failed 2>/dev/null; systemctl --user reset-failed 2>/dev/null
+  orph="$(pacman -Qtdq 2>/dev/null)"
+  [ -n "$orph" ] && { echo "→ orphans found (NOT auto-removed — review):"; echo "    sudo pacman -Rns $(printf '%s' "$orph" | tr '\n' ' ')"; }
+  if command -v pacdiff >/dev/null 2>&1 && [ -t 0 ]; then
+    echo "→ pacdiff (interactive .pacnew review)"; sudo DIFFPROG="${DIFFPROG:-vimdiff}" pacdiff
+  fi
+  echo "Done. Updates and package removal are deliberately NOT automated — see archfrican-update."
+  exit 0
 fi
-exit $(( H_RED + H_AMBER ))
+
+# ---- run every check ONCE (counts persist; redirect keeps H_* in this shell) ----
+run_all_checks() {
+  check_failed_units; check_journal; check_disk; check_snapshots; check_scrub; check_smart
+  check_orphans; check_pacnew; check_updates; check_cve; check_firmware; check_reboot
+  check_foreign; check_timers
+}
+REPORT="$(mktemp)"
+run_all_checks > "$REPORT"        # NOT a subshell -> H_RED/H_AMBER update here
+issues=$(( H_RED + H_AMBER ))
+class=ok; [ "$H_AMBER" -gt 0 ] && class=amber; [ "$H_RED" -gt 0 ] && class=red
+
+case "$MODE" in
+  --json)
+    text=""; [ "$issues" -gt 0 ] && text=" $issues"
+    case "$class" in
+      ok)    tip="System healthy";;
+      amber) tip="$H_AMBER item(s) to review — click for details";;
+      red)   tip="$H_RED critical, $H_AMBER to review — click for details";;
+    esac
+    printf '{"text":"%s","class":"%s","tooltip":"%s"}\n' "$text" "$class" "$tip"
+    ;;
+  --notify)
+    if [ "$issues" -gt 0 ]; then
+      command -v notify-send >/dev/null 2>&1 \
+        && notify-send -u "$([ "$H_RED" -gt 0 ] && echo critical || echo normal)" \
+             "Archfrican health: $issues item(s) need attention" "Run: archfrican-doctor"
+    fi
+    ;;
+  *)
+    printf '\n\e[1m  Archfrican — system health\e[0m\n\n'; cat "$REPORT"; printf '\n'
+    if [ "$H_RED" -gt 0 ]; then
+      printf '  \e[31m✗ %d critical, %d to review\e[0m — see the commands above.\n\n' "$H_RED" "$H_AMBER"
+    elif [ "$H_AMBER" -gt 0 ]; then
+      printf '  \e[33m! %d item(s) to review\e[0m — nothing critical.\n\n' "$H_AMBER"
+    else
+      printf '  \e[32m✓ System is healthy.\e[0m\n\n'
+    fi
+    ;;
+esac
+rm -f "$REPORT"
+exit "$issues"
