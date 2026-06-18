@@ -17,7 +17,8 @@ jobs:
       - name: shellcheck all shell scripts
         run: |
           shellcheck -x -e SC1091 \
-            install.sh lib/*.sh modules/*.sh bin/theme-switch
+            install.sh lib/*.sh modules/*.sh bin/theme-switch bin/fw-allow \
+            bin/archfrican-doctor home/dot_local/bin/executable_archfrican-idle
 
   bashn:
     runs-on: ubuntu-latest
@@ -25,8 +26,30 @@ jobs:
       - uses: actions/checkout@v4
       - name: bash -n (syntax)
         run: |
-          for f in install.sh lib/*.sh modules/*.sh bin/theme-switch \
+          for f in install.sh lib/*.sh modules/*.sh bin/theme-switch bin/fw-allow \
+                   bin/archfrican-doctor home/dot_local/bin/executable_archfrican-idle \
                    themes/*/colors.sh; do bash -n "$f"; done
+
+  firewall-ruleset:
+    runs-on: ubuntu-latest        # the firewall must never `flush ruleset` (kills Docker)
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y nftables
+      - name: extract + validate the embedded nftables ruleset
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/nftd; : > /tmp/nftd/archfrican-allows.nft
+          awk "/<<'NFT'/{f=1;next} /^NFT\$/{f=0} f" modules/60-security.sh \
+            | sed 's#/etc/nftables.d/archfrican-allows.nft#/tmp/nftd/archfrican-allows.nft#' > /tmp/archfrican.nft
+          # strip comments first so a comment that merely mentions the phrase can't false-trip this
+          grep -vE '^[[:space:]]*#' /tmp/archfrican.nft | grep -q 'flush ruleset' \
+            && { echo "::error::firewall uses 'flush ruleset' — it would wipe Docker/podman tables on reload"; exit 1; } || true
+          grep -q 'table inet filter' /tmp/archfrican.nft \
+            || { echo "::error::firewall has no named 'table inet filter'"; exit 1; }
+          # nft -c is best-effort here (check mode vs the create/delete/recreate idiom); the
+          # grep gates above are the hard guarantees.
+          sudo nft -c -f /tmp/archfrican.nft && echo "nft -c: ruleset valid" || echo "note: nft -c reported (create/delete/recreate is applied live by nft -f)"
+          echo "firewall: named table, no flush ruleset"
 
   iso-safety-gate:
     runs-on: ubuntu-latest        # the disk-wipe path must ship DISABLED
