@@ -8,13 +8,24 @@ if ! grep -q '\[cachyos\]' /etc/pacman.conf; then
   substep "downloading the CachyOS repo bootstrap (HTTPS, verified)"
   # HTTPS-only, fail on HTTP errors (so an error page is never saved as the tarball).
   curl -fL --proto '=https' --tlsv1.2 https://mirror.cachyos.org/cachyos-repo.tar.xz -o repo.tar.xz
-  # Optional integrity pin: export ARCHFRICAN_CACHYOS_SHA256=<hash> to fail-closed on mismatch.
-  if [ -n "${ARCHFRICAN_CACHYOS_SHA256:-}" ]; then
+  # FAIL-CLOSED integrity check: we are about to run this tarball's script as ROOT, so a pinned
+  # sha256 is REQUIRED unless explicitly overridden. Precedence: committed pin file → env pin →
+  # explicit accept-unverified → die. (See packages/cachyos-repo.sha256.)
+  pin="$(grep -oE '^[0-9a-f]{64}$' "$REPO_ROOT/packages/cachyos-repo.sha256" 2>/dev/null | head -1 || true)"
+  if [ -n "$pin" ]; then
+    echo "$pin  repo.tar.xz" | sha256sum -c - \
+      || die "CachyOS tarball sha256 mismatch vs packages/cachyos-repo.sha256 — refusing to run it as root"
+    ok "CachyOS tarball verified against the committed pin"
+  elif [ -n "${ARCHFRICAN_CACHYOS_SHA256:-}" ]; then
     echo "${ARCHFRICAN_CACHYOS_SHA256}  repo.tar.xz" | sha256sum -c - \
-      || die "CachyOS tarball sha256 mismatch — refusing to run it as root"
-    ok "CachyOS tarball sha256 verified"
+      || die "CachyOS tarball sha256 mismatch vs ARCHFRICAN_CACHYOS_SHA256 — refusing to run it as root"
+    ok "CachyOS tarball verified against ARCHFRICAN_CACHYOS_SHA256"
+  elif [ "${ARCHFRICAN_ALLOW_UNVERIFIED_CACHYOS:-0}" = 1 ]; then
+    warn "CachyOS tarball UNVERIFIED (ARCHFRICAN_ALLOW_UNVERIFIED_CACHYOS=1) — running its script as root anyway"
   else
-    warn "CachyOS tarball unverified (set ARCHFRICAN_CACHYOS_SHA256 to pin it); running upstream repo script as root"
+    die "CachyOS tarball is not pinned — refusing to run an unverified script as root.
+  Pin its sha256 in packages/cachyos-repo.sha256 (instructions in that file), or pass
+  ARCHFRICAN_CACHYOS_SHA256=<digest>, or ARCHFRICAN_ALLOW_UNVERIFIED_CACHYOS=1 to accept the risk."
   fi
   tar xf repo.tar.xz; cd cachyos-repo || die "CachyOS tarball missing the cachyos-repo/ dir"
   substep "running the CachyOS repo setup (adds the repo + imports its signing key)"
@@ -44,8 +55,12 @@ substep "installing the AUR helper (paru)"
 if ! command -v paru &>/dev/null; then
   if pacman -Si paru &>/dev/null; then
     pac_install paru            # from the CachyOS repo enabled above — no unreviewed AUR build
+  elif [ "${ARCHFRICAN_ALLOW_AUR_PARU:-0}" != 1 ]; then
+    die "paru is not in a binary repo and ARCHFRICAN_ALLOW_AUR_PARU is unset — refusing to build an
+  UNPINNED paru-bin from the AUR. Normally the CachyOS repo (enabled above) ships paru as a signed
+  binary; if you reached here the repo add likely failed. Re-run, or set ARCHFRICAN_ALLOW_AUR_PARU=1."
   else
-    warn "paru not in a binary repo; building paru-bin from the AUR — review the PKGBUILD first"
+    warn "building paru-bin from the AUR (ARCHFRICAN_ALLOW_AUR_PARU=1) — review the PKGBUILD"
     tmp="$(mktemp -d)"; git clone --depth 1 https://aur.archlinux.org/paru-bin.git "$tmp"
     substep "building paru from the AUR (makepkg)"
     ( cd "$tmp" && makepkg -si --noconfirm ); rm -rf "$tmp"

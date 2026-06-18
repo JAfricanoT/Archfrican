@@ -1,0 +1,16 @@
+# Pinned sha256 of CachyOS's cachyos-repo.tar.xz (the bootstrap that modules/00-base.sh
+# runs AS ROOT). modules/00-base.sh is FAIL-CLOSED: with no pin here and no override it
+# refuses to run the tarball.
+#
+# To pin (do this once, from a TRUSTED machine):
+#   1. curl -fLO https://mirror.cachyos.org/cachyos-repo.tar.xz
+#   2. verify it against CachyOS's published checksum / your own trust path
+#   3. sha256sum cachyos-repo.tar.xz   ->   put the 64-hex digest on its own line below
+#
+# Until a digest is committed below, install with ONE of:
+#   ARCHFRICAN_CACHYOS_SHA256=<digest> ...        (pin for one run)
+#   ARCHFRICAN_ALLOW_UNVERIFIED_CACHYOS=1 ...      (explicitly accept the risk)
+#
+# A line that is exactly 64 lowercase hex chars is read as the pin; everything else is ignored.
+#
+# <paste the 64-hex sha256 here>
