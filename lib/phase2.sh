@@ -16,13 +16,28 @@ on_err() {
   exit "$rc"
 }
 
+module_label() { case "$1" in
+  00-base) echo "Base system";; 10-gpu) echo "GPU drivers";; 20-niri-desktop) echo "Desktop (niri)";;
+  30-dev) echo "Dev toolchains";; 40-theming) echo "Theming";; 50-snapshots) echo "Snapshots";;
+  *) echo "$1";; esac; }
+module_desc() { case "$1" in
+  00-base) echo "CachyOS repos, dual kernel (cachyos + lts), paru";;
+  10-gpu) echo "vendor-agnostic drivers for the detected GPU";;
+  20-niri-desktop) echo "compositor, greetd login, keyd, audio";;
+  30-dev) echo "editors, language servers, version managers, docker";;
+  40-theming) echo "fonts, macOS GTK theme, hot-swap switcher";;
+  50-snapshots) echo "snapper + grub-btrfs rollback";;
+  *) echo "";; esac; }
+
 run_module() {                # run_module <name> [arg]
   local name="$1" stamp="$PHASE2_STATE/$1.done"
-  if [ -f "$stamp" ] && [ -z "${FORCE:-}" ]; then ok "skip $name (already done)"; return 0; fi
+  if [ -f "$stamp" ] && [ -z "${FORCE:-}" ]; then
+    step "$(module_label "$name") — skipped" "already done (FORCE=1 to redo)"; return 0
+  fi
+  step "$(module_label "$name")" "$(module_desc "$name")"
   current_module="$name"
-  log "── module: $name ──"
   bash "$REPO_ROOT/modules/$name.sh" "${2:-}"
-  touch "$stamp"; current_module=""
+  touch "$stamp"; ok "$(module_label "$name") complete"; current_module=""
 }
 
 run_phase2() {                # run_phase2 [single-module]
@@ -62,7 +77,11 @@ run_phase2() {                # run_phase2 [single-module]
   fi
   log "GPU profile: $GPU"
 
+  ui_header "Installing Archfrican"
+  step_total 9
+
   # ---- apply host/user BEFORE the modules (idempotent) ----------------------
+  step "Applying your choices" "hostname · user · timezone · locale · keyboard"
   apply_hostname        "$HOST"
   apply_user            "$USER_NAME" "$USER_PW"
   apply_timezone        "$TZ"
@@ -73,6 +92,7 @@ run_phase2() {                # run_phase2 [single-module]
   ok "staged theme=$THEME, niri keyboard=$XKB"
 
   # ---- the existing phase-2 orchestration (resumable via .done checkpoints) --
+  substep "verifying every listed package resolves in a repo"
   preflight_pkgs
   run_module 00-base
   run_module 10-gpu "$GPU"
@@ -81,13 +101,14 @@ run_phase2() {                # run_phase2 [single-module]
   run_module 40-theming
   run_module 50-snapshots
 
+  step "Dotfiles" "deploying your config (niri, zsh, waybar, …) with chezmoi"
   current_module="dotfiles (chezmoi)"
-  log "Applying dotfiles with chezmoi"
   have chezmoi || sudo pacman -S --needed --noconfirm chezmoi
   chezmoi init --apply --source "$REPO_ROOT/home" \
     || die "chezmoi failed — packages installed but dotfiles NOT deployed. Re-run: chezmoi init --apply --source $REPO_ROOT/home"
   current_module=""
 
+  step "Final checks" "verifying every app launcher resolves to a package"
   current_module="verify-spawns"
   verify_spawns "$REPO_ROOT/home/dot_config/niri/config.kdl"
   current_module=""

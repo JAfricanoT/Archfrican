@@ -3,10 +3,10 @@
 # its dotfiles. Swap this file + packages/niri-desktop.txt to change compositor.
 source "$(dirname "$0")/../lib/common.sh"
 
-log "Installing niri desktop + Wayland utilities"
+substep "installing the niri desktop + Wayland utilities"
 pac_install_file "$REPO_ROOT/packages/niri-desktop.txt"
 
-log "Configuring greetd to launch niri"
+substep "configuring greetd (login manager) to launch niri"
 write_system_file /etc/greetd/config.toml <<'TOML'
 [terminal]
 vt = 1
@@ -18,12 +18,13 @@ enable_service greetd.service
 
 # user audio services (socket-activated). Enable linger so they can run without a
 # graphical login; resilient_enable_user skips any unit absent on this pipewire build.
+substep "enabling audio (pipewire + wireplumber)"
 best_effort sudo loginctl enable-linger "$USER"
 resilient_enable_user pipewire.socket
 resilient_enable_user pipewire-pulse.socket
 resilient_enable_user wireplumber.service
 
-log "keyd: making ⌘ feel like macOS for app shortcuts (copy/paste/etc.)"
+substep "configuring keyd (⌘+letter → Ctrl, macOS muscle memory)"
 write_system_file /etc/keyd/default.conf <<'KEYD'
 # Archfrican keyd map. The ⌘ (meta) key stays the niri WM modifier for non-letter and
 # Shift combos, but plain ⌘+<letter> editing shortcuts are translated to Ctrl so
@@ -50,6 +51,7 @@ meta.q = C-q
 meta.l = C-l
 meta.r = C-r
 KEYD
+substep "enabling keyd"
 sudo systemctl enable keyd.service
 
 ok "niri-desktop module done"

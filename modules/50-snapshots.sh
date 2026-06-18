@@ -2,7 +2,7 @@
 # Phase 2, step 5: make Btrfs snapshots actually save you.
 source "$(dirname "$0")/../lib/common.sh"
 
-log "Configuring snapper for / (root)"
+substep "creating the snapper root config (Btrfs snapshots)"
 
 # Exact-field, format-stable check (snapper list-configs is a bordered table, so
 # a '^root' anchor neither matches the padded data row nor avoids matching
@@ -42,9 +42,11 @@ fi
 # snap-pac snapshots every pacman transaction; grub-btrfsd (the inotify daemon,
 # NOT the obsolete grub-btrfs.path) regenerates the boot menu on snapshot changes.
 # resilient_enable: one missing/renamed unit can't abort the whole safety net.
+substep "enabling grub-btrfsd (boot-menu rollback entries) + snapper timers"
 resilient_enable grub-btrfsd.service
 resilient_enable snapper-timeline.timer
 resilient_enable snapper-cleanup.timer
+substep "regenerating the GRUB config (adds the snapshots submenu)"
 sudo grub-mkconfig -o /boot/grub/grub.cfg
 
 # Post-condition: claim success only if the config is real and usable.

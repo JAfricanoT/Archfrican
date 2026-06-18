@@ -10,6 +10,25 @@ ok()    { printf '%s  ✓%s %s\n' "$c_green" "$c_reset" "$*"; }
 warn()  { printf '%s  !%s %s\n' "$c_yellow" "$c_reset" "$*"; }
 die()   { printf '%s  ✗%s %s\n' "$c_red" "$c_reset" "$*" >&2; exit 1; }
 
+# ---- progress narration ---------------------------------------------------
+# step()    = a prominent [N/TOTAL] phase banner (owned by the orchestrator).
+# substep() = one action inside a phase, so nothing happens silently.
+# UI_BACKEND is exported by lib/ui.sh, so module subprocesses inherit it.
+STEP_N=0; STEP_TOTAL=0
+step_total() { STEP_TOTAL="$1"; STEP_N=0; }
+step() {                          # step "title" ["detail"]
+  STEP_N=$((STEP_N + 1))
+  if [ "${UI_BACKEND:-plain}" = gum ]; then
+    gum style --border rounded --border-foreground 39 --padding "0 1" \
+      "$(printf '[%d/%d]  %s' "$STEP_N" "$STEP_TOTAL" "$1")" >&2
+  else
+    printf '\n\e[1;36m╭─ [%d/%d] %s\e[0m\n' "$STEP_N" "$STEP_TOTAL" "$1" >&2
+  fi
+  [ -n "${2:-}" ] && printf '   \e[2m%s\e[0m\n' "$2" >&2
+  return 0
+}
+substep() { printf '\e[36m   → %s\e[0m\n' "$*" >&2; }
+
 # ---- failure-intent vocabulary -------------------------------------------
 # One mechanism per concern, so no module has to re-derive set -e short-circuit
 # rules (the thing 30-dev's rustup line got wrong). Policy:
@@ -61,6 +80,7 @@ pac_install() {            # pac_install pkg1 pkg2 ...
     pacman -Q "$p" &>/dev/null || missing+=("$p")
   done
   [ ${#missing[@]} -eq 0 ] && { ok "already present: $*"; return; }
+  substep "installing ${#missing[@]} package(s): ${missing[*]}"
   sudo pacman -S --needed --noconfirm "${missing[@]}"
 }
 
@@ -70,6 +90,7 @@ aur_install() {           # aur_install pkg1 pkg2 ...
     pacman -Q "$p" &>/dev/null || missing+=("$p")
   done
   [ ${#missing[@]} -eq 0 ] && { ok "already present (aur): $*"; return; }
+  substep "building/installing ${#missing[@]} AUR package(s): ${missing[*]}"
   paru -S --needed --noconfirm "${missing[@]}"
 }
 

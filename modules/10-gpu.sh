@@ -4,22 +4,26 @@ source "$(dirname "$0")/../lib/common.sh"
 source "$REPO_ROOT/lib/detect-gpu.sh"
 
 gpu="${1:-$(detect_gpu)}"
-log "Detected GPU profile: $gpu"
+substep "GPU profile: $gpu"
 
 case "$gpu" in
   amd)
+    substep "installing the AMD open stack (mesa + vulkan-radeon)"
     pac_install mesa vulkan-radeon libva-mesa-driver vulkan-icd-loader
     ok "AMD: open stack, zero extra config — the most reliable path."
     ;;
   intel)
+    substep "installing the Intel open stack (mesa + vulkan-intel)"
     pac_install mesa vulkan-intel intel-media-driver vulkan-icd-loader
     ok "Intel: open stack, zero extra config."
     ;;
   hybrid-amd-intel)
+    substep "installing both open stacks (AMD dGPU + Intel iGPU)"
     pac_install mesa vulkan-radeon vulkan-intel libva-mesa-driver intel-media-driver vulkan-icd-loader
     ok "AMD + Intel: both open stacks installed."
     ;;
   nvidia|hybrid-intel-nvidia|hybrid-amd-nvidia)
+    substep "installing NVIDIA drivers (nvidia-open-dkms + utils + egl-wayland)"
     pac_install nvidia-open-dkms nvidia-utils egl-wayland \
                 vulkan-icd-loader libva-nvidia-driver
     [[ "$gpu" == hybrid-intel-nvidia ]] && pac_install mesa vulkan-intel
@@ -30,27 +34,34 @@ case "$gpu" in
     SENTINEL=/var/lib/archfrican/nvidia-kms.done
     need_build=0; [ -f "$SENTINEL" ] || need_build=1
     if ! grep -q 'nvidia_drm.modeset=1' /etc/default/grub; then
+      substep "writing NVIDIA early-KMS kernel params to /etc/default/grub"
       sudo sed -i 's/\(GRUB_CMDLINE_LINUX_DEFAULT="[^"]*\)"/\1 nvidia_drm.modeset=1 nvidia_drm.fbdev=1"/' /etc/default/grub
       grep -q 'nvidia_drm.modeset=1' /etc/default/grub \
         || die "could not add nvidia_drm.modeset to /etc/default/grub (single-quoted/absent GRUB_CMDLINE?) — edit by hand"
       need_build=1
     fi
     if ! grep -qE '^MODULES=\(.*\bnvidia_drm\b' /etc/mkinitcpio.conf; then
+      substep "adding the nvidia modules to the initramfs (/etc/mkinitcpio.conf)"
       sudo sed -i 's/^MODULES=(\(.*\))/MODULES=(\1 nvidia nvidia_modeset nvidia_uvm nvidia_drm)/' /etc/mkinitcpio.conf
       grep -qE '^MODULES=\(.*\bnvidia_drm\b' /etc/mkinitcpio.conf \
         || die "could not add nvidia modules to MODULES in /etc/mkinitcpio.conf (multi-line MODULES?) — edit by hand"
       need_build=1
     fi
     if [ "$need_build" = 1 ]; then
+      substep "regenerating GRUB + initramfs (this takes a moment)"
       sudo grub-mkconfig -o /boot/grub/grub.cfg
       sudo mkinitcpio -P
       sudo install -d "$(dirname "$SENTINEL")"; sudo touch "$SENTINEL"
     fi
+    substep "enabling suspend/resume/hibernate services"
     resilient_enable nvidia-suspend.service
     resilient_enable nvidia-resume.service
     resilient_enable nvidia-hibernate.service
     warn "NVIDIA configured. Reboot before first niri launch."
     ;;
-  *) warn "Unknown GPU — installing generic mesa + software Vulkan." ; pac_install mesa vulkan-swrast vulkan-icd-loader ;;
+  *)
+    substep "unknown GPU — installing generic mesa + software Vulkan (VM-safe)"
+    pac_install mesa vulkan-swrast vulkan-icd-loader
+    ;;
 esac
 ok "gpu module done"
