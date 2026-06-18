@@ -97,10 +97,41 @@ jobs:
           set -euo pipefail
           pacman -Sy --noconfirm
           rc=0
-          for f in packages/base.txt packages/dev.txt packages/niri-desktop.txt packages/theming.txt; do
+          # Glob every pacman list (skip aur.txt, as the runtime preflight_pkgs does) so new
+          # lists — security.txt, multiboot.txt — are covered automatically.
+          for f in packages/*.txt; do
+            [ "$(basename "$f")" = aur.txt ] && continue
             mapfile -t pkgs < <(sed 's/#.*//' "$f" | awk 'NF')
             echo "::group::$f"
             pacman -Sp --print-format '%n' "${pkgs[@]}" || rc=1
             echo "::endgroup::"
           done
           [ $rc -eq 0 ] || { echo "::error::a package in a pacman list does not resolve (AUR? typo?)"; exit 1; }
+
+  grub-helper:
+    runs-on: ubuntu-latest        # pure bash — lib/grub.sh must be idempotent + verify-or-die
+    steps:
+      - uses: actions/checkout@v4
+      - name: grub helper is idempotent and dies on unparseable input
+        run: |
+          set -uo pipefail
+          source lib/common.sh
+          write_system_file() { cat > "$1"; }          # stub the privileged writer
+          set +e
+          fix="$(mktemp)"; GRUB_DEFAULT="$fix"; source lib/grub.sh; GRUB_DEFAULT="$fix"
+          # idempotency: twice-run byte-identical, no false "changed", single token occurrence
+          printf 'GRUB_CMDLINE_LINUX_DEFAULT="loglevel=3 quiet"\n' > "$fix"
+          GRUB_CHANGED=0; append_grub_cmdline nvidia_drm.modeset=1; a="$(cat "$fix")"
+          GRUB_CHANGED=0; append_grub_cmdline nvidia_drm.modeset=1; b="$(cat "$fix")"
+          [ "$a" = "$b" ] || { echo "::error::append_grub_cmdline not idempotent"; exit 1; }
+          [ "$GRUB_CHANGED" = 0 ] || { echo "::error::reported a change on the 2nd run"; exit 1; }
+          [ "$(grep -c 'nvidia_drm.modeset=1' "$fix")" = 1 ] || { echo "::error::duplicate token"; exit 1; }
+          set_grub_key GRUB_DISABLE_OS_PROBER false
+          set_grub_key GRUB_DISABLE_OS_PROBER false
+          [ "$(grep -c '^GRUB_DISABLE_OS_PROBER=false' "$fix")" = 1 ] || { echo "::error::set_grub_key duplicated"; exit 1; }
+          # verify-or-die: single-quoted + absent CMDLINE must fail, not silently no-op
+          printf "GRUB_CMDLINE_LINUX_DEFAULT='x'\n" > "$fix"
+          ( append_grub_cmdline quiet ) 2>/dev/null && { echo "::error::did not die on single-quoted"; exit 1; } || true
+          printf 'GRUB_TIMEOUT=5\n' > "$fix"
+          ( append_grub_cmdline quiet ) 2>/dev/null && { echo "::error::did not die on absent CMDLINE"; exit 1; } || true
+          echo "grub-helper: idempotent + verify-or-die OK"
