@@ -1,0 +1,4 @@
+archinstall/user_credentials.json
+*.log
+*.zip
+.DS_Store
