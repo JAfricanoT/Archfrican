@@ -19,7 +19,7 @@ on_err() {
 module_label() { case "$1" in
   00-base) echo "Base system";; 10-gpu) echo "GPU drivers";; 20-niri-desktop) echo "Desktop (niri)";;
   30-dev) echo "Dev toolchains";; 40-theming) echo "Theming";; 50-snapshots) echo "Snapshots";;
-  60-security) echo "Security";;
+  55-multiboot) echo "Multi-boot";; 60-security) echo "Security";;
   *) echo "$1";; esac; }
 module_desc() { case "$1" in
   00-base) echo "CachyOS repos, dual kernel (cachyos + lts), paru";;
@@ -28,6 +28,7 @@ module_desc() { case "$1" in
   30-dev) echo "editors, language servers, version managers, docker";;
   40-theming) echo "fonts, macOS GTK theme, hot-swap switcher";;
   50-snapshots) echo "snapper + grub-btrfs rollback";;
+  55-multiboot) echo "os-prober: detect another installed OS (GRUB)";;
   60-security) echo "firewall, dev-safe hardening, screen lock, FIDO2";;
   *) echo "";; esac; }
 
@@ -53,7 +54,7 @@ run_phase2() {                # run_phase2 [single-module]
   local DETECTED_GPU; DETECTED_GPU="$(detect_gpu)"
 
   # ---- defaults from live system (also the non-interactive fallback) --------
-  local HOST USER_NAME USER_PW TZ LOCALE XKB THEME GPU
+  local HOST USER_NAME USER_PW TZ LOCALE XKB THEME GPU MULTIBOOT=no
   HOST="$(hostnamectl --static 2>/dev/null || echo archfrican)"
   USER_NAME="$USER"; USER_PW=""
   TZ="$(timedatectl show -p Timezone --value 2>/dev/null || echo America/New_York)"
@@ -76,6 +77,11 @@ run_phase2() {                # run_phase2 [single-module]
     THEME="$(ui_choose 'Initial theme' macos-dark macos-light catppuccin-mocha tokyo-night)"
     GPU="$(ui_choose "GPU profile (detected: $DETECTED_GPU)" \
            "$DETECTED_GPU" amd intel nvidia hybrid-intel-nvidia hybrid-amd-nvidia hybrid-amd-intel)"
+    # Multi-boot (opt-in, default NO): enable os-prober so an already-installed OS shows up
+    # in the GRUB menu. Keeps the snapshot rollback submenu. Detects, never repartitions.
+    if ui_confirm_default_no "Share this machine with another OS already installed (multi-boot)?"; then
+      MULTIBOOT=yes
+    fi
     # FIDO2 physical-key mode (opt-in; needs a plugged key). Enroll the touch(es) now;
     # modules/60-security.sh wires PAM. Non-exclusive: your password ALWAYS still works.
     if ui_confirm "Enable a hardware security key? (touch = sudo/login; password still works)"; then
@@ -94,7 +100,7 @@ run_phase2() {                # run_phase2 [single-module]
     HOST="${ARCHFRICAN_HOST:-$HOST}";   USER_NAME="${ARCHFRICAN_USER:-$USER_NAME}"
     TZ="${ARCHFRICAN_TZ:-$TZ}";         LOCALE="${ARCHFRICAN_LOCALE:-$LOCALE}"
     XKB="${ARCHFRICAN_XKB:-$XKB}";      THEME="${ARCHFRICAN_THEME:-$THEME}"
-    GPU="${ARCHFRICAN_GPU:-$GPU}"
+    GPU="${ARCHFRICAN_GPU:-$GPU}";       MULTIBOOT="${ARCHFRICAN_MULTIBOOT:-no}"
     log "resume: loaded wizard answers (host=$HOST user=$USER_NAME gpu=$GPU theme=$THEME)"
   else
     warn "non-interactive — using detected defaults (host=$HOST user=$USER_NAME gpu=$GPU theme=$THEME)"
@@ -102,7 +108,7 @@ run_phase2() {                # run_phase2 [single-module]
   log "GPU profile: $GPU"
 
   ui_header "Installing Archfrican"
-  step_total 10
+  step_total 11
 
   # ---- apply host/user BEFORE the modules (idempotent) ----------------------
   step "Applying your choices" "hostname · user · timezone · locale · keyboard"
@@ -124,6 +130,7 @@ run_phase2() {                # run_phase2 [single-module]
   run_module 30-dev
   run_module 40-theming
   run_module 50-snapshots
+  run_module 55-multiboot "$MULTIBOOT"
   run_module 60-security
 
   step "Dotfiles" "deploying your config (niri, zsh, waybar, …) with chezmoi"

@@ -77,16 +77,16 @@ _wipe_creds() {                     # _wipe_creds <creds-file> <workdir>
 
 # The non-secret wizard answers the first-boot resume needs (no password — that
 # was set during archinstall; the resume re-applies everything else idempotently).
-gen_answers() {                     # gen_answers <host> <user> <tz> <locale> <xkb> <theme> <gpu>
-  printf 'ARCHFRICAN_HOST=%q\nARCHFRICAN_USER=%q\nARCHFRICAN_TZ=%q\nARCHFRICAN_LOCALE=%q\nARCHFRICAN_XKB=%q\nARCHFRICAN_THEME=%q\nARCHFRICAN_GPU=%q\n' \
-    "$1" "$2" "$3" "$4" "$5" "$6" "$7"
+gen_answers() {                     # gen_answers <host> <user> <tz> <locale> <xkb> <theme> <gpu> <multiboot>
+  printf 'ARCHFRICAN_HOST=%q\nARCHFRICAN_USER=%q\nARCHFRICAN_TZ=%q\nARCHFRICAN_LOCALE=%q\nARCHFRICAN_XKB=%q\nARCHFRICAN_THEME=%q\nARCHFRICAN_GPU=%q\nARCHFRICAN_MULTIBOOT=%q\n' \
+    "$1" "$2" "$3" "$4" "$5" "$6" "$7" "$8"
 }
 
 # Install the self-cleaning first-boot resume into the freshly-installed target.
 # Runs ONLY on the armed (real-install) path, after archinstall succeeds. Requires
 # the target mounted at /mnt (a-confirmar #5: whether --silent leaves it mounted).
-inject_resume() {                   # inject_resume <user> <host> <tz> <locale> <xkb> <theme> <gpu>
-  local user="$1" host="$2" tz="$3" loc="$4" xkb="$5" theme="$6" gpu="$7"
+inject_resume() {                   # inject_resume <user> <host> <tz> <locale> <xkb> <theme> <gpu> <multiboot>
+  local user="$1" host="$2" tz="$3" loc="$4" xkb="$5" theme="$6" gpu="$7" multiboot="${8:-no}"
   local src; src="$(clone_dest)"    # the ISO self-clone, e.g. /root/.archfrican
   mountpoint -q /mnt || die "target not mounted at /mnt — cannot wire the resume (see docs/STAGE2-VALIDATION.md a-confirmar #5)"
   local home="/mnt/home/$user"
@@ -96,7 +96,7 @@ inject_resume() {                   # inject_resume <user> <host> <tz> <locale> 
   rm -rf "$home/.archfrican"; cp -a "$src" "$home/.archfrican"
 
   substep "staging the wizard answers + theme/keyboard for the headless resume"
-  gen_answers "$host" "$user" "$tz" "$loc" "$xkb" "$theme" "$gpu" > "$home/.archfrican-answers"
+  gen_answers "$host" "$user" "$tz" "$loc" "$xkb" "$theme" "$gpu" "$multiboot" > "$home/.archfrican-answers"
   install -d -m 0700 "$home/.config"
   printf '%s\n' "$theme" > "$home/.config/.archfrican-theme"
   printf '%s\n' "$xkb"   > "$home/.config/.archfrican-kbd"
@@ -178,7 +178,9 @@ run_phase1() {
 
   # ---- wire the post-reboot finish + reboot ---------------------------------
   step "Wiring the post-reboot finish" "first-boot service that adds the niri desktop + dev layer"
-  inject_resume "$USER_NAME" "$HOST" "$TZ" "$LOCALE" "$XKB" "$THEME" "$GPU"
+  # Multi-boot is NOT offered on the ISO path — that path wipes $DISK, so "multi-boot" there
+  # would be misleading (use the booted-path toggle, or ./install.sh 55-multiboot, afterward).
+  inject_resume "$USER_NAME" "$HOST" "$TZ" "$LOCALE" "$XKB" "$THEME" "$GPU" no
 
   step "Reboot" "into your new encrypted system; the rest installs automatically on first boot"
   ok "Base install complete. Hostname $HOST · user $USER_NAME (sudo) · GPU $GPU · theme $THEME."
