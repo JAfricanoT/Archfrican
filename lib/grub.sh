@@ -33,7 +33,13 @@ append_grub_cmdline() {            # append_grub_cmdline TOKEN
     || die "append_grub_cmdline: GRUB_CMDLINE_LINUX_DEFAULT not found or not double-quoted in $GRUB_DEFAULT — edit by hand"
   [ "$hit" = 1 ] || return 0                             # nothing to do, no write
   printf '%s\n' "${out[@]}" | write_system_file "$GRUB_DEFAULT" 0644
-  grep -qE "GRUB_CMDLINE_LINUX_DEFAULT=\"([^\"]* )?${token//./\\.}( [^\"]*)?\"" "$GRUB_DEFAULT" \
+  # Verify by re-reading the written value + a fixed-string membership test (regex-metachar
+  # safe, unlike a token-in-regex), so a failed write can't slip through.
+  local check=""
+  while IFS= read -r line || [ -n "$line" ]; do
+    [[ "$line" =~ $re ]] && { check="${BASH_REMATCH[1]}"; break; }
+  done < "$GRUB_DEFAULT"
+  [[ " $check " == *" $token "* ]] \
     || die "append_grub_cmdline: failed to add '$token' to $GRUB_DEFAULT — edit by hand"
   GRUB_CHANGED=1
 }
@@ -44,13 +50,16 @@ set_grub_key() {                   # set_grub_key KEY VALUE
   local key="$1" val="$2" line out=() found=0
   local want="$key=$val" re="^[#[:space:]]*${key}="
   while IFS= read -r line || [ -n "$line" ]; do
-    if [ "$found" = 0 ] && [[ "$line" =~ $re ]]; then
-      found=1; out+=("$want")                            # replace/uncomment first match
+    if [[ "$line" =~ $re ]]; then
+      [ "$found" = 1 ] && continue                       # drop duplicate/commented assignments
+      found=1; out+=("$want")                            # first match -> our canonical line
     else
       out+=("$line")
     fi
   done < "$GRUB_DEFAULT"
   [ "$found" = 1 ] || out+=("$want")                     # absent -> append
+  # NB: collapsing ALL matches to ONE line is deliberate — GRUB sources the LAST assignment,
+  # so leaving a later duplicate/stale value would silently win over ours.
   printf '%s\n' "${out[@]}" | write_system_file "$GRUB_DEFAULT" 0644
   grep -qxF "$want" "$GRUB_DEFAULT" \
     || die "set_grub_key: failed to set $key=$val in $GRUB_DEFAULT — edit by hand"

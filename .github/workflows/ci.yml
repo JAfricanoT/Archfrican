@@ -129,6 +129,12 @@ jobs:
           set_grub_key GRUB_DISABLE_OS_PROBER false
           set_grub_key GRUB_DISABLE_OS_PROBER false
           [ "$(grep -c '^GRUB_DISABLE_OS_PROBER=false' "$fix")" = 1 ] || { echo "::error::set_grub_key duplicated"; exit 1; }
+          # regression: a commented stock line above a live one must collapse to ONE canonical line
+          # (GRUB honors the LAST assignment — a stale duplicate would silently win).
+          printf '#GRUB_DISABLE_OS_PROBER=false\nGRUB_DISABLE_OS_PROBER=true\n' > "$fix"
+          set_grub_key GRUB_DISABLE_OS_PROBER false
+          { [ "$(grep -c GRUB_DISABLE_OS_PROBER "$fix")" = 1 ] && grep -qx 'GRUB_DISABLE_OS_PROBER=false' "$fix" && ! grep -q '=true' "$fix"; } \
+            || { echo "::error::set_grub_key left a stale duplicate (GRUB honors the last line)"; exit 1; }
           # verify-or-die: single-quoted + absent CMDLINE must fail, not silently no-op
           printf "GRUB_CMDLINE_LINUX_DEFAULT='x'\n" > "$fix"
           ( append_grub_cmdline quiet ) 2>/dev/null && { echo "::error::did not die on single-quoted"; exit 1; } || true
