@@ -27,3 +27,6 @@ xdg-desktop-portal-gnome   # screencast portal that works well with niri
 polkit-gnome
 gnome-keyring
 network-manager-applet
+networkmanager             # the network DAEMON — the applet above is inert without it
+nm-connection-editor       # GUI for VPNs / advanced connections
+pavucontrol                # audio mixer (waybar's volume click already targets it)

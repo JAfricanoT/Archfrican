@@ -16,6 +16,11 @@ user = "greeter"
 TOML
 enable_service greetd.service
 
+# Network: enable the NetworkManager DAEMON (the applet in packages/ is inert without it).
+# resilient_enable (not --now) so we never drop the install's own connection mid-run.
+substep "enabling NetworkManager (the network daemon)"
+resilient_enable NetworkManager.service
+
 # user audio services (socket-activated). Enable linger so they can run without a
 # graphical login; resilient_enable_user skips any unit absent on this pipewire build.
 substep "enabling audio (pipewire + wireplumber)"
