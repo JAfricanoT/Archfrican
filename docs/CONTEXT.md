@@ -108,3 +108,10 @@ niri auto-reload por marcadores `// THEME-START/END` en config.kdl). fuzzel usa 
 - Hyprland 0.55 (mayo 2026) migró de hyprlang a **Lua** (cambio rompedor) — razón de descartarlo.
 - Hyprland tiene layout `scrolling` nativo desde 0.54 (alternativa descartada por preferir niri).
 - Reliability de NVIDIA en Wayland mejoró mucho en niri desde 2025; aún requiere cuidado (modeset, resume).
+
+## 9. Licencia y comunidad
+
+**Código disponible, no comercial** bajo [PolyForm Noncommercial 1.0.0](../LICENSE) — cualquiera puede usar,
+modificar y compartir con fines no comerciales; no se concede uso comercial (no es "open source" de la OSI).
+Guías de contribución (bilingües): [VISION](../VISION.md) · [CONTRIBUTING](../CONTRIBUTING.md) ·
+[GOVERNANCE](../GOVERNANCE.md) · [CODE_OF_CONDUCT](../CODE_OF_CONDUCT.md) · [SECURITY](../SECURITY.md).

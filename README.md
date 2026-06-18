@@ -1,5 +1,11 @@
 # Archfrican
 
+[![CI](https://github.com/JAfricanoT/Archfrican/actions/workflows/ci.yml/badge.svg)](https://github.com/JAfricanoT/Archfrican/actions/workflows/ci.yml)
+[![License: PolyForm-NC-1.0.0](https://img.shields.io/badge/license-PolyForm--NC--1.0.0-orange)](LICENSE)
+[![Code of Conduct](https://img.shields.io/badge/Code%20of%20Conduct-Contributor%20Covenant%202.1-blueviolet)](CODE_OF_CONDUCT.md)
+
+> **Source-available, noncommercial** — not an OSI "open source" license. See [License](#license--licencia).
+
 A personal, fully-customizable Arch installer in the spirit of Omarchy — but built
 around **niri** (scrolling tiling), a **macOS-friendly** UX for people migrating
 off the Mac, and a hard requirement that **nothing explodes**.
@@ -55,6 +61,22 @@ run one module with `~/.archfrican/install.sh 30-dev`.
 > Full install straight from the Arch ISO (disk + base + desktop in one shot) is coming in a
 > VM-validated release — for now use the base-Arch one-liner above.
 
+### Multi-boot (dual-boot)
+
+Off by default. The wizard asks *"Share this machine with another OS already installed (multi-boot)?"* —
+say yes and Archfrican enables GRUB's `os-prober` so an OS that's **already installed** (Windows or another
+Linux, usually on a **second disk**) shows up in the GRUB menu — **without** losing the snapshot-rollback
+submenu. Enable it later with `~/.archfrican/install.sh 55-multiboot`.
+
+- It only **detects** an OS that's already there — it does **not** install-alongside / repartition / shrink.
+- `os-prober` mounts other partitions as root, so it's opt-in (Arch disables it by default).
+- A BitLocker-locked or hibernated/fast-startup Windows may not be detected — fully shut it down first.
+
+*ES — Multi-boot (apagado por defecto):* el asistente pregunta si compartes el equipo con otro SO ya
+instalado; al activarlo, `os-prober` lo añade al menú de GRUB **sin** perder el submenú de rollback por
+snapshots. Solo **detecta** un SO ya presente (no instala-junto-a ni reparticiona). Un Windows con BitLocker
+o hibernado puede no detectarse — apágalo del todo primero.
+
 ## Theming
 
 ```bash
@@ -83,8 +105,8 @@ and **Shift** combos, so there's no collision:
 archfrican/
 ├── install.sh            # one entry (curl|sh): self-clone + detect + preflight + wizard + dispatch
 ├── archinstall/          # phase-1 base config (ISO)
-├── lib/                  # common, detect-gpu, env, ui, preflight, host-config, phase2
-├── modules/              # 00-base 10-gpu 20-niri-desktop 30-dev 40-theming 50-snapshots
+├── lib/                  # common, ui, grub, detect-gpu, env, preflight, host-config, security, fido2, health, disk, phase1/2
+├── modules/              # 00-base 10-gpu 20-niri-desktop 30-dev 40-theming 50-snapshots 55-multiboot 60-security
 ├── packages/             # per-layer package lists (swap a list, not the script)
 ├── themes/               # palettes (one schema, many themes)
 ├── templates/            # per-app theme templates (pure-sed ${VAR})
@@ -105,3 +127,20 @@ Everything else (dev, theming, shell, GPU) is untouched.
   committing the disk layout.
 - NVIDIA on Wayland: reboot after phase 2 before the first niri session.
 - WhiteSur on some Wayland apps can be imperfect; `nwg-look` lets you tweak.
+
+## Community / Contributing
+
+Contributions are welcome under the project's [noncommercial license](LICENSE). Docs are bilingual (EN/ES):
+[Vision](VISION.md) · [Contributing](CONTRIBUTING.md) · [Governance](GOVERNANCE.md) ·
+[Code of Conduct](CODE_OF_CONDUCT.md) · [Security policy](SECURITY.md).
+
+## License / Licencia
+
+**Source-available, noncommercial.** Archfrican is licensed under the
+[PolyForm Noncommercial License 1.0.0](LICENSE): anyone may use, modify, and share it for **noncommercial**
+purposes, but **commercial use is not granted**. This is **not** an OSI "open source" license. Contributions
+are accepted under the same license (inbound = outbound).
+
+**Código disponible, no comercial.** Bajo [PolyForm Noncommercial 1.0.0](LICENSE): cualquiera puede usarlo,
+modificarlo y compartirlo con fines **no comerciales**; **no se concede uso comercial**. No es una licencia
+"open source" de la OSI.

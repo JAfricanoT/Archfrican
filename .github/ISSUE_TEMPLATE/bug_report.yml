@@ -1,0 +1,66 @@
+name: Bug report / Reporte de error
+description: Report something that broke. / Reporta algo que se rompió.
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please run `archfrican-doctor` and paste its output below.
+        Por favor ejecuta `archfrican-doctor` y pega su salida abajo.
+  - type: dropdown
+    id: stage
+    attributes:
+      label: Install stage / Etapa
+      options:
+        - Booted base (run_phase2)
+        - Arch ISO full install (run_phase1)
+        - Day-to-day after install / Uso diario
+    validations:
+      required: true
+  - type: dropdown
+    id: module
+    attributes:
+      label: Module / Módulo (if known / si lo sabes)
+      options:
+        - "unknown / desconocido"
+        - 00-base
+        - 10-gpu
+        - 20-niri-desktop
+        - 30-dev
+        - 40-theming
+        - 50-snapshots
+        - 55-multiboot
+        - 60-security
+  - type: input
+    id: gpu
+    attributes:
+      label: GPU profile / Perfil de GPU
+      description: amd / intel / nvidia / hybrid-…
+  - type: dropdown
+    id: kernel
+    attributes:
+      label: Running kernel / Kernel en uso
+      options:
+        - linux-cachyos
+        - linux-lts
+        - other / otro
+  - type: textarea
+    id: doctor
+    attributes:
+      label: archfrican-doctor output / salida de archfrican-doctor
+      render: text
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened / Qué pasó
+      description: Expected vs actual + steps to reproduce; mention .done/FORCE state if relevant. / Esperado vs real + pasos para reproducir.
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks / Verificaciones
+      options:
+        - label: I searched existing issues. / Busqué en los issues existentes.
+        - label: This is in scope (see VISION.md). / Está dentro del alcance (ver VISION.md).

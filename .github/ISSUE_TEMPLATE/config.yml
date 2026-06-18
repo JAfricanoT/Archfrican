@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability / Vulnerabilidad de seguridad
+    url: https://github.com/JAfricanoT/Archfrican/security/advisories/new
+    about: Report privately — do NOT open a public issue. / Repórtalo en privado — NO abras un issue público.
+  - name: Docs (architecture, validation, recovery) / Documentación
+    url: https://github.com/JAfricanoT/Archfrican/tree/main/docs
+    about: CONTEXT, VALIDATION, STAGE2-VALIDATION, FIDO2-RECOVERY, audit.

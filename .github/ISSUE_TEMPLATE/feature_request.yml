@@ -1,0 +1,27 @@
+name: Feature request / Solicitud de función
+description: Suggest an improvement. / Sugiere una mejora.
+title: "[feat] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please check the VISION.md non-goals first (GRUB-only, not a general distro, source-available/noncommercial…).
+        Revisa primero los no-objetivos de VISION.md (solo GRUB, no es una distro general, código disponible/no comercial…).
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / Problema
+      description: What are you trying to do that's hard today? / ¿Qué intentas hacer que hoy es difícil?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal / Propuesta
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Scope / Alcance
+      options:
+        - label: This fits the VISION (GRUB-only, modular, reliability-first). / Encaja con la VISIÓN.
