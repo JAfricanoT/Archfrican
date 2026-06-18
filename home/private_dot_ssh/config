@@ -1,0 +1,20 @@
+# Archfrican SSH client defaults (chezmoi deploys this as ~/.ssh/config, mode 0600).
+# Safe-by-default; override per-host with your own `Host <name>` blocks ABOVE this one.
+Host *
+    # Only offer the key(s) you name for a host — don't spray every agent key at servers.
+    IdentitiesOnly yes
+    # Add a key to the agent on first use, but ask before each use of it.
+    AddKeysToAgent confirm
+    # Never forward your agent by default (a compromised host could use your keys).
+    ForwardAgent no
+    # Privacy: hash hostnames in known_hosts.
+    HashKnownHosts yes
+    # Prompt (don't auto-accept) an unknown host key.
+    StrictHostKeyChecking ask
+    # Keep long-lived sessions alive.
+    ServerAliveInterval 60
+    ServerAliveCountMax 3
+    # Reuse one connection for speed (multiplexing).
+    ControlMaster auto
+    ControlPath ~/.ssh/cm-%r@%h:%p
+    ControlPersist 10m

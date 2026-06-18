@@ -102,6 +102,32 @@ HandleLidSwitchExternalPower=suspend
 HandleLidSwitchDocked=ignore
 LOGIND
 
+# ---- faillock: lock an account after repeated failures (tuned; never locks root) ----
+# pam_faillock already ships in Arch's system-auth — this just tunes its policy file.
+substep "tuning PAM faillock (deny=5, auto-unlock after 10 min)"
+write_system_file /etc/security/faillock.conf 0644 <<'FAILLOCK'
+# Archfrican faillock policy. No even_deny_root (root is disabled here anyway). If you ever
+# lock yourself out: boot linux-lts / a Snapper snapshot to a root shell, then
+#   faillock --user <youruser> --reset
+deny = 5
+fail_interval = 900
+unlock_time = 600
+FAILLOCK
+
+# ---- CPU microcode (security/stability fixes, loaded early by the initramfs) --
+ucode_pkg=""
+case "$(grep -m1 -oE 'GenuineIntel|AuthenticAMD' /proc/cpuinfo 2>/dev/null)" in
+  GenuineIntel) ucode_pkg=intel-ucode;;
+  AuthenticAMD) ucode_pkg=amd-ucode;;
+esac
+if [ -n "$ucode_pkg" ] && ! pacman -Q "$ucode_pkg" &>/dev/null; then
+  substep "installing $ucode_pkg (CPU microcode) + regenerating GRUB"
+  pac_install "$ucode_pkg"
+  best_effort sudo grub-mkconfig -o /boot/grub/grub.cfg   # GRUB auto-detects the ucode image
+else
+  ok "CPU microcode present (or unknown vendor) — skipping"
+fi
+
 # ---- FIDO2 PAM (only when a key was enrolled in the wizard) -----------------
 # Marker written by run_phase2's enroll step; absent on a normal/headless run.
 if [ -f "$HOME/.config/.archfrican-fido2" ]; then
