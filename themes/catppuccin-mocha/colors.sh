@@ -1,0 +1,7 @@
+export THEME_NAME="catppuccin-mocha"
+export GTK_SCHEME="prefer-dark"; export GTK_THEME="WhiteSur-Dark"; export ICON_THEME="WhiteSur-dark"
+export BG="#1e1e2e"  BG_ALT="#181825"  BG_DIM="#313244"
+export FG="#cdd6f4"  FG_DIM="#a6adc8"
+export ACCENT="#89b4fa"  ACCENT2="#94e2d5"
+export RED="#f38ba8" GREEN="#a6e3a1" YELLOW="#f9e2af" BLUE="#89b4fa" MAGENTA="#cba6f7" CYAN="#94e2d5" ORANGE="#fab387"
+export BORDER_ACTIVE="$ACCENT" BORDER_INACTIVE="#313244"

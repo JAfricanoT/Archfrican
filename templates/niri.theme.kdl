@@ -1,0 +1,7 @@
+    // THEME-START (managed by theme-switch)
+    focus-ring {
+        width 2
+        active-color "${BORDER_ACTIVE}"
+        inactive-color "${BORDER_INACTIVE}"
+    }
+    // THEME-END

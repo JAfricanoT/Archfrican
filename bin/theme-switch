@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+# Hot-swap the whole desktop theme (Omarchy-style). Reloads apps live.
+#   theme-switch macos-dark | macos-light | catppuccin-mocha | tokyo-night
+# Dependency-free: pure-bash/sed substitution (no envsubst/gettext needed).
+set -euo pipefail
+# Locate the Archfrican repo assets (themes/ + templates/). The deployed switcher is a
+# symlink into the clone bootstrap.sh made at ~/.archfrican; override with ARCHFRICAN_ROOT.
+ROOT="${ARCHFRICAN_ROOT:-$HOME/.archfrican}"
+[ -d "$ROOT/themes" ] || {
+  echo "theme assets not found under $ROOT" >&2
+  echo "set ARCHFRICAN_ROOT=<archfrican repo dir>, or run bootstrap.sh to clone ~/.archfrican" >&2
+  exit 1; }
+THEME="${1:?usage: theme-switch <theme-name>}"
+PAL="$ROOT/themes/$THEME/colors.sh"
+[ -f "$PAL" ] || { echo "no such theme: $THEME"; echo "available:"; ls "$ROOT/themes"; exit 1; }
+# shellcheck disable=SC1090
+source "$PAL"
+
+# variables a template may reference
+VARS=(BG BG_ALT BG_DIM FG FG_DIM ACCENT ACCENT2 RED GREEN YELLOW BLUE
+      MAGENTA CYAN ORANGE BORDER_ACTIVE BORDER_INACTIVE)
+
+render() {                      # render <template-name> <out-file>
+  local args=() v
+  for v in "${VARS[@]}"; do args+=(-e "s|\${$v}|${!v}|g"); done
+  sed "${args[@]}" < "$ROOT/templates/$1" > "$2"
+}
+
+CFG="$HOME/.config"
+mkdir -p "$CFG"/{ghostty,waybar,fuzzel,mako,niri}
+
+render ghostty.colors      "$CFG/ghostty/colors"
+render waybar.colors.css   "$CFG/waybar/colors.css"
+render fuzzel.colors.ini   "$CFG/fuzzel/colors.ini"
+render mako.colors         "$CFG/mako/colors"
+sed -i 's/=#/=/g' "$CFG/fuzzel/colors.ini"   # fuzzel wants hex without #
+
+# niri: splice the themed border block between markers; niri live-reloads on save
+if [ -f "$CFG/niri/config.kdl" ]; then
+  tmpblk="$(mktemp)"; render niri.theme.kdl "$tmpblk"
+  awk 'NR==FNR{blk=blk $0 ORS; next}
+       /THEME-START/{printf "%s", blk; skip=1; next}
+       /THEME-END/{skip=0; next}
+       !skip{print}' "$tmpblk" "$CFG/niri/config.kdl" > "$CFG/niri/config.kdl.new"
+  mv "$CFG/niri/config.kdl.new" "$CFG/niri/config.kdl"; rm -f "$tmpblk"
+fi
+
+# GTK / cursors / dark-light
+gsettings set org.gnome.desktop.interface color-scheme "$GTK_SCHEME" 2>/dev/null || true
+gsettings set org.gnome.desktop.interface gtk-theme    "$GTK_THEME"  2>/dev/null || true
+gsettings set org.gnome.desktop.interface icon-theme   "$ICON_THEME" 2>/dev/null || true
+
+# live reloads (no logout)
+pkill -SIGUSR2 waybar 2>/dev/null || true
+makoctl reload         2>/dev/null || true
+echo "$THEME" > "$CFG/.archfrican-theme"
+echo "switched to $THEME"
