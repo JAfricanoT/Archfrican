@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# Screen-record toggle (Mod+Shift+R). First press starts wf-recorder (software encode to
+# ~/Videos); second press stops it. GPU encode (VAAPI/NVENC) is a per-machine opt-in —
+# add e.g. `-c h264_vaapi -d /dev/dri/renderD128` here once your GPU is known-good.
+set -euo pipefail
+_notify() { command -v notify-send >/dev/null 2>&1 && notify-send "$@"; }
+
+if pkill -INT -x wf-recorder 2>/dev/null; then
+  _notify "Recording stopped"
+  exit 0
+fi
+out="${XDG_VIDEOS_DIR:-$HOME/Videos}"; mkdir -p "$out"
+file="$out/rec-$(date +%Y%m%d-%H%M%S).mp4"
+_notify "Recording started" "$file"
+exec wf-recorder -f "$file"

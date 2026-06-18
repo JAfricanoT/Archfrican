@@ -5,13 +5,16 @@
   "spacing": 6,
   "modules-left": ["niri/workspaces", "niri/window"],
   "modules-center": ["clock"],
-  "modules-right": ["pulseaudio", "network", "cpu", "memory", "battery", "tray"],
+  "modules-right": ["pulseaudio", "bluetooth", "network", "temperature", "cpu", "memory", "power-profiles-daemon", "battery", "tray"],
   "niri/workspaces": { "format": "{icon}" },
   "clock": { "format": "{:%a %d %b  %H:%M}" },
   "cpu": { "format": "  {usage}%" },
   "memory": { "format": "  {}%" },
+  "temperature": { "thermal-zone": 0, "format": " {temperatureC}°", "critical-threshold": 82, "format-critical": " {temperatureC}°" },
   "battery": { "format": "{icon} {capacity}%", "format-icons": ["", "", "", "", ""] },
+  "power-profiles-daemon": { "format": "{icon}", "tooltip-format": "{profile}", "format-icons": { "performance": "", "balanced": "", "power-saver": "" } },
   "network": { "format-wifi": "  {essid}", "format-ethernet": "  wired", "format-disconnected": "  off" },
+  "bluetooth": { "format": "", "format-disabled": "", "format-connected": " {num_connections}", "tooltip-format": "{controller_alias}\t{status}", "on-click": "blueman-manager" },
   "pulseaudio": { "format": "{icon} {volume}%", "format-icons": { "default": ["", "", ""] }, "on-click": "pavucontrol" },
   "tray": { "spacing": 8 }
 }

@@ -53,9 +53,26 @@ environment {
     // Electron/Chromium apps (VS Code) -> native Wayland
     ELECTRON_OZONE_PLATFORM_HINT "wayland"
     NIXOS_OZONE_WL "1"
+    // Qt / Firefox / SDL / Java on native Wayland. Set HERE, not environment.d (niri #2731).
+    // Never set GDK_BACKEND globally — it breaks the screencast portal.
+    QT_QPA_PLATFORM "wayland;xcb"
+    QT_QPA_PLATFORMTHEME "qt6ct"
+    MOZ_ENABLE_WAYLAND "1"
+    SDL_VIDEODRIVER "wayland"
+    _JAVA_AWT_WM_NONREPARENTING "1"
     // NVIDIA-friendly defaults (harmless on AMD/Intel)
     __GL_GSYNC_ALLOWED "0"
 }
+
+// Multi-monitor: niri auto-detects + arranges outputs (hotplug included). To pin
+// scale/mode/position/VRR per monitor, uncomment + adjust (`niri msg outputs` for names);
+// GUI alternative: run `nwg-displays`. No kanshi — niri owns output config.
+// output "eDP-1" {
+//     scale 1.5
+//     // mode "2560x1600@60.000"
+//     // position x=0 y=0
+//     // variable-refresh-rate
+// }
 
 spawn-at-startup "waybar"
 spawn-at-startup "mako"
@@ -64,6 +81,9 @@ spawn-at-startup "{{ .chezmoi.homeDir }}/.local/bin/archfrican-idle"   // idle +
 spawn-at-startup "/usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1"
 spawn-at-startup "sh" "-c" "wl-paste --watch cliphist store &"
 spawn-at-startup "nwg-dock" "-d" "-i" "48"   // macOS-style dock
+spawn-at-startup "swayosd-server"            // on-screen volume/brightness OSD
+spawn-at-startup "nm-applet" "--indicator"   // network tray + secret agent
+spawn-at-startup "udiskie" "-t"              // automount removable media (tray)
 
 binds {
     // launchers / core
@@ -110,12 +130,18 @@ binds {
     Mod+Shift+S       { screenshot; }
     Mod+Shift+P       { screenshot-screen; }
 
-    // media / brightness
-    XF86AudioRaiseVolume { spawn "wpctl" "set-volume" "@DEFAULT_AUDIO_SINK@" "5%+"; }
-    XF86AudioLowerVolume { spawn "wpctl" "set-volume" "@DEFAULT_AUDIO_SINK@" "5%-"; }
-    XF86AudioMute        { spawn "wpctl" "set-mute"   "@DEFAULT_AUDIO_SINK@" "toggle"; }
-    XF86MonBrightnessUp   { spawn "brightnessctl" "set" "5%+"; }
-    XF86MonBrightnessDown { spawn "brightnessctl" "set" "5%-"; }
+    // media / brightness (swayosd-client = on-screen feedback bar)
+    XF86AudioRaiseVolume  { spawn "swayosd-client" "--output-volume" "raise"; }
+    XF86AudioLowerVolume  { spawn "swayosd-client" "--output-volume" "lower"; }
+    XF86AudioMute         { spawn "swayosd-client" "--output-volume" "mute-toggle"; }
+    XF86MonBrightnessUp   { spawn "swayosd-client" "--brightness" "raise"; }
+    XF86MonBrightnessDown { spawn "swayosd-client" "--brightness" "lower"; }
+
+    // apps — Mod+Shift+<letter> never collides with keyd's plain ⌘+letter
+    Mod+Shift+N { spawn "nautilus"; }                 // GUI file manager
+    Mod+Shift+Y { spawn "ghostty" "-e" "yazi"; }      // TUI file manager
+    Mod+Shift+B { spawn "ghostty" "-e" "btop"; }      // system monitor
+    Mod+Shift+R { spawn "{{ .chezmoi.homeDir }}/.local/bin/archfrican-record"; }   // screen-record toggle
 
     // lock
     Mod+Shift+L { spawn "swaylock"; }

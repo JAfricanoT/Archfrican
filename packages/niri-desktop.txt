@@ -30,3 +30,36 @@ network-manager-applet
 networkmanager             # the network DAEMON — the applet above is inert without it
 nm-connection-editor       # GUI for VPNs / advanced connections
 pavucontrol                # audio mixer (waybar's volume click already targets it)
+
+# --- ecosystem: a complete native desktop (P1) ---
+# File management (GUI + TUI) + thumbnails + removable-media automount
+nautilus                   # GTK file manager (Finder-like, Wayland-native)
+file-roller                # archive GUI
+yazi                       # fast TUI file manager (Mod+Shift+Y)
+gvfs                       # trash, mounts, network shares for nautilus
+gvfs-mtp                   # Android/MTP devices
+gvfs-afc                   # iOS devices
+udiskie                    # automount removable media (spawned by niri)
+tumbler                    # thumbnail service
+ffmpegthumbnailer          # video thumbnails
+poppler-glib               # PDF thumbnails
+unar                       # broad archive extraction
+xdg-user-dirs              # ~/Downloads, ~/Pictures, …
+# Bluetooth
+bluez
+bluez-utils
+blueman                    # bluetooth manager GUI
+# System info / telemetry ("about this PC" + monitors)
+fastfetch                  # macOS-y system info
+btop                       # TUI resource monitor (Mod+Shift+B)
+lm_sensors                 # temperatures (waybar thermal-zone)
+nvtop                      # GPU monitor
+# Power / OSD / screen-record / displays
+power-profiles-daemon      # battery vs performance (waybar switch)
+swayosd                    # on-screen volume/brightness feedback
+wf-recorder                # screen recording (Mod+Shift+R)
+nwg-displays               # GUI multi-monitor layout (niri-native; in 'extra', not AUR)
+# Qt-on-Wayland (consistent look for Qt apps)
+qt5-wayland
+qt6-wayland
+qt6ct

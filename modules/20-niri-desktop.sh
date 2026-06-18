@@ -59,4 +59,37 @@ KEYD
 substep "enabling keyd"
 sudo systemctl enable keyd.service
 
+# --- ecosystem integration (P1) ------------------------------------------------
+# Bluetooth: enable the daemon + auto-power-on adapters (main.conf.d drop-in; on older
+# bluez without .d support this is harmless and AutoEnable already defaults on).
+substep "enabling Bluetooth (bluez + auto-power-on)"
+write_system_file /etc/bluetooth/main.conf.d/10-archfrican.conf 0644 <<'BT'
+[Policy]
+AutoEnable=true
+BT
+resilient_enable bluetooth.service
+
+# Power profiles (battery vs performance) — laptops only, and ppd NOT tlp.
+if compgen -G '/sys/class/power_supply/BAT*' >/dev/null; then
+  substep "enabling power-profiles-daemon (laptop power management)"
+  if pacman -Q tlp &>/dev/null; then
+    best_effort sudo systemctl disable --now tlp.service
+    warn "disabled tlp (conflicts with power-profiles-daemon)"
+  fi
+  resilient_enable power-profiles-daemon.service
+else
+  ok "desktop (no battery) — skipping power-profiles-daemon"
+fi
+
+substep "creating XDG user dirs + default file manager"
+best_effort xdg-user-dirs-update
+best_effort xdg-mime default org.gnome.Nautilus.desktop inode/directory
+
+# Optional hardware-sensor probe (writes /etc/conf.d/lm_sensors). OFF by default — it
+# interrogates buses that can misbehave; the waybar temperature module uses thermal-zone 0.
+if [ "${ARCHFRICAN_SENSORS_DETECT:-0}" = 1 ]; then
+  substep "running sensors-detect (ARCHFRICAN_SENSORS_DETECT=1)"
+  best_effort sudo sensors-detect --auto
+fi
+
 ok "niri-desktop module done"
