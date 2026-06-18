@@ -66,7 +66,7 @@ run one module with `~/.archfrican/install.sh 30-dev`.
 Off by default. The wizard asks *"Share this machine with another OS already installed (multi-boot)?"* —
 say yes and Archfrican enables GRUB's `os-prober` so an OS that's **already installed** (Windows or another
 Linux, usually on a **second disk**) shows up in the GRUB menu — **without** losing the snapshot-rollback
-submenu. Enable it later with `~/.archfrican/install.sh 55-multiboot`.
+submenu. Enable it later with `~/.archfrican/install.sh 55-multiboot yes`.
 
 - It only **detects** an OS that's already there — it does **not** install-alongside / repartition / shrink.
 - `os-prober` mounts other partitions as root, so it's opt-in (Arch disables it by default).

@@ -39,7 +39,12 @@ run_module() {                # run_module <name> [arg]
   fi
   step "$(module_label "$name")" "$(module_desc "$name")"
   current_module="$name"
-  bash "$REPO_ROOT/modules/$name.sh" "${2:-}"
+  local rc=0
+  bash "$REPO_ROOT/modules/$name.sh" "${2:-}" || rc=$?
+  # rc 3 = the module opted itself out (e.g. multi-boot not selected): don't stamp .done,
+  # so a later opt-in isn't masked. Any other nonzero is a real failure -> propagate to on_err.
+  if [ "$rc" = 3 ]; then current_module=""; ok "$(module_label "$name") — not selected"; return 0; fi
+  [ "$rc" = 0 ] || return "$rc"
   touch "$stamp"; ok "$(module_label "$name") complete"; current_module=""
 }
 
@@ -47,8 +52,9 @@ run_phase2() {                # run_phase2 [single-module]
   set -E; trap on_err ERR     # errtrace: fire on_err for failures inside run_module too
   mkdir -p "$PHASE2_STATE"
 
-  # Single-module shortcut: ./install.sh 30-dev  (always re-runs it, no wizard)
-  if [ $# -gt 0 ]; then FORCE=1 run_module "$1"; ok "module '$1' done"; return 0; fi
+  # Single-module shortcut: ./install.sh 30-dev   (or ./install.sh 55-multiboot yes — the 2nd
+  # arg is forwarded to the module). Always re-runs it (FORCE), no wizard.
+  if [ $# -gt 0 ]; then FORCE=1 run_module "$1" "${2:-}"; ok "module '$1' done"; return 0; fi
 
   pac_install pciutils
   local DETECTED_GPU; DETECTED_GPU="$(detect_gpu)"
