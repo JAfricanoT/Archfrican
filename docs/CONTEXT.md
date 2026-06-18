@@ -52,15 +52,16 @@ p.ej., cerrar ventana = `Mod+Shift+Q`. keyd solo intercepta `⌘+<letra>` plano.
 
 ## 4. Arquitectura del repo
 
-Instalación en **dos fases**: (1) `archinstall --config` para la base, reboot;
-(2) `./install.sh` idempotente para todo lo demás.
+Instalación en **un comando** sobre una base Arch booteada:
+`sh -c "$(curl -fsSL .../install.sh)"`. `install.sh` se auto-clona, detecta el entorno (ISO live vs
+base booteada), hace preflight, corre un wizard (gum) y monta la capa desktop/dev de forma idempotente.
+(La instalación completa desde la ISO — disco + base + escritorio — llegará en un release validado en VM.)
 
 ```
 archfrican/
-├── install.sh            # orquestador fase 2 (idempotente; ./install.sh 30-dev corre un módulo)
-├── bootstrap.sh          # entrada curl|bash
-├── archinstall/          # user_config.json (Btrfs+subvols+snapper, kernel lts, GRUB)
-├── lib/                  # common.sh (logging, pac_install idempotente) + detect-gpu.sh
+├── install.sh            # entrada única (curl|sh): self-clone + detect + preflight + wizard + dispatch
+├── archinstall/          # user_config.json (Btrfs+subvols+snapper, kernel lts, GRUB) — base fase 1
+├── lib/                  # common, detect-gpu, env, ui (gum), preflight, host-config, phase2
 ├── modules/              # 00-base 10-gpu 20-niri-desktop 30-dev 40-theming 50-snapshots
 ├── packages/             # listas por capa: base / niri-desktop / dev / theming / aur
 ├── themes/<name>/colors.sh   # paletas (esquema único de variables)

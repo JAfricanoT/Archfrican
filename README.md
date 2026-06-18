@@ -40,21 +40,20 @@ off the Mac, and a hard requirement that **nothing explodes**.
 
 ## Install
 
-**Phase 1 — base system (from the Arch ISO):**
+On a freshly-installed **base Arch** (install a minimal base with `archinstall`, then reboot),
+run **one command** as your user:
+
 ```bash
-archinstall --config archinstall/user_config.json
-# review the TUI, install, reboot
+sh -c "$(curl -fsSL https://raw.githubusercontent.com/JAfricanoT/Archfrican/refs/heads/main/install.sh)"
 ```
 
-**Phase 2 — everything else (as your user, after reboot):**
-```bash
-git clone https://github.com/YOU/archfrican.git ~/.archfrican
-cd ~/.archfrican && ./install.sh
-```
-Re-running `./install.sh` is safe: package/system steps are idempotent and
-completed modules are skipped. It re-applies dotfiles via chezmoi, so re-select
-your theme with `theme-switch <name>` afterward if you'd changed it. Run one
-module with `./install.sh 30-dev`.
+It self-clones the repo to `~/.archfrican`, verifies the environment (preflight), runs a comfortable
+wizard (hostname, user + password, timezone/locale/keyboard, theme, GPU), installs the niri desktop +
+dev layer, and ends with a reboot prompt. Re-running is safe (idempotent; completed modules skipped);
+run one module with `~/.archfrican/install.sh 30-dev`.
+
+> Full install straight from the Arch ISO (disk + base + desktop in one shot) is coming in a
+> VM-validated release — for now use the base-Arch one-liner above.
 
 ## Theming
 
@@ -82,10 +81,9 @@ and **Shift** combos, so there's no collision:
 
 ```
 archfrican/
-├── install.sh            # phase-2 orchestrator (idempotent)
-├── bootstrap.sh          # curl|bash one-liner entry
-├── archinstall/          # phase-1 base config
-├── lib/                  # common helpers + GPU detection
+├── install.sh            # one entry (curl|sh): self-clone + detect + preflight + wizard + dispatch
+├── archinstall/          # phase-1 base config (ISO)
+├── lib/                  # common, detect-gpu, env, ui, preflight, host-config, phase2
 ├── modules/              # 00-base 10-gpu 20-niri-desktop 30-dev 40-theming 50-snapshots
 ├── packages/             # per-layer package lists (swap a list, not the script)
 ├── themes/               # palettes (one schema, many themes)
