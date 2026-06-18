@@ -62,7 +62,8 @@ run_module 50-snapshots
 current_module="dotfiles (chezmoi)"
 log "Applying dotfiles with chezmoi"
 if ! command -v chezmoi &>/dev/null; then sudo pacman -S --needed --noconfirm chezmoi; fi
-chezmoi init --apply --source "$PWD/home"
+chezmoi init --apply --source "$PWD/home" \
+  || die "chezmoi failed — packages installed but dotfiles NOT deployed. Re-run: chezmoi init --apply --source $PWD/home"
 current_module=""
 
 # Every binary niri is told to spawn must now resolve to an installed package.

@@ -31,6 +31,28 @@ resilient_enable() {
   best_effort sudo systemctl enable "$u"
 }
 
+# --user analogue: enable a user unit only if it exists; never abort (a TTY install
+# may have no user bus). Pairs well with `loginctl enable-linger "$USER"`.
+resilient_enable_user() {
+  local u="$1"
+  systemctl --user list-unit-files --no-legend -- "$u" 2>/dev/null | grep -q . \
+    || { warn "user unit not present, skipping: $u"; return 0; }
+  best_effort systemctl --user enable "$u"
+}
+
+# Write content (on stdin) to a root-owned file idempotently: back up an existing
+# DIFFERENT file once (<path>.archfrican.bak), skip the write when unchanged, and
+# create parent dirs. Replaces blind `tee` clobbers of /etc configs.
+write_system_file() {             # write_system_file <path> [mode]   (content on stdin)
+  local path="$1" mode="${2:-0644}" tmp
+  tmp="$(mktemp)"; cat > "$tmp"
+  if [ -e "$path" ] && sudo cmp -s "$tmp" "$path"; then rm -f "$tmp"; ok "unchanged: $path"; return 0; fi
+  if [ -e "$path" ] && [ ! -e "$path.archfrican.bak" ]; then
+    sudo cp -a "$path" "$path.archfrican.bak"; warn "backed up $path -> $path.archfrican.bak"
+  fi
+  sudo install -D -m "$mode" "$tmp" "$path"; rm -f "$tmp"; ok "wrote $path"
+}
+
 # ---- idempotent package install ------------------------------------------
 # Installs only what's missing so the script is safe to re-run.
 pac_install() {            # pac_install pkg1 pkg2 ...

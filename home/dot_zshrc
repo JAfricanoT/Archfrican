@@ -5,14 +5,16 @@ export EDITOR=nvim
 # ---- zinit (lightweight plugin manager) ----------------------------------
 ZINIT_HOME="${XDG_DATA_HOME:-$HOME/.local/share}/zinit/zinit.git"
 [ -d "$ZINIT_HOME" ] || { mkdir -p "$(dirname "$ZINIT_HOME")"; \
-  git clone https://github.com/zdharma-continuum/zinit.git "$ZINIT_HOME"; }
-source "$ZINIT_HOME/zinit.zsh"
-
-# the only three plugins that actually earn their place (loaded turbo/deferred)
-zinit wait lucid for \
-  atinit"zicompinit; zicdreplay" zdharma-continuum/fast-syntax-highlighting \
-  atload"_zsh_autosuggest_start"  zsh-users/zsh-autosuggestions \
-                                  zsh-users/zsh-completions
+  git clone --depth 1 https://github.com/zdharma-continuum/zinit.git "$ZINIT_HOME"; }
+# Only load zinit + plugins if the clone actually succeeded (offline / first-login safe).
+if [ -r "$ZINIT_HOME/zinit.zsh" ]; then
+  source "$ZINIT_HOME/zinit.zsh"
+  # the only three plugins that actually earn their place (loaded turbo/deferred)
+  zinit wait lucid for \
+    atinit"zicompinit; zicdreplay" zdharma-continuum/fast-syntax-highlighting \
+    atload"_zsh_autosuggest_start"  zsh-users/zsh-autosuggestions \
+                                    zsh-users/zsh-completions
+fi
 
 # ---- history / options ----------------------------------------------------
 HISTFILE=~/.zsh_history; HISTSIZE=50000; SAVEHIST=50000
@@ -28,4 +30,4 @@ command -v fnm     &>/dev/null && eval "$(fnm env --use-on-cd)"
 command -v direnv  &>/dev/null && eval "$(direnv hook zsh)"
 
 # ---- prompt (cross-shell, portable) ---------------------------------------
-eval "$(starship init zsh)"
+command -v starship &>/dev/null && eval "$(starship init zsh)"
