@@ -2,6 +2,7 @@
 # Phase 2, step 1: GPU drivers, auto-detected. Vendor-agnostic by design.
 source "$(dirname "$0")/../lib/common.sh"
 source "$REPO_ROOT/lib/detect-gpu.sh"
+source "$REPO_ROOT/lib/grub.sh"
 
 gpu="${1:-$(detect_gpu)}"
 substep "GPU profile: $gpu"
@@ -33,13 +34,11 @@ case "$gpu" in
     # failed mkinitcpio is retried on re-run (the two must never diverge into a black screen).
     SENTINEL=/var/lib/archfrican/nvidia-kms.done
     need_build=0; [ -f "$SENTINEL" ] || need_build=1
-    if ! grep -q 'nvidia_drm.modeset=1' /etc/default/grub; then
-      substep "writing NVIDIA early-KMS kernel params to /etc/default/grub"
-      sudo sed -i 's/\(GRUB_CMDLINE_LINUX_DEFAULT="[^"]*\)"/\1 nvidia_drm.modeset=1 nvidia_drm.fbdev=1"/' /etc/default/grub
-      grep -q 'nvidia_drm.modeset=1' /etc/default/grub \
-        || die "could not add nvidia_drm.modeset to /etc/default/grub (single-quoted/absent GRUB_CMDLINE?) — edit by hand"
-      need_build=1
-    fi
+    substep "ensuring NVIDIA early-KMS kernel params in /etc/default/grub"
+    GRUB_CHANGED=0
+    append_grub_cmdline nvidia_drm.modeset=1   # idempotent + verify-or-die (lib/grub.sh)
+    append_grub_cmdline nvidia_drm.fbdev=1
+    if [ "$GRUB_CHANGED" = 1 ]; then need_build=1; fi
     if ! grep -qE '^MODULES=\(.*\bnvidia_drm\b' /etc/mkinitcpio.conf; then
       substep "adding the nvidia modules to the initramfs (/etc/mkinitcpio.conf)"
       sudo sed -i 's/^MODULES=(\(.*\))/MODULES=(\1 nvidia nvidia_modeset nvidia_uvm nvidia_drm)/' /etc/mkinitcpio.conf
