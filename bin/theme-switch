@@ -18,6 +18,9 @@ source "$PAL"
 
 # Variables to substitute = exactly the ${TOKEN}s the templates use (single source
 # of truth — derived, so the list can't drift or carry dead entries).
+# word-split is intentional and safe: every token is a bare ${VAR} name (no spaces),
+# and this stays portable to bash 3.2 (the repo avoids mapfile — cf. read_pkg_list).
+# shellcheck disable=SC2207
 VARS=($(grep -rhoE '\$\{[A-Za-z_][A-Za-z0-9_]*\}' "$ROOT/templates" 2>/dev/null | sed -E 's/^\$\{(.*)\}$/\1/' | sort -u || true))
 [ "${#VARS[@]}" -gt 0 ] || { echo "no \${VAR} tokens found under $ROOT/templates" >&2; exit 1; }
 

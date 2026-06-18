@@ -4,7 +4,7 @@ source "$(dirname "$0")/../lib/common.sh"
 
 substep "adding the CachyOS repository (optimized packages + linux-cachyos)"
 if ! grep -q '\[cachyos\]' /etc/pacman.conf; then
-  tmp="$(mktemp -d)"; cd "$tmp"
+  tmp="$(mktemp -d)"; cd "$tmp" || die "could not enter temp dir $tmp"
   substep "downloading the CachyOS repo bootstrap (HTTPS, verified)"
   # HTTPS-only, fail on HTTP errors (so an error page is never saved as the tarball).
   curl -fL --proto '=https' --tlsv1.2 https://mirror.cachyos.org/cachyos-repo.tar.xz -o repo.tar.xz
@@ -16,7 +16,7 @@ if ! grep -q '\[cachyos\]' /etc/pacman.conf; then
   else
     warn "CachyOS tarball unverified (set ARCHFRICAN_CACHYOS_SHA256 to pin it); running upstream repo script as root"
   fi
-  tar xf repo.tar.xz && cd cachyos-repo
+  tar xf repo.tar.xz; cd cachyos-repo || die "CachyOS tarball missing the cachyos-repo/ dir"
   substep "running the CachyOS repo setup (adds the repo + imports its signing key)"
   sudo ./cachyos-repo.sh
   cd /; rm -rf "$tmp"
