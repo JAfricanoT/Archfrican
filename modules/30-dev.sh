@@ -14,8 +14,7 @@ enable_service docker.service
 best_effort sudo usermod -aG docker "$USER"
 warn "Log out/in for docker group to take effect."
 
-# VS Code launches in native Wayland for crisp scaling on niri/NVIDIA
-mkdir -p "$HOME/.config/code-flags.conf.d"
+# Code-OSS launches in native Wayland for crisp scaling on niri/NVIDIA
 cat > "$HOME/.config/code-flags.conf" <<'FLAGS'
 --ozone-platform-hint=auto
 --enable-features=UseOzonePlatform,WaylandWindowDecorations

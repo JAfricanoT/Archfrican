@@ -16,9 +16,10 @@ PAL="$ROOT/themes/$THEME/colors.sh"
 # shellcheck disable=SC1090
 source "$PAL"
 
-# variables a template may reference
-VARS=(BG BG_ALT BG_DIM FG FG_DIM ACCENT ACCENT2 RED GREEN YELLOW BLUE
-      MAGENTA CYAN ORANGE BORDER_ACTIVE BORDER_INACTIVE)
+# Variables to substitute = exactly the ${TOKEN}s the templates use (single source
+# of truth — derived, so the list can't drift or carry dead entries).
+VARS=($(grep -rhoE '\$\{[A-Za-z_][A-Za-z0-9_]*\}' "$ROOT/templates" 2>/dev/null | sed -E 's/^\$\{(.*)\}$/\1/' | sort -u || true))
+[ "${#VARS[@]}" -gt 0 ] || { echo "no \${VAR} tokens found under $ROOT/templates" >&2; exit 1; }
 
 render() {                      # render <template-name> <out-file>
   local args=() v

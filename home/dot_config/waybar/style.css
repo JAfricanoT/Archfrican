@@ -1,5 +1,5 @@
 @import "colors.css";
-* { font-family: "SF Pro Display","JetBrainsMono Nerd Font"; font-size: 13px; border: none; }
+* { font-family: "SF Pro Display","Inter","JetBrainsMono Nerd Font"; font-size: 13px; border: none; }
 window#waybar {
   background: alpha(@bg, 0.85);
   color: @fg;
