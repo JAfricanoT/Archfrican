@@ -38,10 +38,10 @@ es **programación de alto rendimiento** (polyglot). Nombre del proyecto: **Arch
 | Terminal | **Ghostty** (sobre Kitty) | UI nativa GTK4, zero-config, rendimiento top, soporta protocolo de imágenes de Kitty. niri ya gestiona el tiling, así que las features de ventanas de Kitty sobran. Es el componente con **menos lock-in**. |
 | Shell | **Zsh** + zinit + fast-syntax-highlighting + zsh-autosuggestions + completions | Zsh por compatibilidad POSIX (no rompe scripts). **Sin oh-my-zsh** (lento, 400ms+). Setup ligero <50ms. |
 | Prompt | **Starship** (sobre p10k) | Cross-shell: sobrevive a un cambio de shell, encaja con el principio de no-lock-in. p10k es solo-zsh. |
-| Editor | **VS Code** (Wayland nativo), desacoplado vía LSP | Los language servers se instalan a nivel de sistema (`rust-analyzer`, `gopls`, `pyright`+`ruff`, `typescript-language-server`, `clangd`); VS Code es solo un frontend, intercambiable por Neovim/Helix/Zed sin reconfigurar. |
+| Editor | **Code-OSS** (`code`, Wayland nativo), desacoplado vía LSP | Build open-source (Open VSX, sin Marketplace de MS). Los language servers se instalan a nivel de sistema (`rust-analyzer`, `gopls`, `pyright`+`ruff`, `typescript-language-server`, `clangd`); Code-OSS es solo un frontend, intercambiable por Neovim/Helix/Zed sin reconfigurar. |
 | Lenguajes | Rust/C/C++, Go, Python/datos-ML, JS/TS | Toolchains vía version managers (rustup, go, uv, fnm) en vez de versiones del sistema. |
 | Periféricos | waybar, **fuzzel** (estilo Spotlight), mako, swaylock+swayidle, swww, grim+slurp, cliphist, **paru**, nwg-dock | Todos Wayland-native, niri-friendly, en módulos independientes (vetar cualquiera). |
-| Estética | **macOS-like**, tema default `macos-dark` | Migración desde macOS con mínima fricción. Tahoe grafito + azul de sistema, fuentes **SF Pro + SF Mono**, GTK **WhiteSur** + iconos, cursores McMojave, **blur nativo de niri 26.04** (efecto vidrio). |
+| Estética | **macOS-like**, tema default `macos-dark` | Migración desde macOS con mínima fricción. Tahoe grafito + azul de sistema, fuentes **SF Pro + SF Mono**, GTK **WhiteSur** + iconos, cursores McMojave, **blur de niri 26.04** (efecto vidrio, opt-in — ver `config.kdl`). |
 | Theming | **Switcher multi-tema en caliente** (estilo Omarchy) | `theme-switch <name>`. Temas: macos-dark, macos-light, catppuccin-mocha, tokyo-night. |
 | Fricción macOS | **keyd**: ⌘+letra → Ctrl | Mantiene muscle-memory de copy/paste/save/quit. ⌘ sigue siendo el modificador de niri para combos **sin-letra y con Shift** → sin colisiones. + scroll natural, tap-to-click, gestos 3 dedos, ⌘+Space=launcher, ⌘+Tab=overview. |
 
@@ -79,8 +79,9 @@ niri auto-reload por marcadores `// THEME-START/END` en config.kdl). fuzzel usa 
 
 - Esqueleto de **42 archivos** generado y entregado como `archfrican.zip`.
 - Todos los scripts pasan `bash -n`.
-- `theme-switch` **probado funcionando** y **idempotente** (cambios múltiples conservan
-  marcadores; colores correctos en ghostty/fuzzel/mako/waybar y borde de niri).
+- `theme-switch` corre desde el symlink desplegado (`~/.local/bin` → clon del repo);
+  su idempotencia la encierra el smoke-test de CI (aplica los 4 temas ×2 y comprueba
+  que no quede ningún `${VAR}` sin renderizar) sobre ghostty/fuzzel/mako/waybar y el borde de niri.
 - Switcher reescrito **sin dependencias** (sed, no envsubst/gettext) para que no rompa en máquina nueva.
 - Es un **v0 para iterar**, no para correr a ciegas en hardware todavía.
 
@@ -94,7 +95,7 @@ niri auto-reload por marcadores `// THEME-START/END` en config.kdl). fuzzel usa 
 
 ## 7. Próximos pasos abiertos
 
-- Pulir el módulo `dev` (settings concretos de VS Code, configs de LSP por lenguaje).
+- Pulir el módulo `dev` (settings concretos de Code-OSS, configs de LSP por lenguaje).
 - Afinar **nwg-dock** para un dock que se sienta de verdad como el de macOS.
 - Más temas en el switcher.
 - Explotar **templating de chezmoi** para generar config específica de GPU desde una sola fuente.

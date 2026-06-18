@@ -36,11 +36,17 @@ layout {
 prefer-no-csd
 hotkey-overlay { skip-at-startup; }
 
-// macOS-like frosted glass on windows (niri 26.04+)
-// layer-rule / window blur is enabled per-rule below.
+// macOS-like frosted glass on windows. niri added blur in 26.04, but the exact
+// directive is version-specific — it ships COMMENTED so an older niri can't fail
+// to start. Uncomment after confirming support: `niri validate config.kdl`.
 window-rule {
     geometry-corner-radius 10
     clip-to-geometry true
+    // blur {
+    //     on
+    //     passes 3
+    //     radius 8
+    // }
 }
 
 environment {

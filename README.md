@@ -32,9 +32,9 @@ off the Mac, and a hard requirement that **nothing explodes**.
 | Shell        | Zsh + zinit + fast-syntax-highlighting + autosuggestions      |
 | Prompt       | **Starship** (cross-shell — survives a shell swap)            |
 | Terminal     | **Ghostty** (Kitty graphics protocol, blur, native Wayland)   |
-| Editor       | VS Code (Wayland) — but LSPs are system-level & editor-agnostic|
+| Editor       | Code-OSS (Wayland; Open VSX) — LSPs are system-level & editor-agnostic|
 | Dev          | rustup · go · uv · fnm + gopls/rust-analyzer/pyright/ruff/clangd|
-| Look         | macOS-like: WhiteSur GTK, SF fonts, niri blur, Spotlight fuzzel|
+| Look         | macOS-like: WhiteSur GTK, SF fonts, niri blur (opt-in), fuzzel |
 | Theming      | hot-swap switcher: `theme-switch <name>`                       |
 | macOS keys   | `keyd` maps ⌘+C/V/X/Z/… → Ctrl, ⌘+Space → launcher            |
 
@@ -51,8 +51,10 @@ archinstall --config archinstall/user_config.json
 git clone https://github.com/YOU/archfrican.git ~/.archfrican
 cd ~/.archfrican && ./install.sh
 ```
-Re-running `./install.sh` is safe (idempotent). Run one module with
-`./install.sh 30-dev`.
+Re-running `./install.sh` is safe: package/system steps are idempotent and
+completed modules are skipped. It re-applies dotfiles via chezmoi, so re-select
+your theme with `theme-switch <name>` afterward if you'd changed it. Run one
+module with `./install.sh 30-dev`.
 
 ## Theming
 
@@ -62,7 +64,8 @@ theme-switch macos-light
 theme-switch catppuccin-mocha
 theme-switch tokyo-night
 ```
-Switching is live (waybar, mako, fuzzel, ghostty, niri borders, GTK) — no logout.
+Switching is live for waybar, mako, niri borders and GTK (no logout); ghostty
+repaints new windows and fuzzel applies on its next launch.
 Add a theme by dropping a `themes/<name>/colors.sh` with the same variables.
 
 ## macOS muscle-memory (the real friction-killer)
@@ -72,8 +75,8 @@ copy/paste/save/quit feel native. The ⌘ key still drives niri for **non-letter
 and **Shift** combos, so there's no collision:
 
 - `⌘ + Space` → launcher (Spotlight)   ·   `⌘ + Tab` → overview (Mission Control)
-- `⌘ + ←/→` → move across the scrolling strip   ·   3-finger swipe also works
-- `⌘ + C/V/X/Z/A/S/F` → native copy/paste/etc.   ·   `Caps` → Esc(tap)/Ctrl(hold)
+- `⌘ + ←/→` → focus across the strip (`⌘ + Shift + ←/→` moves the column)   ·   3-finger swipe too
+- `⌘ + C/V/X/Z/A/S/F/W/T/N/Q/L/R` → native Ctrl shortcuts   ·   `Caps` → Esc(tap)/Ctrl(hold)
 
 ## Layout
 
@@ -83,10 +86,10 @@ archfrican/
 ├── bootstrap.sh          # curl|bash one-liner entry
 ├── archinstall/          # phase-1 base config
 ├── lib/                  # common helpers + GPU detection
-├── modules/              # 00-base 10-gpu 20-niri 30-dev 40-theming 50-snapshots
+├── modules/              # 00-base 10-gpu 20-niri-desktop 30-dev 40-theming 50-snapshots
 ├── packages/             # per-layer package lists (swap a list, not the script)
 ├── themes/               # palettes (one schema, many themes)
-├── templates/            # per-app theme templates (envsubst)
+├── templates/            # per-app theme templates (pure-sed ${VAR})
 ├── bin/theme-switch      # live theme switcher
 └── home/                 # chezmoi dotfiles source (niri, zsh, ghostty, …)
 ```
