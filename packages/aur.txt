@@ -1,0 +1,7 @@
+# AUR packages (installed with paru in the theming/desktop modules).
+whitesur-gtk-theme
+whitesur-icon-theme
+mcmojave-cursors
+otf-san-francisco            # SF Pro family
+otf-san-francisco-mono       # SF Mono
+nwg-dock                     # macOS-style dock for Wayland

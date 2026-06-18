@@ -1,0 +1,29 @@
+# Editor-agnostic toolchains + language servers (consumed by any editor).
+code                   # VS Code (OSS build); frontend only
+neovim                 # always handy as a fallback editor
+# version managers (preferred over system languages)
+rustup                 # -> rust-analyzer
+go                     # -> gopls
+uv                     # python toolchain + venvs
+fnm                    # node version manager
+# language servers (system-level, editor-independent)
+gopls
+rust-analyzer
+pyright
+ruff
+typescript-language-server
+clang                  # clangd for C/C++
+lldb
+# cli quality-of-life
+ripgrep
+fd
+fzf
+bat
+eza
+zoxide
+jq
+lazygit
+docker
+docker-compose
+direnv
+starship

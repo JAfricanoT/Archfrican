@@ -1,0 +1,29 @@
+# Compositor + Wayland desktop shell. All swappable; niri is isolated here.
+niri
+ghostty                # terminal (Mod+Return). Official 'extra' repo — confirm: pacman -Si ghostty
+xwayland-satellite     # X11 app support inside niri
+keyd                   # ⌘-style shortcut remaps for ex-mac users
+greetd
+greetd-tuigreet        # minimal Wayland-native login
+waybar                 # status bar
+fuzzel                 # launcher (styled as Spotlight)
+mako                   # notifications
+swayidle
+swaylock
+swww                   # wallpaper daemon (animated)
+grim
+slurp
+wl-clipboard
+cliphist               # clipboard history
+brightnessctl
+playerctl
+pipewire
+pipewire-pulse
+pipewire-alsa
+wireplumber
+xdg-desktop-portal
+xdg-desktop-portal-gtk
+xdg-desktop-portal-gnome   # screencast portal that works well with niri
+polkit-gnome
+gnome-keyring
+network-manager-applet

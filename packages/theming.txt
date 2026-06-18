@@ -1,0 +1,6 @@
+# Fonts + GTK theming for the macOS-like look.
+ttf-jetbrains-mono-nerd     # mono fallback w/ glyphs
+inter-font                  # SF-Pro-like UI font
+noto-fonts
+noto-fonts-emoji
+nwg-look                    # GTK settings GUI for Wayland
