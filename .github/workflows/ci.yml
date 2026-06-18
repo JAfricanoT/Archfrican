@@ -1,0 +1,72 @@
+name: ci
+
+# The reliability net the audit recommended: lint, a theme-switch idempotency
+# smoke test, and a package-resolution check — the three things `bash -n` can't
+# catch. Assumes the repo root holds the Archfrican tree (bin/, lib/, modules/,
+# packages/, themes/, templates/, home/).
+on:
+  push:
+  pull_request:
+
+jobs:
+  shellcheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y shellcheck
+      - name: shellcheck all shell scripts
+        run: |
+          shellcheck -x -e SC1091 \
+            install.sh bootstrap.sh lib/*.sh modules/*.sh bin/theme-switch
+
+  bashn:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: bash -n (syntax)
+        run: |
+          for f in install.sh bootstrap.sh lib/*.sh modules/*.sh bin/theme-switch \
+                   themes/*/colors.sh; do bash -n "$f"; done
+
+  theme-switch-smoke:
+    runs-on: ubuntu-latest        # pure bash/sed — no Arch needed
+    steps:
+      - uses: actions/checkout@v4
+      - name: apply every theme twice; assert idempotent + fully rendered
+        run: |
+          set -euo pipefail
+          export HOME; HOME="$(mktemp -d)"
+          export ARCHFRICAN_ROOT="$PWD"
+          mkdir -p "$HOME/.config/niri"
+          cp home/dot_config/niri/config.kdl "$HOME/.config/niri/config.kdl"
+          files=(ghostty/colors waybar/colors.css fuzzel/colors.ini mako/colors niri/config.kdl)
+          snap() { for f in "${files[@]}"; do cat "$HOME/.config/$f"; done | sha256sum; }
+          for t in macos-dark macos-light catppuccin-mocha tokyo-night; do
+            bin/theme-switch "$t" >/dev/null; a="$(snap)"
+            bin/theme-switch "$t" >/dev/null; b="$(snap)"
+            [ "$a" = "$b" ] || { echo "::error::theme-switch not idempotent for $t"; exit 1; }
+            if grep -RnoE '\$\{[A-Z_]+\}' \
+                 "$HOME/.config/ghostty/colors" "$HOME/.config/waybar/colors.css" \
+                 "$HOME/.config/fuzzel/colors.ini" "$HOME/.config/mako/colors"; then
+              echo "::error::unrendered \${VAR} token left by $t"; exit 1
+            fi
+          done
+          echo "theme-switch: all 4 themes render + are idempotent"
+
+  pkg-resolution:
+    runs-on: ubuntu-latest
+    container: archlinux:latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: every pacman-list package resolves in a binary repo
+        run: |
+          set -euo pipefail
+          pacman -Sy --noconfirm
+          rc=0
+          for f in packages/base.txt packages/dev.txt packages/niri-desktop.txt packages/theming.txt; do
+            mapfile -t pkgs < <(sed 's/#.*//' "$f" | awk 'NF')
+            echo "::group::$f"
+            pacman -Sp --print-format '%n' "${pkgs[@]}" || rc=1
+            echo "::endgroup::"
+          done
+          [ $rc -eq 0 ] || { echo "::error::a package in a pacman list does not resolve (AUR? typo?)"; exit 1; }
