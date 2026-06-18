@@ -18,7 +18,7 @@ ARCHFRICAN_REF="${ARCHFRICAN_REF:-main}"
 
 # --- self-locate (works even when piped: BASH_SOURCE/$0 are sh/-/bash) -------
 src="${BASH_SOURCE:-$0}"
-if [ -f "$src" ]; then here="$(CDPATH= cd -- "$(dirname -- "$src")" && pwd)"; else here=""; fi
+if [ -f "$src" ]; then here="$(CDPATH='' cd -- "$(dirname -- "$src")" && pwd)"; else here=""; fi
 in_repo() { [ -n "$here" ] && [ -r "$here/lib/common.sh" ]; }
 
 # --- minimal bootstrap-time helpers (lib/ isn't on disk yet when piped) ------
@@ -56,13 +56,16 @@ source lib/env.sh              # is_iso (canonical)
 source lib/ui.sh              # gum||plain wizard primitives
 source lib/preflight.sh       # environment preflight
 source lib/host-config.sh     # apply hostname/user/timezone/locale
+source lib/disk.sh            # pick_disk + confirm_wipe (read-only, ISO path)
 source lib/phase2.sh          # run_phase2 (the booted experience)
+source lib/phase1.sh          # run_phase1 (the ISO full install; ships dry-run gated)
 
 if is_iso; then
   [ "$EUID" -eq 0 ] || die "On the Arch ISO this must run as root (it drives archinstall)."
-  die "ISO full-install (from the Arch live USB) ships in a VM-validated release. For now:
-  install a base Arch with archinstall, reboot, then run this one-liner from the booted
-  system — it adds the niri desktop + dev layer with a comfortable wizard. See the README."
+  # Full install from the live USB. SAFE by default: ships dry-run gated
+  # (ARCHFRICAN_ISO_ARMED=0) so no disk is touched until VM-validated. See
+  # docs/STAGE2-VALIDATION.md.
+  run_phase1
 else
   [ "$EUID" -eq 0 ] && die "Run as your normal user, not root (sudo is called when needed)."
   if [ $# -gt 0 ]; then run_phase2 "$@"; else preflight base; run_phase2; fi
