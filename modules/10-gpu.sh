@@ -15,21 +15,40 @@ case "$gpu" in
     pac_install mesa vulkan-intel intel-media-driver vulkan-icd-loader
     ok "Intel: open stack, zero extra config."
     ;;
+  hybrid-amd-intel)
+    pac_install mesa vulkan-radeon vulkan-intel libva-mesa-driver intel-media-driver vulkan-icd-loader
+    ok "AMD + Intel: both open stacks installed."
+    ;;
   nvidia|hybrid-intel-nvidia|hybrid-amd-nvidia)
     pac_install nvidia-open-dkms nvidia-utils egl-wayland \
                 vulkan-icd-loader libva-nvidia-driver
     [[ "$gpu" == hybrid-intel-nvidia ]] && pac_install mesa vulkan-intel
     [[ "$gpu" == hybrid-amd-nvidia   ]] && pac_install mesa vulkan-radeon
-    # Kernel params + early KMS so Wayland behaves and resume-from-suspend works
+    # Early KMS so Wayland behaves and resume-from-suspend works. Edit grub + mkinitcpio,
+    # VERIFY each edit took, then rebuild BOTH together — gated on a success sentinel so a
+    # failed mkinitcpio is retried on re-run (the two must never diverge into a black screen).
+    SENTINEL=/var/lib/archfrican/nvidia-kms.done
+    need_build=0; [ -f "$SENTINEL" ] || need_build=1
     if ! grep -q 'nvidia_drm.modeset=1' /etc/default/grub; then
       sudo sed -i 's/\(GRUB_CMDLINE_LINUX_DEFAULT="[^"]*\)"/\1 nvidia_drm.modeset=1 nvidia_drm.fbdev=1"/' /etc/default/grub
-      sudo grub-mkconfig -o /boot/grub/grub.cfg
+      grep -q 'nvidia_drm.modeset=1' /etc/default/grub \
+        || die "could not add nvidia_drm.modeset to /etc/default/grub (single-quoted/absent GRUB_CMDLINE?) — edit by hand"
+      need_build=1
     fi
-    if ! grep -q 'nvidia' /etc/mkinitcpio.conf; then
+    if ! grep -qE '^MODULES=\(.*\bnvidia_drm\b' /etc/mkinitcpio.conf; then
       sudo sed -i 's/^MODULES=(\(.*\))/MODULES=(\1 nvidia nvidia_modeset nvidia_uvm nvidia_drm)/' /etc/mkinitcpio.conf
-      sudo mkinitcpio -P
+      grep -qE '^MODULES=\(.*\bnvidia_drm\b' /etc/mkinitcpio.conf \
+        || die "could not add nvidia modules to MODULES in /etc/mkinitcpio.conf (multi-line MODULES?) — edit by hand"
+      need_build=1
     fi
-    best_effort sudo systemctl enable nvidia-suspend.service nvidia-resume.service
+    if [ "$need_build" = 1 ]; then
+      sudo grub-mkconfig -o /boot/grub/grub.cfg
+      sudo mkinitcpio -P
+      sudo install -d "$(dirname "$SENTINEL")"; sudo touch "$SENTINEL"
+    fi
+    resilient_enable nvidia-suspend.service
+    resilient_enable nvidia-resume.service
+    resilient_enable nvidia-hibernate.service
     warn "NVIDIA configured. Reboot before first niri launch."
     ;;
   *) warn "Unknown GPU — installing generic mesa + software Vulkan." ; pac_install mesa vulkan-swrast vulkan-icd-loader ;;

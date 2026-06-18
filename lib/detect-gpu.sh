@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # GPU auto-detection. Echoes one of: nvidia | amd | intel | hybrid-intel-nvidia
-#   | hybrid-amd-nvidia | unknown
+#   | hybrid-amd-nvidia | hybrid-amd-intel | unknown
 # This is the ONLY place that knows about GPU vendors. Everything else is generic.
 # Failure-tolerant: a missing lspci or a no-match must resolve to "unknown",
 # never abort the caller (it runs under `set -euo pipefail`).
@@ -15,6 +15,7 @@ detect_gpu() {
 
   if   [ $has_nvidia -eq 1 ] && [ $has_intel -eq 1 ]; then echo "hybrid-intel-nvidia"
   elif [ $has_nvidia -eq 1 ] && [ $has_amd   -eq 1 ]; then echo "hybrid-amd-nvidia"
+  elif [ $has_amd    -eq 1 ] && [ $has_intel -eq 1 ]; then echo "hybrid-amd-intel"
   elif [ $has_nvidia -eq 1 ]; then echo "nvidia"
   elif [ $has_amd    -eq 1 ]; then echo "amd"
   elif [ $has_intel  -eq 1 ]; then echo "intel"
