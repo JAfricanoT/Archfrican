@@ -1,0 +1,29 @@
+{
+  "//": "Phase-1 base install. archinstall's schema shifts between versions —",
+  "//2": "load this with `archinstall --config user_config.json`, then review the",
+  "//3": "TUI before installing. Key choices: Btrfs + snapshot subvolumes, LTS kernel",
+  "//4": "(linux-cachyos is added in phase 2), GRUB (needed for grub-btrfs rollback).",
+  "bootloader": "Grub",
+  "kernels": ["linux-lts"],
+  "hostname": "archfrican",
+  "audio_config": { "audio": "pipewire" },
+  "network_config": { "type": "nm" },
+  "profile_config": { "profile": { "main": "Minimal" } },
+  "disk_config": {
+    "config_type": "default_layout",
+    "filesystem": "btrfs",
+    "btrfs_options": {
+      "snapshot_config": { "type": "Snapper" },
+      "subvolumes": [
+        { "name": "@",        "mountpoint": "/" },
+        { "name": "@home",    "mountpoint": "/home" },
+        { "name": "@log",     "mountpoint": "/var/log" },
+        { "name": "@pkg",     "mountpoint": "/var/cache/pacman/pkg" },
+        { "name": "@.snapshots", "mountpoint": "/.snapshots" }
+      ]
+    }
+  },
+  "packages": ["git", "vim", "sudo", "zsh", "btrfs-progs"],
+  "timezone": "America/New_York",
+  "swap": true
+}
