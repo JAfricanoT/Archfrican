@@ -5,7 +5,7 @@
 // ╰──────────────────────────────────────────────────────────────────────╯
 
 input {
-    keyboard { xkb { layout "us"; } }
+    keyboard { xkb { layout "{{ output "sh" "-c" "cat ~/.config/.archfrican-kbd 2>/dev/null || echo us" | trim }}"; } }
     touchpad {
         tap
         natural-scroll          // macOS-style scrolling

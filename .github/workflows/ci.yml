@@ -17,7 +17,7 @@ jobs:
       - name: shellcheck all shell scripts
         run: |
           shellcheck -x -e SC1091 \
-            install.sh bootstrap.sh lib/*.sh modules/*.sh bin/theme-switch
+            install.sh lib/*.sh modules/*.sh bin/theme-switch
 
   bashn:
     runs-on: ubuntu-latest
@@ -25,7 +25,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: bash -n (syntax)
         run: |
-          for f in install.sh bootstrap.sh lib/*.sh modules/*.sh bin/theme-switch \
+          for f in install.sh lib/*.sh modules/*.sh bin/theme-switch \
                    themes/*/colors.sh; do bash -n "$f"; done
 
   theme-switch-smoke:
@@ -38,7 +38,7 @@ jobs:
           export HOME; HOME="$(mktemp -d)"
           export ARCHFRICAN_ROOT="$PWD"
           mkdir -p "$HOME/.config/niri"
-          cp home/dot_config/niri/config.kdl "$HOME/.config/niri/config.kdl"
+          cp home/dot_config/niri/config.kdl.tmpl "$HOME/.config/niri/config.kdl"
           files=(ghostty/colors waybar/colors.css fuzzel/colors.ini mako/colors niri/config.kdl)
           snap() { for f in "${files[@]}"; do cat "$HOME/.config/$f"; done | sha256sum; }
           for t in macos-dark macos-light catppuccin-mocha tokyo-night; do

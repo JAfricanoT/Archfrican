@@ -4,11 +4,11 @@
 # Dependency-free: pure-bash/sed substitution (no envsubst/gettext needed).
 set -euo pipefail
 # Locate the Archfrican repo assets (themes/ + templates/). The deployed switcher is a
-# symlink into the clone bootstrap.sh made at ~/.archfrican; override with ARCHFRICAN_ROOT.
+# symlink into the clone install.sh made at ~/.archfrican; override with ARCHFRICAN_ROOT.
 ROOT="${ARCHFRICAN_ROOT:-$HOME/.archfrican}"
 [ -d "$ROOT/themes" ] || {
   echo "theme assets not found under $ROOT" >&2
-  echo "set ARCHFRICAN_ROOT=<archfrican repo dir>, or run bootstrap.sh to clone ~/.archfrican" >&2
+  echo "set ARCHFRICAN_ROOT=<archfrican repo dir>, or run install.sh to clone ~/.archfrican" >&2
   exit 1; }
 THEME="${1:?usage: theme-switch <theme-name>}"
 PAL="$ROOT/themes/$THEME/colors.sh"
