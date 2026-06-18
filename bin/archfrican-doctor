@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+# archfrican doctor — one-shot, READ-ONLY system health report.
+# Exit 0 = healthy; otherwise the count of amber+red items. Never mutates the system.
+set -uo pipefail
+self="$(readlink -f "$0" 2>/dev/null || echo "$0")"
+ROOT="${ARCHFRICAN_ROOT:-$(cd "$(dirname "$self")/.." && pwd)}"
+# shellcheck source=/dev/null
+source "$ROOT/lib/health.sh"
+
+# Health checks intentionally tolerate non-zero exits from their tools (checkupdates=2, etc.).
+set +e +u +o pipefail
+
+printf '\n\e[1m  Archfrican — system health\e[0m\n\n'
+check_failed_units
+check_journal
+check_disk
+check_snapshots
+check_scrub
+check_smart
+check_orphans
+check_pacnew
+check_updates
+check_cve
+check_firmware
+check_reboot
+check_foreign
+check_timers
+printf '\n'
+
+if [ "$H_RED" -gt 0 ]; then
+  printf '  \e[31m✗ %d critical, %d to review\e[0m — see the commands above.\n\n' "$H_RED" "$H_AMBER"
+elif [ "$H_AMBER" -gt 0 ]; then
+  printf '  \e[33m! %d item(s) to review\e[0m — nothing critical.\n\n' "$H_AMBER"
+else
+  printf '  \e[32m✓ System is healthy.\e[0m\n\n'
+fi
+exit $(( H_RED + H_AMBER ))
