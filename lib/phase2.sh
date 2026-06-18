@@ -19,6 +19,7 @@ on_err() {
 module_label() { case "$1" in
   00-base) echo "Base system";; 10-gpu) echo "GPU drivers";; 20-niri-desktop) echo "Desktop (niri)";;
   30-dev) echo "Dev toolchains";; 40-theming) echo "Theming";; 50-snapshots) echo "Snapshots";;
+  60-security) echo "Security";;
   *) echo "$1";; esac; }
 module_desc() { case "$1" in
   00-base) echo "CachyOS repos, dual kernel (cachyos + lts), paru";;
@@ -27,6 +28,7 @@ module_desc() { case "$1" in
   30-dev) echo "editors, language servers, version managers, docker";;
   40-theming) echo "fonts, macOS GTK theme, hot-swap switcher";;
   50-snapshots) echo "snapper + grub-btrfs rollback";;
+  60-security) echo "firewall, dev-safe hardening, screen lock, FIDO2";;
   *) echo "";; esac; }
 
 run_module() {                # run_module <name> [arg]
@@ -74,6 +76,17 @@ run_phase2() {                # run_phase2 [single-module]
     THEME="$(ui_choose 'Initial theme' macos-dark macos-light catppuccin-mocha tokyo-night)"
     GPU="$(ui_choose "GPU profile (detected: $DETECTED_GPU)" \
            "$DETECTED_GPU" amd intel nvidia hybrid-intel-nvidia hybrid-amd-nvidia hybrid-amd-intel)"
+    # FIDO2 physical-key mode (opt-in; needs a plugged key). Enroll the touch(es) now;
+    # modules/60-security.sh wires PAM. Non-exclusive: your password ALWAYS still works.
+    if ui_confirm "Enable a hardware security key? (touch = sudo/login; password still works)"; then
+      best_effort pac_install pam-u2f libfido2
+      if have pamu2fcfg && fido2_enroll "$USER_NAME"; then
+        mkdir -p "$HOME/.config"; printf 'pam\n' > "$HOME/.config/.archfrican-fido2"
+        ok "FIDO2 key registered — PAM is wired in the security step (password stays a fallback)"
+      else
+        warn "FIDO2 not enabled (no key registered) — continuing with password auth"
+      fi
+    fi
   elif [ -r "$HOME/.archfrican-answers" ]; then
     # ISO resume: the Stage-1 wizard's picks, staged by lib/phase1.sh::inject_resume.
     # shellcheck source=/dev/null
@@ -89,7 +102,7 @@ run_phase2() {                # run_phase2 [single-module]
   log "GPU profile: $GPU"
 
   ui_header "Installing Archfrican"
-  step_total 9
+  step_total 10
 
   # ---- apply host/user BEFORE the modules (idempotent) ----------------------
   step "Applying your choices" "hostname · user · timezone · locale · keyboard"
@@ -111,6 +124,7 @@ run_phase2() {                # run_phase2 [single-module]
   run_module 30-dev
   run_module 40-theming
   run_module 50-snapshots
+  run_module 60-security
 
   step "Dotfiles" "deploying your config (niri, zsh, waybar, …) with chezmoi"
   current_module="dotfiles (chezmoi)"
@@ -121,7 +135,8 @@ run_phase2() {                # run_phase2 [single-module]
 
   step "Final checks" "verifying every app launcher resolves to a package"
   current_module="verify-spawns"
-  verify_spawns "$REPO_ROOT/home/dot_config/niri/config.kdl"
+  # Check the chezmoi-RENDERED config (templates + absolute paths resolved), not the source.
+  verify_spawns "$HOME/.config/niri/config.kdl"
   current_module=""
 
   ok "Done. Kernel linux-cachyos (fallback linux-lts in GRUB) · compositor niri · GPU $GPU · theme $THEME."
