@@ -28,6 +28,16 @@ apply_user() {                     # apply_user <name> <password-or-empty>
   return 0
 }
 
+ensure_login_shell() {             # ensure_login_shell <user> — switch to zsh once it is installed
+  local u="$1" want; [ -n "$u" ] || return 0
+  # On the resume path the user was created with /bin/bash (zsh isn't installed until module 00),
+  # so apply_user (which only touches the shell on CREATE) leaves it bash. Fix it idempotently here.
+  want="$(command -v zsh || true)"; [ -n "$want" ] || return 0
+  [ "$(getent passwd "$u" | cut -d: -f7)" = "$want" ] && return 0
+  if sudo chsh -s "$want" "$u"; then ok "login shell -> zsh for $u"
+  else warn "could not set zsh as $u's login shell (run: chsh -s $want $u)"; fi
+}
+
 apply_timezone() {                 # apply_timezone <tz>
   local tz="$1"; [ -n "$tz" ] || return 0
   sudo timedatectl set-timezone "$tz"; ok "timezone -> $tz"

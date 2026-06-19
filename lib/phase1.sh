@@ -42,9 +42,30 @@ inject_resume() {                   # inject_resume <user> <host> <tz> <locale> 
   arch-chroot /mnt visudo -cf /etc/sudoers.d/00-archfrican-resume >/dev/null \
     || die "resume sudoers drop-in invalid — refusing to leave a broken sudo"
 
+  substep "carrying the live medium's network profiles into the target (resume connectivity)"
+  # The headless resume runs `preflight base` (a fatal net check) and needs the network. A wired
+  # box auto-gets DHCP, but a WiFi-only laptop has no profile unless we copy what the operator
+  # connected with on the ISO (iwctl/nmtui write to /etc/NetworkManager/system-connections).
+  if compgen -G '/etc/NetworkManager/system-connections/*' >/dev/null 2>&1; then
+    install -d -m 0755 /mnt/etc/NetworkManager/system-connections
+    cp -a /etc/NetworkManager/system-connections/. /mnt/etc/NetworkManager/system-connections/
+    chmod 600 /mnt/etc/NetworkManager/system-connections/* 2>/dev/null || true
+    ok "copied live network profiles → target"
+  else
+    warn "no live NetworkManager profiles to copy — the resume relies on auto wired DHCP (fine for a wired/VM target)"
+  fi
+
   substep "installing + enabling archfrican-resume.service (runs once on first boot)"
   sed "s/@USER@/$user/g" "$REPO_ROOT/templates/archfrican-resume.service" \
     > /mnt/etc/systemd/system/archfrican-resume.service
+  # The CachyOS tarball pin is fail-closed (modules/00-base.sh): with no committed pin the headless
+  # resume would die at module 00 forever. If the operator pinned/accepted it for THIS run, forward
+  # that into the resume's [Service] env (a committed packages/cachyos-repo.sha256 needs nothing here).
+  local af_env=""
+  [ "${ARCHFRICAN_ALLOW_UNVERIFIED_CACHYOS:-0}" = 1 ] && af_env="Environment=ARCHFRICAN_ALLOW_UNVERIFIED_CACHYOS=1"
+  [ -n "${ARCHFRICAN_CACHYOS_SHA256:-}" ] && af_env="Environment=ARCHFRICAN_CACHYOS_SHA256=${ARCHFRICAN_CACHYOS_SHA256}"
+  [ -n "$af_env" ] && { sed -i "/^Environment=ARCHFRICAN_NONINTERACTIVE=1/a $af_env" \
+      /mnt/etc/systemd/system/archfrican-resume.service; substep "forwarded the CachyOS pin/override to the resume"; }
   arch-chroot /mnt systemctl enable archfrican-resume.service
   ok "first-boot resume wired — the desktop/dev layer installs itself after reboot"
 }

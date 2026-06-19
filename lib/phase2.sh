@@ -132,6 +132,7 @@ run_phase2() {                # run_phase2 [single-module]
   substep "verifying every listed package resolves in a repo"
   preflight_pkgs
   run_module 00-base
+  ensure_login_shell "$USER_NAME"   # zsh exists now (base.txt) — make the resume's pre-created bash user use it
   run_module 10-gpu "$GPU"
   run_module 20-niri-desktop
   run_module 30-dev
