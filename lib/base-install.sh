@@ -15,9 +15,9 @@
 # Ships 0. (CI asserts this — see .github/workflows/ci.yml iso-safety-gate.)
 # AF_INSTALLED is set here and READ by lib/phase1.sh (cross-file global) — hence the file waiver.
 # shellcheck disable=SC2034
-ARCHFRICAN_ISO_ARMED=1
-AF_GO=1            # 1 = execute destructive ops; 0 = print only (dry-run)
-AF_INSTALLED=1    # set by run_base_install: 1 = a real install happened, 0 = dry-run
+ARCHFRICAN_ISO_ARMED=0
+AF_GO=0            # 1 = execute destructive ops; 0 = print only (dry-run)
+AF_INSTALLED=0    # set by run_base_install: 1 = a real install happened, 0 = dry-run
 
 # ---- dry-run wrappers -------------------------------------------------------
 run() {            # run <argv…>  — a single command that MUST succeed
