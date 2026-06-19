@@ -60,6 +60,19 @@ jobs:
             || { echo "::error::lib/base-install.sh must ship ARCHFRICAN_ISO_ARMED=0 (arm only after VM validation — docs/STAGE2-VALIDATION.md)"; exit 1; }
           echo "iso-safety: installer ships dry-run gated"
 
+  cachyos-trust:
+    runs-on: ubuntu-latest        # the CachyOS bootstrap runs as ROOT — must be GPG-verified, never unpinned
+    steps:
+      - uses: actions/checkout@v4
+      - name: CachyOS tarball is GPG-verified against a pinned 40-hex key fingerprint
+        run: |
+          set -euo pipefail
+          grep -qE 'CACHYOS_KEY_FPR="[0-9A-F]{40}"' modules/00-base.sh \
+            || { echo "::error::modules/00-base.sh must pin a 40-hex CACHYOS_KEY_FPR (the stable GPG trust anchor)"; exit 1; }
+          grep -qE 'gpg .*--verify[[:space:]]+repo\.tar\.xz\.sig[[:space:]]+repo\.tar\.xz' modules/00-base.sh \
+            || { echo "::error::modules/00-base.sh must GPG-verify the CachyOS tarball .sig before running it as root"; exit 1; }
+          echo "cachyos-trust: tarball is signature-verified against a pinned key"
+
   theme-switch-smoke:
     runs-on: ubuntu-latest        # pure bash/sed — no Arch needed
     steps:

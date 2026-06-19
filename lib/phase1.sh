@@ -58,14 +58,14 @@ inject_resume() {                   # inject_resume <user> <host> <tz> <locale> 
   substep "installing + enabling archfrican-resume.service (runs once on first boot)"
   sed "s/@USER@/$user/g" "$REPO_ROOT/templates/archfrican-resume.service" \
     > /mnt/etc/systemd/system/archfrican-resume.service
-  # The CachyOS tarball pin is fail-closed (modules/00-base.sh): with no committed pin the headless
-  # resume would die at module 00 forever. If the operator pinned/accepted it for THIS run, forward
-  # that into the resume's [Service] env (a committed packages/cachyos-repo.sha256 needs nothing here).
-  local af_env=""
-  [ "${ARCHFRICAN_ALLOW_UNVERIFIED_CACHYOS:-0}" = 1 ] && af_env="Environment=ARCHFRICAN_ALLOW_UNVERIFIED_CACHYOS=1"
-  [ -n "${ARCHFRICAN_CACHYOS_SHA256:-}" ] && af_env="Environment=ARCHFRICAN_CACHYOS_SHA256=${ARCHFRICAN_CACHYOS_SHA256}"
-  [ -n "$af_env" ] && { sed -i "/^Environment=ARCHFRICAN_NONINTERACTIVE=1/a $af_env" \
-      /mnt/etc/systemd/system/archfrican-resume.service; substep "forwarded the CachyOS pin/override to the resume"; }
+  # CachyOS is verified by GPG signature against a pinned key fingerprint (modules/00-base.sh), so the
+  # headless resume verifies itself unattended — there is no per-release pin to forward. Only carry the
+  # rare accept-unverified escape hatch through, if the operator set it for this run.
+  if [ "${ARCHFRICAN_ALLOW_UNVERIFIED_CACHYOS:-0}" = 1 ]; then
+    sed -i '/^Environment=ARCHFRICAN_NONINTERACTIVE=1/a Environment=ARCHFRICAN_ALLOW_UNVERIFIED_CACHYOS=1' \
+      /mnt/etc/systemd/system/archfrican-resume.service
+    substep "forwarded ARCHFRICAN_ALLOW_UNVERIFIED_CACHYOS=1 to the resume"
+  fi
   arch-chroot /mnt systemctl enable archfrican-resume.service
   ok "first-boot resume wired — the desktop/dev layer installs itself after reboot"
 }

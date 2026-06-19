@@ -7,25 +7,37 @@ if ! grep -q '\[cachyos\]' /etc/pacman.conf; then
   tmp="$(mktemp -d)"; cd "$tmp" || die "could not enter temp dir $tmp"
   substep "downloading the CachyOS repo bootstrap (HTTPS, verified)"
   # HTTPS-only, fail on HTTP errors (so an error page is never saved as the tarball).
-  curl -fL --proto '=https' --tlsv1.2 https://mirror.cachyos.org/cachyos-repo.tar.xz -o repo.tar.xz
-  # FAIL-CLOSED integrity check: we are about to run this tarball's script as ROOT, so a pinned
-  # sha256 is REQUIRED unless explicitly overridden. Precedence: committed pin file → env pin →
-  # explicit accept-unverified → die. (See packages/cachyos-repo.sha256.)
-  pin="$(grep -oE '^[0-9a-f]{64}$' "$REPO_ROOT/packages/cachyos-repo.sha256" 2>/dev/null | head -1 || true)"
-  if [ -n "$pin" ]; then
-    echo "$pin  repo.tar.xz" | sha256sum -c - \
-      || die "CachyOS tarball sha256 mismatch vs packages/cachyos-repo.sha256 — refusing to run it as root"
-    ok "CachyOS tarball verified against the committed pin"
-  elif [ -n "${ARCHFRICAN_CACHYOS_SHA256:-}" ]; then
-    echo "${ARCHFRICAN_CACHYOS_SHA256}  repo.tar.xz" | sha256sum -c - \
-      || die "CachyOS tarball sha256 mismatch vs ARCHFRICAN_CACHYOS_SHA256 — refusing to run it as root"
-    ok "CachyOS tarball verified against ARCHFRICAN_CACHYOS_SHA256"
+  curl -fL --proto '=https' --tlsv1.2 https://mirror.cachyos.org/cachyos-repo.tar.xz     -o repo.tar.xz
+  curl -fL --proto '=https' --tlsv1.2 https://mirror.cachyos.org/cachyos-repo.tar.xz.sig -o repo.tar.xz.sig || true
+  # FAIL-CLOSED integrity check: we run this tarball's bootstrap AS ROOT, so verify it
+  # cryptographically first. The STABLE trust anchor is CachyOS's signing-key FINGERPRINT — it does
+  # NOT rotate when the tarball is rebuilt (a content sha256 would, breaking every install over time),
+  # so anyone can install with no per-release pin to maintain. Fingerprint confirmed against
+  # wiki.cachyos.org + keyserver.ubuntu.com (rsa3072, "CachyOS <admin@cachyos.org>", created 2021-08-10).
+  CACHYOS_KEY_FPR="882DCFE48E2051D48E2562ABF3B607488DB35A47"
+  verified=0
+  if command -v gpg >/dev/null && [ -s repo.tar.xz.sig ]; then
+    gpgdir="$(mktemp -d)"
+    # --recv-keys with the FULL fingerprint: a keyserver cannot substitute a different key for it.
+    # Re-assert the fingerprint (--with-colons fpr record), then verify the detached signature of the
+    # exact tarball we downloaded. Any failure leaves verified=0 → die below (unless explicitly overridden).
+    if { gpg --homedir "$gpgdir" --batch --keyserver hkps://keyserver.ubuntu.com --recv-keys "$CACHYOS_KEY_FPR" \
+         || gpg --homedir "$gpgdir" --batch --keyserver hkps://keys.openpgp.org   --recv-keys "$CACHYOS_KEY_FPR"; } \
+       && gpg --homedir "$gpgdir" --with-colons --fingerprint "$CACHYOS_KEY_FPR" 2>/dev/null \
+            | grep -q "^fpr:::::::::${CACHYOS_KEY_FPR}:" \
+       && gpg --homedir "$gpgdir" --verify repo.tar.xz.sig repo.tar.xz 2>/dev/null; then
+      verified=1
+    fi
+    rm -rf "$gpgdir"
+  fi
+  if [ "$verified" = 1 ]; then
+    ok "CachyOS tarball verified — signed by the pinned CachyOS key $CACHYOS_KEY_FPR"
   elif [ "${ARCHFRICAN_ALLOW_UNVERIFIED_CACHYOS:-0}" = 1 ]; then
-    warn "CachyOS tarball UNVERIFIED (ARCHFRICAN_ALLOW_UNVERIFIED_CACHYOS=1) — running its script as root anyway"
+    warn "CachyOS tarball NOT cryptographically verified (ARCHFRICAN_ALLOW_UNVERIFIED_CACHYOS=1) — running its script as root anyway"
   else
-    die "CachyOS tarball is not pinned — refusing to run an unverified script as root.
-  Pin its sha256 in packages/cachyos-repo.sha256 (instructions in that file), or pass
-  ARCHFRICAN_CACHYOS_SHA256=<digest>, or ARCHFRICAN_ALLOW_UNVERIFIED_CACHYOS=1 to accept the risk."
+    die "CachyOS tarball did not verify against the pinned key $CACHYOS_KEY_FPR — refusing to run an
+  unverified script as root. Needs gpg + a reachable keyserver (network). To override at your own
+  risk: ARCHFRICAN_ALLOW_UNVERIFIED_CACHYOS=1."
   fi
   tar xf repo.tar.xz; cd cachyos-repo || die "CachyOS tarball missing the cachyos-repo/ dir"
   substep "running the CachyOS repo setup (adds the repo + imports its signing key)"
