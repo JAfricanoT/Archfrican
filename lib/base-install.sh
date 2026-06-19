@@ -40,10 +40,10 @@ cpu_ucode() {      # echoes intel-ucode / amd-ucode / nothing (unknown)
     GenuineIntel) printf 'intel-ucode';; AuthenticAMD) printf 'amd-ucode';;
   esac
 }
-xkb_to_vconsole() { # best-effort xkb layout -> tty keymap (us/latam/es are valid keymaps too)
-  local xkb="$1"
+xkb_to_vconsole() { # xkb layout -> tty keymap; fall back to 'us' if it isn't a valid console keymap
+  local xkb="$1"     # (us/latam/es ARE valid keymaps; many xkb names aren't, e.g. gb's keymap is 'uk')
   if localectl --no-convert list-keymaps 2>/dev/null | grep -qx "$xkb"; then printf '%s' "$xkb"
-  else printf '%s' "$xkb"; fi
+  else warn "xkb layout '$xkb' is not a console keymap — using 'us' for the TTY + LUKS prompt (X11 layout is unaffected)"; printf 'us'; fi
 }
 
 # ---- steps ------------------------------------------------------------------
@@ -51,6 +51,7 @@ base_stale_guard() {   # a prior aborted run can leave the target busy -> releas
   run_pipe 'umount -R /mnt 2>/dev/null || true'
   run_pipe 'swapoff -a 2>/dev/null || true'
   run_pipe 'cryptsetup close root 2>/dev/null || true'
+  run udevadm settle     # let the unmounts + LUKS close release the disk before we wipe/repartition it
 }
 
 base_partition() {     # base_partition <disk>
@@ -93,9 +94,12 @@ base_format_mount() {  # base_format_mount <esp> <rootfs>
   run mount "$esp" /mnt/boot                                       # plaintext ESP = /boot
 }
 
-base_pacstrap() {      # base_pacstrap <ucode-or-empty>
-  local ucode="$1"
+base_pacstrap() {      # base_pacstrap <ucode-or-empty> <encrypt(yes|no)>
+  local ucode="$1" enc="$2"
   local -a pkgs=(base linux-lts linux-firmware btrfs-progs grub efibootmgr sudo networkmanager git zram-generator)
+  # The initramfs `encrypt` HOOK needs the cryptsetup binary IN THE TARGET at mkinitcpio time (and at
+  # every later regen, e.g. linux-cachyos/nvidia). It is NOT in `base`, so it must be pacstrapped.
+  [ "$enc" = yes ] && pkgs+=(cryptsetup)
   [ -n "$ucode" ] && pkgs+=("$ucode")
   run pacman -Sy --noconfirm archlinux-keyring   # refresh the LIVE keyring first (avoids sig failures)
   run pacstrap -K /mnt "${pkgs[@]}"              # -K = fresh keyring in the target
@@ -130,9 +134,9 @@ passwd -l root >/dev/null                        # root LOCKED — sudo-only
 chpasswd -e <<< "${U}:$(cat)"                    # the ONLY stdin consumer: the $6$ hash
 
 if [ "$ENC" = yes ]; then
-  HOOKS='base udev autodetect microcode modconf kms keyboard keymap consolefont block encrypt filesystems fsck'
+  HOOKS='base udev autodetect microcode modconf kms keyboard keymap block encrypt filesystems fsck'
 else
-  HOOKS='base udev autodetect microcode modconf kms keyboard keymap consolefont block filesystems fsck'
+  HOOKS='base udev autodetect microcode modconf kms keyboard keymap block filesystems fsck'
 fi
 sed -i "s/^HOOKS=.*/HOOKS=($HOOKS)/" /etc/mkinitcpio.conf
 mkinitcpio -P
@@ -150,7 +154,8 @@ fi
 grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=Archfrican
 grub-mkconfig -o /boot/grub/grub.cfg
 
-systemctl enable NetworkManager.service          # the first-boot resume needs the network
+systemctl enable NetworkManager.service               # the first-boot resume needs the network
+systemctl enable NetworkManager-wait-online.service   # so network-online.target actually waits for connectivity
 
 cat > /etc/systemd/zram-generator.conf <<'ZRAM'
 [zram0]
@@ -200,7 +205,7 @@ run_base_install() {   # run_base_install <disk> <encrypt> <host> <user> <tz> <l
   base_partition "$disk"
   [ "$enc" = yes ] && base_luks "$rootpart"
   base_format_mount "$esp" "$rootfs"
-  base_pacstrap "$ucode"
+  base_pacstrap "$ucode" "$enc"
   run_pipe 'genfstab -U /mnt >> /mnt/etc/fstab'
   [ "$enc" = yes ] && uuid="$(probe '<LUKS-UUID>' cryptsetup luksUUID "$rootpart")"
   base_chroot_config "$tz" "$loc" "$host" "$user" "$vc" "$enc" "$uuid"
