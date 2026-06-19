@@ -19,7 +19,14 @@ pf_keyring()    { pacman -Q archlinux-keyring; }
 pf_net()        { curl -fsS --max-time 8 https://github.com >/dev/null \
                     || curl -fsS --max-time 8 https://geo.mirror.pkgbuild.com/lastsync >/dev/null; }
 pf_sync()       { sudo pacman -Sy >/dev/null; }
+# BOOTED-base only: free space on the installed root. (KiB, as `df --output=avail` reports.)
 pf_disk()       { local need="$1" avail; avail="$(df --output=avail / | tail -1)"; [ "$avail" -ge "$need" ]; }
+# ISO only: is an installable whole DISK (>= bytes) present? On the live ISO `/` is a tiny RAM
+# overlay (airootfs cowspace), so checking `df /` is meaningless — measure the target device instead.
+# `-d` = whole disks (no partitions), `-b` = bytes, TYPE=="disk" drops the ISO's rom/loop.
+pf_disk_target() { local need="$1" max
+  max="$(lsblk -dnb -o SIZE,TYPE 2>/dev/null | awk '$2=="disk"{ if ($1+0 > m) m=$1 } END{ print m+0 }')"
+  [ "${max:-0}" -ge "$need" ]; }
 pf_btrfs_snap() { [ "$(findmnt -no FSTYPE /)" = btrfs ] && [ -d /.snapshots ]; }
 
 preflight() {                      # preflight base|iso
@@ -29,7 +36,7 @@ preflight() {                      # preflight base|iso
   pf_fatal "x86_64 architecture"    pf_x86_64
 
   if [ "$mode" = iso ]; then
-    pf_fatal "UEFI firmware" pf_uefi
+    pf_fatal "UEFI firmware (Must use OVMF/UEFI, not BIOS)" pf_uefi
   else
     pf_warn "UEFI firmware (BIOS layout/rollback may differ)" pf_uefi
     [ "$EUID" -ne 0 ] || die "PREFLIGHT FAIL: run phase 2 as your user, not root"
@@ -49,7 +56,7 @@ preflight() {                      # preflight base|iso
   fi
 
   if [ "$mode" = iso ]; then
-    pf_fatal "≥20G free on /" pf_disk 20971520
+    pf_fatal "an installable disk ≥20G is present" pf_disk_target 21474836480   # 20 GiB, in bytes
   else
     pf_fatal "≥10G free on /" pf_disk 10485760
     pf_warn "root is Btrfs with /.snapshots (rollback feature)" pf_btrfs_snap
