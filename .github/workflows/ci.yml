@@ -56,8 +56,8 @@ jobs:
       - name: ISO full-install ships dry-run gated (ARCHFRICAN_ISO_ARMED=0)
         run: |
           set -euo pipefail
-          grep -qE '^ARCHFRICAN_ISO_ARMED=0[[:space:]]*$' lib/phase1.sh \
-            || { echo "::error::lib/phase1.sh must ship ARCHFRICAN_ISO_ARMED=0 (arm only after VM validation — docs/STAGE2-VALIDATION.md)"; exit 1; }
+          grep -qE '^ARCHFRICAN_ISO_ARMED=0[[:space:]]*$' lib/base-install.sh \
+            || { echo "::error::lib/base-install.sh must ship ARCHFRICAN_ISO_ARMED=0 (arm only after VM validation — docs/STAGE2-VALIDATION.md)"; exit 1; }
           echo "iso-safety: installer ships dry-run gated"
 
   theme-switch-smoke:
