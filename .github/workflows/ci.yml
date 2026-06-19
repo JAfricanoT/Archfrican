@@ -112,7 +112,9 @@ jobs:
           # lists — security.txt, multiboot.txt — are covered automatically.
           for f in packages/*.txt; do
             [ "$(basename "$f")" = aur.txt ] && continue
-            mapfile -t pkgs < <(sed 's/#.*//' "$f" | awk 'NF')
+            # strip inline/whole-line comments, trim surrounding whitespace, drop blanks — else the
+            # padding before aligned `# comments` rides along as a trailing-space pkg name (-> "target not found").
+            mapfile -t pkgs < <(sed -E 's/#.*//; s/^[[:space:]]+//; s/[[:space:]]+$//' "$f" | grep .)
             echo "::group::$f"
             pacman -Sp --print-format '%n' "${pkgs[@]}" || rc=1
             echo "::endgroup::"

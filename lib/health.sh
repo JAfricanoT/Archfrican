@@ -42,7 +42,7 @@ check_disk() {
 check_snapshots() {
   _h_have snapper || { _h_skip "snapshots"; return; }
   local n; n="$(sudo -n snapper -c root list --columns number 2>/dev/null | grep -c '^[0-9]' || true)"
-  [ -n "$n" ] && [ "$n" -gt 0 ] || { _h_skip "snapshots" "needs sudo"; return; }
+  if [ -z "$n" ] || [ "$n" -le 0 ]; then _h_skip "snapshots" "needs sudo"; return; fi
   if [ "$n" -gt 50 ]; then _h_amber "snapshots" "${n} snapshots (cleanup may be due)"
   else _h_ok "snapshots" "${n} snapshots"; fi
 }

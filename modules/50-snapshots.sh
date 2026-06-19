@@ -37,7 +37,7 @@ if ! have_root_config; then
 fi
 
 # Non-root reads of snapshots (snapper list, grub-btrfs) need wheel access.
-[ -d /.snapshots ] && { sudo chmod 750 /.snapshots; sudo chown :wheel /.snapshots; } || true
+if [ -d /.snapshots ]; then sudo chmod 750 /.snapshots; sudo chown :wheel /.snapshots; fi
 
 # snap-pac snapshots every pacman transaction; grub-btrfsd (the inotify daemon,
 # NOT the obsolete grub-btrfs.path) regenerates the boot menu on snapshot changes.
