@@ -1,103 +1,76 @@
-# Stage 2 (ISO full install) — VM capture & validation
+# Stage 2 (ISO full install) — VM validation
 
 Stage 2 boots the Arch live USB and installs a complete, encrypted Archfrican that finishes its
-desktop/dev layer **automatically after the first reboot**. Because it **partitions and formats a
-disk**, it ships **disabled** and must be validated on a VM before it is armed.
+desktop/dev layer **automatically after the first reboot**. It is driven by our own **bedrock-tools base
+installer** ([lib/base-install.sh](../lib/base-install.sh): `sgdisk`, `cryptsetup`, `mkfs.btrfs`, `pacstrap`,
+`genfstab`, `arch-chroot`, `grub-install`, `mkinitcpio`) — **no archinstall**, no JSON config, no creds
+file. Because it **partitions and formats a disk**, it ships **disabled** and must be validated on a VM
+before it is armed.
 
-## Why it ships disabled
+## Why it ships disabled — two gates
+1. **`ARCHFRICAN_ISO_ARMED`** (in [lib/base-install.sh](../lib/base-install.sh)) ships `0`. Unarmed, every
+   destructive op goes through `run`/`run_pipe`, which **print the exact command and execute nothing** — so
+   an unarmed run prints the *entire* install plan (partition → LUKS → mkfs → subvolumes → pacstrap →
+   arch-chroot → GRUB, with `<UUID>` placeholders) and touches **no disk**. Arming additionally requires the
+   runtime opt-in `ARCHFRICAN_ISO_GO=1`.
+2. **`confirm_wipe`** ([lib/disk.sh](../lib/disk.sh)) — even when armed, you retype the exact device name
+   before anything is written.
 
-Two independent gates stand between this code and a wiped disk:
-
-1. **`ARCHFRICAN_ISO_ARMED`** (in [lib/phase1.sh](../lib/phase1.sh)) ships `0`. Unarmed, the ISO path
-   runs **`archinstall --dry-run` only** — it validates the generated config and saves *what it would
-   do*; **no disk is touched**. Arming additionally requires the runtime opt-in `ARCHFRICAN_ISO_GO=1`.
-2. **`confirm_wipe`** ([lib/disk.sh](../lib/disk.sh)) — even when armed, you must retype the exact
-   device name before the format.
-
-The committed [archinstall/user_config.json](../archinstall/user_config.json) is a **base template**.
-`lib/phase1.sh::gen_config` injects the wizard's disk/encryption/hostname/timezone into it. The exact
-**archinstall 2.x `disk_config` / `encryption` / `user_credentials` / `custom_commands` schema is
-version-specific** and is captured on a VM here — never guessed.
+There is no schema to capture or guess: the bedrock CLIs are stable for 10+ years, and the dry-run **is**
+the audit (read the printed plan).
 
 ## Prerequisites
-
-- A VM with **UEFI/OVMF firmware** (required: `preflight iso` fails on BIOS), ≥4 GB RAM, a **throwaway
-  ≥25 GB disk**, and a **snapshot** taken before each destructive run.
-- A current **Arch ISO** booted in that VM, with networking up.
-- Record the archinstall version: `archinstall --version` (the schema is tied to it).
+- A VM with **UEFI/OVMF firmware** (`preflight iso` fails on BIOS), ≥4 GB RAM, a **throwaway ≥25 GB disk**,
+  and a **snapshot** before each armed run.
+- A current **Arch ISO** booted in that VM (as root), networking up.
 
 ---
 
-## Step A — Dry-run capture (no disk touched)
+## Step A — Dry-run (no disk touched)
+Boot the Arch ISO in the VM and run the one-liner:
+```
+sh -c "$(curl -fsSL https://raw.githubusercontent.com/JAfricanoT/Archfrican/refs/heads/main/install.sh)"
+```
+It self-clones, runs `preflight iso`, the wizard (pick the VM disk, **encrypt = yes**, set user/password/
+passphrase, timezone, keyboard…), then — because it is **unarmed** — prints the **full destructive plan**
+and exits, touching nothing. **Read the plan top to bottom** and confirm:
+- the ESP + root partitioning targets *your* disk (and only it);
+- LUKS `luksFormat`/`open` on the root partition, `mkfs.btrfs` on `/dev/mapper/root`, the 5 subvolumes;
+- `pacstrap -K /mnt base linux-lts … grub … networkmanager …`;
+- the `arch-chroot` config script (locale/user/`chpasswd -e`/HOOKS with `keyboard keymap … block encrypt`/
+  `cryptdevice=UUID=…:root` in `GRUB_CMDLINE_LINUX`/`grub-install`).
 
-1. Boot the Arch ISO in the VM (as root). Run the one-liner:
+## Step B — Arm and validate the real install
+1. In a branch, set `ARCHFRICAN_ISO_ARMED=1` in `lib/base-install.sh`; point `ARCHFRICAN_REF` at it.
+2. **Snapshot the VM**, then re-run with the opt-in:
    ```
-   sh -c "$(curl -fsSL https://raw.githubusercontent.com/JAfricanoT/Archfrican/refs/heads/main/install.sh)"
+   ARCHFRICAN_ISO_GO=1 sh -c "$(curl -fsSL https://raw.githubusercontent.com/JAfricanoT/Archfrican/.../install.sh)"
    ```
-   It self-clones, runs `preflight iso`, the wizard (pick the VM disk, choose **encrypt = yes**, set a
-   user/password/passphrase), then **because it is unarmed** runs `archinstall --dry-run` and exits
-   without touching the disk.
-2. Confirm the dry-run **accepts the generated config** (no schema error). If it errors, note the exact
-   complaint — that *is* the schema gap to close in Step B.
+   Retype the device name at `confirm_wipe`. The base install runs for real, then `inject_resume` wires the
+   first-boot service and reboots.
 
-## Step B — Capture the authoritative schema
+### Pass criteria — all must hold (the design's 8 checks)
+- [ ] The install completes; the system boots from the new disk.
+- [ ] **Exactly one passphrase prompt** at boot (the initramfs `encrypt` hook — GRUB must NOT prompt; the
+      plaintext ESP=/boot is what guarantees this). A non-`us` keyboard layout (latam/es) **works at that
+      prompt** (`keyboard keymap consolefont` are before `block encrypt`).
+- [ ] `cryptdevice=UUID=…` is present in `/etc/default/grub` (the chroot script asserts this) and resolves.
+- [ ] **C2 (re-run safety):** deliberately abort an armed run mid-way, then re-run — the stale-state guard
+      (`umount -R`/`swapoff`/`cryptsetup close`) lets it complete (no "device busy").
+- [ ] **C3 (fast NVMe):** `mkfs`/`luksFormat` succeed (the `udevadm settle` holds).
+- [ ] **C4 (stale keyring):** `pacstrap` succeeds even on a weeks-old ISO (the `pacman -Sy archlinux-keyring`
+      refresh on the live medium ran first).
+- [ ] `/mnt` is mounted at the end ⇒ `inject_resume` runs; first boot reaches `archfrican-resume.service`,
+      **NetworkManager brings up the net**, it finishes the modules unattended (`journalctl -u
+      archfrican-resume`), then disables itself + removes `/etc/sudoers.d/00-archfrican-resume`. Module 50
+      adopts the pre-mounted `@.snapshots`.
+- [ ] `/run/archiso` exists on this ISO build (so `is_iso` routes to phase 1).
 
-Run archinstall **guided** once to get a known-good config for *this* archinstall version:
-
-1. `archinstall` (the interactive TUI). Configure to match our base: **GRUB**, **Btrfs** with the
-   `@ / @home / @log / @pkg / @.snapshots` subvolumes, **Snapper**, **LUKS on root, plaintext ESP**,
-   NetworkManager, pipewire, Minimal profile, **root disabled / sudo user**, your VM disk.
-2. Before installing, use **"Save configuration"** → save `user_configuration.json` +
-   `user_credentials.json` (and `user_disk_layout.json` if offered). Or run `archinstall --dry-run` from
-   the TUI, which writes the config to `/var/log/archinstall/` (or the path it prints).
-3. **Diff** that saved config against what `gen_config` produced in Step A. Reconcile each
-   **a-confirmar** below into `archinstall/user_config.json` (base) and/or `lib/phase1.sh::gen_config`
-   (injection). Commit the corrected base — *that* is the validated schema.
-
-### a-confirmar checklist (close each from the saved config)
-
-| # | Item | How to close |
-|---|------|--------------|
-| 1 | `disk_config` 2.x shape (`config_type`, `device_modifications`) + `encryption` block | Copy verbatim from the saved `user_configuration.json`; adjust `gen_config` to inject the device into the right field. |
-| 2 | `user_credentials.json` keys (user vs encryption password; plaintext vs hash) | Match the saved creds keys in `gen_creds`. |
-| 3 | `custom_commands` key/semantics (if used as the resume-injection path) | If present and able to `git clone` + `systemctl enable`, prefer it over the `/mnt` injection in `inject_resume`. |
-| 4 | Disable-root / sudo-only representation | Match how the TUI encoded it (empty `root_password`, a `!` marker, or a setting). |
-| 5 | Does `archinstall --silent` leave the target mounted at `/mnt`? | If **no**, `inject_resume` must remount (and `cryptsetup open` for LUKS) before injecting; update it. If **yes**, current code works. |
-| 6 | `is_iso` marker (`/run/archiso`) on this ISO build, and resume ordering | Confirm `[ -d /run/archiso ]` is true on the live medium; confirm `network-online.target` is reached before the resume runs. |
-
-## Step C — Arm and validate the real install
-
-1. In a branch, set `ARCHFRICAN_ISO_ARMED=1` in `lib/phase1.sh` and point `ARCHFRICAN_REF` at it.
-2. **Snapshot the VM.** Re-run the one-liner with the opt-in:
-   ```
-   ARCHFRICAN_ISO_GO=1 sh -c "$(curl -fsSL https://raw.githubusercontent.com/.../install.sh)"
-   ```
-   Retype the device name at `confirm_wipe`. archinstall now installs for real, then `inject_resume`
-   wires the first-boot service and reboots.
-
-### Pass criteria (all must hold)
-
-- [ ] `archinstall --silent` completes; the system boots from the new disk.
-- [ ] **Exactly one passphrase prompt** at boot (initramfs only — GRUB must not prompt). This is the
-      whole point of plaintext-ESP + LUKS-on-root; if GRUB *also* prompts, the layout is wrong.
-- [ ] After login/boot, `archfrican-resume.service` runs and finishes the **6 modules + chezmoi**
-      unattended (`journalctl -u archfrican-resume`), reading `~/.archfrican-answers` (correct
-      GPU/theme/keyboard).
-- [ ] On success the service **disables itself** (`systemctl is-enabled archfrican-resume` → `disabled`)
-      and **removes** `/etc/sudoers.d/00-archfrican-resume` (the NOPASSWD window lasted one boot).
-      `/etc/sudoers.d/10-archfrican-wheel` (password sudo) remains.
-- [ ] Re-running (force a mid-way failure, reboot) **resumes** via the `.done` checkpoints, then cleans
-      up — no duplicate work, no broken sudo.
-- [ ] niri starts, theme + keyboard layout match the wizard, snapshots/rollback work (see
-      [VALIDATION.md](VALIDATION.md) for the desktop-layer checks).
-
-Only after every box is checked should `ARCHFRICAN_ISO_ARMED=1` be merged to `main`.
+Flip `ARCHFRICAN_ISO_ARMED=1` to `main` **only** in the commit that lands a green run of all of the above.
 
 ## Optional — zero-prompt boot (not the default)
-
-On trusted hardware with a TPM2, enroll the LUKS key so no passphrase is typed at all:
+On trusted hardware with a TPM2, enroll the LUKS key for a no-passphrase boot:
 ```
-sudo systemd-cryptenroll --tpm2-device=auto /dev/<luks-partition>
+sudo systemd-cryptenroll --tpm2-device=auto /dev/<luks-root-partition>
 ```
-Leave this **out of the default** — it is hardware-specific and weakens at-rest protection if the TPM is
-not trustworthy. Document it for users who opt in.
+Left out of the default — hardware-specific and weakens at-rest protection if the TPM isn't trustworthy.
