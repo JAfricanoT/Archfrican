@@ -21,4 +21,3 @@ smartmontools          # SMART disk health (smartd)
 fwupd                  # firmware updates
 arch-audit             # CVE scan of installed packages
 libnotify              # notify-send — the whole health/notify UX no-ops without it
-pamtester              # FIDO2 PAM self-test (the visudo-analogue for PAM)

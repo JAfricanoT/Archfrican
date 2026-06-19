@@ -141,7 +141,7 @@ preflight_pkgs() {
 
 # Every binary niri is told to spawn must resolve to something installed.
 # Resolves binary -> owner via PATH / absolute-path test (not string-matching
-# the lists), so swww-daemon, wpctl, the absolute polkit path, etc. are handled.
+# the lists), so awww-daemon, wpctl, the absolute polkit path, etc. are handled.
 verify_spawns() {                 # verify_spawns <niri-config.kdl>
   local cfg="$1" t missing=()
   [ -r "$cfg" ] || { warn "verify_spawns: no config at $cfg"; return 0; }

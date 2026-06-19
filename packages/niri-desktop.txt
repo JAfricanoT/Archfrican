@@ -10,7 +10,7 @@ fuzzel                 # launcher (styled as Spotlight)
 mako                   # notifications
 swayidle
 swaylock
-swww                   # wallpaper daemon (animated)
+awww                   # wallpaper daemon (animated); swww's official successor in extra (binary: awww-daemon)
 grim
 slurp
 wl-clipboard
@@ -43,7 +43,7 @@ udiskie                    # automount removable media (spawned by niri)
 tumbler                    # thumbnail service
 ffmpegthumbnailer          # video thumbnails
 poppler-glib               # PDF thumbnails
-unar                       # broad archive extraction
+7zip                       # broad archive extraction (rar/7z/zip/…; official, replaces AUR unar)
 xdg-user-dirs              # ~/Downloads, ~/Pictures, …
 # Bluetooth
 bluez
