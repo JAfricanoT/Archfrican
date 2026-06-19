@@ -1,4 +1,5 @@
 archinstall/user_credentials.json
+tests/e2e/answers.env
 *.log
 *.zip
 .DS_Store

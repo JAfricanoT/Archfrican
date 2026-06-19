@@ -70,6 +70,26 @@ inject_resume() {                   # inject_resume <user> <host> <tz> <locale> 
   ok "first-boot resume wired — the desktop/dev layer installs itself after reboot"
 }
 
+# Non-interactive install answers for automated VM testing (tests/e2e/selftest.sh). Reads AF_AP_* from the
+# environment instead of prompting, and assigns run_phase1's locals via bash dynamic scope. Secrets come
+# from env (visible only inside the throwaway test VM) and still reach the installer on fd 3/4, never argv.
+p1_autopilot() {
+  warn "AUTOPILOT — non-interactive install from AF_AP_* env (no wizard). Automated VM testing only."
+  DISK="${AF_AP_DISK:?autopilot: AF_AP_DISK is required}"
+  ENCRYPT="${AF_AP_ENCRYPT:-yes}"
+  HOST="${AF_AP_HOST:-archfrican}"
+  USER_NAME="${AF_AP_USER:-archfrican}"
+  TZ="${AF_AP_TZ:-UTC}"
+  LOCALE="${AF_AP_LOCALE:-en_US.UTF-8}"
+  XKB="${AF_AP_XKB:-us}"
+  THEME="${AF_AP_THEME:-macos-dark}"
+  GPU="${AF_AP_GPU:-$(detect_gpu)}"
+  [ -n "${AF_AP_USER_PASSWORD:-}" ] || die "autopilot: AF_AP_USER_PASSWORD is required"
+  USER_ENC="$(printf '%s' "$AF_AP_USER_PASSWORD" | openssl passwd -6 -stdin)"
+  [ "$ENCRYPT" != yes ] || DISK_PW="${AF_AP_LUKS_PASSPHRASE:?autopilot: AF_AP_LUKS_PASSPHRASE required when AF_AP_ENCRYPT=yes}"
+  ok "autopilot: disk=$DISK encrypt=$ENCRYPT host=$HOST user=$USER_NAME tz=$TZ locale=$LOCALE xkb=$XKB gpu=$GPU theme=$THEME"
+}
+
 run_phase1() {
   set -E; trap on_err ERR
   step_total 5
@@ -77,28 +97,31 @@ run_phase1() {
   step "Preflight" "verifying this live environment can install Archfrican"
   preflight iso
 
-  # ---- wizard ---------------------------------------------------------------
+  # ---- wizard (or autopilot for automated VM testing) -----------------------
   step "Setup wizard" "disk · encryption · hostname · user · locale · keyboard · theme · GPU"
-  ui_install_gum
-  local DETECTED_GPU; DETECTED_GPU="$(detect_gpu)"
-
   local DISK ENCRYPT HOST USER_NAME TZ LOCALE XKB THEME GPU
-  DISK="$(pick_disk)"
-  if ui_confirm "¿Cifrar el disco $DISK? (recomendado)"; then ENCRYPT=yes; else ENCRYPT=no; fi
-  HOST="$(ui_input 'Hostname' archfrican)"
-  USER_NAME="$(ui_input 'Primary user' archfrican)"
-  TZ="$(timedatectl list-timezones 2>/dev/null | ui_filter 'Timezone' America/New_York)"
-  LOCALE="$(ui_input 'Locale (LANG)' en_US.UTF-8)"
-  XKB="$(ui_input 'Keyboard layout (xkb: us, latam, es, ...)' us)"
-  THEME="$(ui_choose 'Initial theme' macos-dark macos-light catppuccin-mocha tokyo-night)"
-  GPU="$(ui_choose "GPU profile (detected: $DETECTED_GPU)" \
-         "$DETECTED_GPU" amd intel nvidia hybrid-intel-nvidia hybrid-amd-nvidia hybrid-amd-intel)"
-  # Passwords last, never echoed. The user password is HASHED ($6$ SHA-512, via stdin so it
-  # never hits argv) and handed to the installer on fd 4; the LUKS passphrase on fd 3.
+  # Passwords never echoed. The user password is HASHED ($6$ SHA-512, via stdin so it never hits argv)
+  # and handed to the installer on fd 4; the LUKS passphrase on fd 3.
   local USER_PW DISK_PW="" USER_ENC
-  USER_PW="$(ui_password "Password for $USER_NAME")"
-  [ "$ENCRYPT" = yes ] && DISK_PW="$(ui_password 'Disk passphrase')"
-  USER_ENC="$(printf '%s' "$USER_PW" | openssl passwd -6 -stdin)"; USER_PW=""
+  if [ "${ARCHFRICAN_AUTOPILOT:-0}" = 1 ]; then
+    p1_autopilot                       # non-interactive answers from AF_AP_* env (tests/e2e/selftest.sh)
+  else
+    ui_install_gum
+    local DETECTED_GPU; DETECTED_GPU="$(detect_gpu)"
+    DISK="$(pick_disk)"
+    if ui_confirm "¿Cifrar el disco $DISK? (recomendado)"; then ENCRYPT=yes; else ENCRYPT=no; fi
+    HOST="$(ui_input 'Hostname' archfrican)"
+    USER_NAME="$(ui_input 'Primary user' archfrican)"
+    TZ="$(timedatectl list-timezones 2>/dev/null | ui_filter 'Timezone' America/New_York)"
+    LOCALE="$(ui_input 'Locale (LANG)' en_US.UTF-8)"
+    XKB="$(ui_input 'Keyboard layout (xkb: us, latam, es, ...)' us)"
+    THEME="$(ui_choose 'Initial theme' macos-dark macos-light catppuccin-mocha tokyo-night)"
+    GPU="$(ui_choose "GPU profile (detected: $DETECTED_GPU)" \
+           "$DETECTED_GPU" amd intel nvidia hybrid-intel-nvidia hybrid-amd-nvidia hybrid-amd-intel)"
+    USER_PW="$(ui_password "Password for $USER_NAME")"
+    [ "$ENCRYPT" = yes ] && DISK_PW="$(ui_password 'Disk passphrase')"
+    USER_ENC="$(printf '%s' "$USER_PW" | openssl passwd -6 -stdin)"; USER_PW=""
+  fi
 
   # ---- base install (lib/base-install.sh) -----------------------------------
   step "Installing the base system" "sgdisk · cryptsetup · mkfs.btrfs · pacstrap · arch-chroot · GRUB on $DISK"
@@ -122,6 +145,10 @@ run_phase1() {
 
   step "Reboot" "into your new system; the rest installs automatically on first boot"
   ok "Base install complete. Hostname $HOST · user $USER_NAME (sudo) · GPU $GPU · theme $THEME."
+  if [ "${ARCHFRICAN_AUTOPILOT:-0}" = 1 ]; then
+    ok "autopilot: install complete — NOT rebooting (the harness asserts first). /mnt left mounted."
+    return 0
+  fi
   if ui_confirm 'Reboot now?'; then
     ok "rebooting"; systemctl reboot
   else

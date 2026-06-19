@@ -43,6 +43,13 @@ pick_disk() {
 confirm_wipe() {                    # confirm_wipe /dev/sdX
   local dev="$1" bare typed
   bare="${dev#/dev/}"
+  # Automated VM testing (tests/e2e): the non-interactive analogue of typing the device name. Bypasses the
+  # prompt ONLY when autopilot is on AND the operator echoed the EXACT device — so it can never fire from the
+  # normal wizard on a real machine. (A wipe still also needs ARCHFRICAN_ISO_ARMED=1 + ARCHFRICAN_ISO_GO=1.)
+  if [ "${ARCHFRICAN_AUTOPILOT:-0}" = 1 ]; then
+    [ "${ARCHFRICAN_AUTOPILOT_CONFIRM_WIPE:-}" = "$dev" ] && return 0
+    die "autopilot: refusing to wipe $dev — set ARCHFRICAN_AUTOPILOT_CONFIRM_WIPE=$dev to confirm"
+  fi
   ui_header "Confirm disk erase"
   ui_note "About to ERASE and repartition $dev — this is not reversible."
   if [ "${UI_BACKEND:-plain}" = gum ]; then
