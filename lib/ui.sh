@@ -68,6 +68,18 @@ ui_choose() {                      # ui_choose "label" opt1 opt2 ...
   fi
 }
 
+ui_filter() {                      # <options on stdin>  ui_filter "label" [default]  -> picked value
+  local label="$1" def="${2:-}" sel
+  if [ "$UI_BACKEND" = gum ]; then
+    sel="$(gum filter --placeholder "$label — type to search, Enter to pick" --height 15)"
+    printf '%s' "${sel:-$def}"
+  else
+    cat >/dev/null                 # no fuzzy UI without gum: drain the list, fall back to free text
+    read -rp "$label [$def]: " sel </dev/tty >&2 || true
+    printf '%s' "${sel:-$def}"
+  fi
+}
+
 ui_confirm() {                     # ui_confirm "question"  -> rc 0 (yes) / 1 (no), default yes
   local a
   if [ "$UI_BACKEND" = gum ]; then

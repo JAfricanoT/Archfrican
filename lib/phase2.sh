@@ -78,7 +78,7 @@ run_phase2() {                # run_phase2 [single-module]
     HOST="$(ui_input 'Hostname' "$HOST")"
     USER_NAME="$(ui_input 'Primary user' "$USER_NAME")"
     if ui_confirm "Set/change a password for $USER_NAME?"; then USER_PW="$(ui_password 'Password')"; fi
-    TZ="$(ui_input 'Timezone' "$TZ")"
+    TZ="$(timedatectl list-timezones 2>/dev/null | ui_filter 'Timezone' "$TZ")"
     LOCALE="$(ui_input 'Locale (LANG)' "$LOCALE")"
     XKB="$(ui_input 'Keyboard layout (xkb: us, latam, es, ...)' "$XKB")"
     THEME="$(ui_choose 'Initial theme' macos-dark macos-light catppuccin-mocha tokyo-night)"

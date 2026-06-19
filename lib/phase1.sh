@@ -44,7 +44,7 @@ print(json.dumps(cfg, indent=2))
 PY
 }
 
-# Build the credentials file. Passwords arrive on STDIN (line 1 = user pw, line 2
+# Build the credentials file. Secrets arrive on STDIN (line 1 = user password HASH, line 2
 # = disk passphrase) so they never hit argv or the environment. The program is
 # written to a (secret-free) temp file and run with the caller's stdin intact —
 # a `python3 - <<EOF` heredoc would BE python's stdin and swallow the passwords.
@@ -54,14 +54,16 @@ gen_creds() {                       # gen_creds <user> <encrypt yes|no>   (pws o
   cat > "$prog" <<'PY'
 import json, os, sys
 lines = sys.stdin.read().split("\n")
-user_pw = lines[0] if len(lines) > 0 else ""
-disk_pw = lines[1] if len(lines) > 1 else ""
+user_enc = lines[0] if len(lines) > 0 else ""   # a $6$ crypt hash (hashed in run_phase1)
+disk_pw  = lines[1] if len(lines) > 1 else ""
 creds = {
-    "users": [{"username": os.environ["AF_USER"], "password": user_pw, "sudo": True}],
-    "root_password": "",            # root disabled / sudo-only
+    # archinstall expects users[].enc_password = a crypt hash (NOT plaintext "password").
+    # A sudo user satisfies "root password OR >=1 sudo user", so root_enc_password is omitted
+    # (root is disabled / sudo-only). 'user_pw' here is ALREADY a $6$ hash (see run_phase1).
+    "users": [{"username": os.environ["AF_USER"], "enc_password": user_enc, "sudo": True}],
 }
 if os.environ["AF_ENC"] == "yes":
-    creds["encryption_password"] = disk_pw
+    creds["encryption_password"] = disk_pw   # LUKS passphrase stays plaintext
 json.dump(creds, sys.stdout, indent=2)
 PY
   AF_USER="$1" AF_ENC="$2" python3 "$prog" || rc=$?
@@ -134,16 +136,18 @@ run_phase1() {
   if ui_confirm "¿Cifrar el disco $DISK? (recomendado)"; then ENCRYPT=yes; else ENCRYPT=no; fi
   HOST="$(ui_input 'Hostname' archfrican)"
   USER_NAME="$(ui_input 'Primary user' arch)"
-  TZ="$(ui_input 'Timezone' America/New_York)"
+  TZ="$(timedatectl list-timezones 2>/dev/null | ui_filter 'Timezone' America/New_York)"
   LOCALE="$(ui_input 'Locale (LANG)' en_US.UTF-8)"
   XKB="$(ui_input 'Keyboard layout (xkb: us, latam, es, ...)' us)"
   THEME="$(ui_choose 'Initial theme' macos-dark macos-light catppuccin-mocha tokyo-night)"
   GPU="$(ui_choose "GPU profile (detected: $DETECTED_GPU)" \
          "$DETECTED_GPU" amd intel nvidia hybrid-intel-nvidia hybrid-amd-nvidia hybrid-amd-intel)"
-  # Passwords last, and never echoed. Collected here so config gen has them on stdin.
-  local USER_PW DISK_PW=""
+  # Passwords last, and never echoed. The user password is HASHED here ($6$ SHA-512, fed via
+  # stdin so it never hits argv) because archinstall's creds want enc_password, not plaintext.
+  local USER_PW DISK_PW="" USER_ENC
   USER_PW="$(ui_password "Password for $USER_NAME")"
   [ "$ENCRYPT" = yes ] && DISK_PW="$(ui_password 'Disk passphrase')"
+  USER_ENC="$(printf '%s' "$USER_PW" | openssl passwd -6 -stdin)"; USER_PW=""
 
   # ---- generate archinstall config + creds (creds: 0600, tmpfs, shredded) ----
   step "Preparing archinstall" "generating the disk + credential config for $DISK"
@@ -151,8 +155,8 @@ run_phase1() {
   workdir="$(mktemp -d)"; cfg="$workdir/user_configuration.json"; creds="$workdir/user_credentials.json"
   ( umask 077; : > "$creds" )       # lock the creds file down before a byte lands in it
   gen_config "$DISK" "$ENCRYPT" "$HOST" "$TZ" > "$cfg"
-  printf '%s\n%s\n' "$USER_PW" "$DISK_PW" | gen_creds "$USER_NAME" "$ENCRYPT" > "$creds"
-  USER_PW=""; DISK_PW=""             # drop the plaintext from this shell's memory
+  printf '%s\n%s\n' "$USER_ENC" "$DISK_PW" | gen_creds "$USER_NAME" "$ENCRYPT" > "$creds"
+  USER_ENC=""; DISK_PW=""            # drop the hash + passphrase from this shell's memory
   substep "config:      $cfg"
   substep "credentials: $creds (0600, tmpfs, shredded after install)"
 
