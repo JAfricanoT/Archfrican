@@ -10,5 +10,5 @@
 - [ ] Idempotent + reliability vocab (`die`/`best_effort`/`write_system_file`/…) / idempotente
 - [ ] No plain `Mod+<letter>` niri bind; `/etc/default/grub` via `lib/grub.sh` / sin `Mod+<letra>`; grub vía helper
 - [ ] In scope per [VISION.md](../VISION.md) / dentro del alcance
-- [ ] If disk/boot/auth: VM-validated + safety gates intact (`ARCHFRICAN_ISO_ARMED=0`) / validado en VM, gates intactos
+- [ ] If disk/boot/auth: VM-validated + safety gates intact (`ARCHFRICAN_ISO_ARMED` defaults to `0`) / validado en VM, gates intactos
 - [ ] Docs updated if behavior changed / docs actualizadas si cambió el comportamiento

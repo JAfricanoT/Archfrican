@@ -23,8 +23,9 @@ the **supply chain** (the `curl | sh` bootstrap, the CachyOS repo bootstrap, AUR
   detached `.sig` is checked before the bootstrap runs. The fingerprint is the stable trust anchor —
   it doesn't rotate when the tarball is rebuilt, so there's no per-release pin to maintain. paru is
   required from the signed CachyOS binary repo.
-- **Disk** — the ISO installer ships **dry-run gated** (`ARCHFRICAN_ISO_ARMED=0`) and adds a
-  type-the-device-name `confirm_wipe` gate before any format.
+- **Disk** — the ISO installer **defaults to a dry-run preview** (`ARCHFRICAN_ISO_ARMED` defaults to `0`; a
+  real install is an explicit env/interactive opt-in) and `confirm_wipe` makes you retype the device name
+  before any format. CI enforces the committed default stays `0`.
 - **Auth** — FIDO2 is **non-exclusive** (a key *or* the password always works — no lockout) and refuses
   `pam-u2f < 1.3.1` (CVE-2025-23013); root is disabled (sudo-only); sudoers drop-ins are `visudo -cf`
   validated; passwords flow via stdin only.
@@ -56,8 +57,9 @@ y la **cadena de suministro** (el bootstrap `curl | sh`, el repo de CachyOS, las
   `modules/00-base.sh`): se comprueba su firma `.sig` antes de ejecutar el bootstrap. El fingerprint es
   el ancla de confianza estable — no rota cuando se reconstruye el tarball, así que no hay pin por
   versión que mantener. paru se exige desde el repo binario firmado de CachyOS.
-- **Disco** — el instalador ISO sale en **modo dry-run** (`ARCHFRICAN_ISO_ARMED=0`) y añade un gate
-  `confirm_wipe` de reescribir-el-nombre-del-dispositivo antes de cualquier formateo.
+- **Disco** — el instalador ISO **sale en preview/dry-run por defecto** (`ARCHFRICAN_ISO_ARMED` por defecto
+  `0`; un install real es opt-in explícito por env/interactivo) y `confirm_wipe` exige reescribir el nombre
+  del dispositivo antes de cualquier formateo. CI asegura que el default commiteado siga en `0`.
 - **Auth** — FIDO2 es **no excluyente** (la llave *o* la contraseña siempre funcionan — sin lockout) y
   rechaza `pam-u2f < 1.3.1` (CVE-2025-23013); root deshabilitado (solo sudo); los drop-ins de sudoers se
   validan con `visudo -cf`; las contraseñas fluyen solo por stdin.

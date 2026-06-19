@@ -50,12 +50,12 @@ separate. A component = one module + one package list + one dotfiles subtree, so
 ### Before you open a PR
 - Run locally: `bash -n <files>` and `shellcheck -x -e SC1091 <files>`.
 - CI gates (all must be green): **`shellcheck`**, **`bashn`**, **`firewall-ruleset`** (no `flush ruleset`),
-  **`grub-helper`** (idempotent + verify-or-die), **`iso-safety-gate`** (`ARCHFRICAN_ISO_ARMED=0`),
+  **`grub-helper`** (idempotent + verify-or-die), **`iso-safety-gate`** (`ARCHFRICAN_ISO_ARMED` defaults to `0`),
   **`theme-switch-smoke`** (themes idempotent + fully rendered), **`pkg-resolution`** (every pacman list
   resolves).
 - **Disk/boot/auth changes** are special — see [GOVERNANCE.md](GOVERNANCE.md): they need adversarial review
   + VM validation ([docs/STAGE2-VALIDATION.md](docs/STAGE2-VALIDATION.md)), and may not weaken any safety
-  gate (the ISO installer always ships `ARCHFRICAN_ISO_ARMED=0`).
+  gate (the ISO installer always defaults `ARCHFRICAN_ISO_ARMED` to `0`; a real install is a runtime opt-in).
 - The commit history is the changelog until the first tagged release.
 
 ## Español

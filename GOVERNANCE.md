@@ -25,8 +25,9 @@ supply chain** carry the highest blast radius and get extra scrutiny before merg
 2. **VM validation** — disk/boot changes are validated on a VM per
    [docs/STAGE2-VALIDATION.md](docs/STAGE2-VALIDATION.md) (not the general docs/VALIDATION.md) before they
    ship enabled.
-3. **Safety gates held** — none of these may be weakened by the PR: `ARCHFRICAN_ISO_ARMED=0` (the ISO
-   installer ships dry-run gated), both disk gates (`confirm_wipe` retype + the armed flag), the FIDO2
+3. **Safety gates held** — none of these may be weakened by the PR: `ARCHFRICAN_ISO_ARMED` defaults to `0`
+   (the ISO installer defaults to a dry-run preview), both disk gates (`confirm_wipe` retype + the arming
+   opt-in), the FIDO2
    non-exclusive/no-lockout invariant (pam-u2f ≥ 1.3.1), the named-table-never-`flush ruleset` firewall,
    and the fail-closed CachyOS sha256 pin. The CI `iso-safety-gate` + `firewall-ruleset` jobs enforce two
    of these mechanically.
@@ -62,8 +63,9 @@ cadena de suministro** tienen el mayor radio de impacto y reciben escrutinio ext
    [docs/audit/02](docs/audit/02-data-integrity-ops.md): el revisor intenta romperlo, no solo leerlo.
 2. **Validación en VM** — los cambios de disco/arranque se validan en VM según
    [docs/STAGE2-VALIDATION.md](docs/STAGE2-VALIDATION.md) antes de publicarse activados.
-3. **Gates de seguridad intactos** — el PR no puede debilitar: `ARCHFRICAN_ISO_ARMED=0` (el instalador ISO
-   sale en modo dry-run), los dos gates de disco (`confirm_wipe` + la bandera armada), el invariante FIDO2
+3. **Gates de seguridad intactos** — el PR no puede debilitar: `ARCHFRICAN_ISO_ARMED` por defecto `0` (el
+   instalador ISO sale en preview por defecto), los dos gates de disco (`confirm_wipe` + el opt-in de
+   armado), el invariante FIDO2
    no-excluyente/sin-lockout (pam-u2f ≥ 1.3.1), el firewall de tabla-nombrada-nunca-`flush ruleset`, y el
    pin sha256 fail-closed de CachyOS. Los jobs de CI `iso-safety-gate` + `firewall-ruleset` hacen cumplir
    dos de estos mecánicamente.
