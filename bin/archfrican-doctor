@@ -67,4 +67,7 @@ case "$MODE" in
     ;;
 esac
 rm -f "$REPORT"
-exit "$issues"
+# --json/--notify are side-effect modes: always exit 0 so the weekly oneshot can't mark ITSELF
+# a failed unit (which the next health check would then report). Only the report mode returns
+# the issue count (useful for scripting).
+case "$MODE" in --json|--notify) exit 0;; *) exit "$issues";; esac
