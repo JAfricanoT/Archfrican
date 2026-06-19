@@ -135,7 +135,7 @@ run_phase1() {
   DISK="$(pick_disk)"
   if ui_confirm "¿Cifrar el disco $DISK? (recomendado)"; then ENCRYPT=yes; else ENCRYPT=no; fi
   HOST="$(ui_input 'Hostname' archfrican)"
-  USER_NAME="$(ui_input 'Primary user' arch)"
+  USER_NAME="$(ui_input 'Primary user' archfrican)"
   TZ="$(timedatectl list-timezones 2>/dev/null | ui_filter 'Timezone' America/New_York)"
   LOCALE="$(ui_input 'Locale (LANG)' en_US.UTF-8)"
   XKB="$(ui_input 'Keyboard layout (xkb: us, latam, es, ...)' us)"
