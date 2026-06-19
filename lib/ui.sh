@@ -80,13 +80,14 @@ ui_filter() {                      # <options on stdin>  ui_filter "label" [defa
   fi
 }
 
-ui_confirm() {                     # ui_confirm "question"  -> rc 0 (yes) / 1 (no), default yes
-  local a
+ui_confirm() {                     # ui_confirm "question" [default:yes|no]  -> rc 0 (yes) / 1 (no)
+  local a def="${2:-yes}"          # default yes unless explicitly "no" (e.g. the REAL-install gate)
   if [ "$UI_BACKEND" = gum ]; then
-    gum confirm --default=true "$1"
+    if [ "$def" = no ]; then gum confirm --default=false "$1"; else gum confirm --default=true "$1"; fi
+  elif [ "$def" = no ]; then
+    read -rp "$1 [y/N]: " a </dev/tty >&2 || true; [[ "${a:-n}" =~ ^[Yy]$ ]]
   else
-    read -rp "$1 [Y/n]: " a </dev/tty >&2 || true
-    [[ "${a:-y}" =~ ^[Yy]$ ]]
+    read -rp "$1 [Y/n]: " a </dev/tty >&2 || true; [[ "${a:-y}" =~ ^[Yy]$ ]]
   fi
 }
 

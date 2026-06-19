@@ -14,8 +14,9 @@
 #              guard must release /mnt + close LUKS and complete.
 #
 #  SAFETY: `install`/`rerun` WIPE the target disk. They only proceed because the
-#  harness arms the LOCAL clone (sed ARCHFRICAN_ISO_ARMED=1) and sets the explicit
-#  autopilot gates — none of which the shipped installer does. Use ONLY in a VM.
+#  harness sets the explicit autopilot gates in the env (ARCHFRICAN_ISO_ARMED=1 +
+#  ARCHFRICAN_ISO_GO=1 + ARCHFRICAN_AUTOPILOT_CONFIRM_WIPE=<device>) — the shipped
+#  repo defaults to dry-run. Use ONLY in a disposable VM.
 # ============================================================================
 set -uo pipefail
 
@@ -79,15 +80,9 @@ load_answers() {
          ${AF_AP_XKB:+AF_AP_XKB} ${AF_AP_THEME:+AF_AP_THEME} ${AF_AP_GPU:+AF_AP_GPU}
 }
 
-arm_local_clone() {
-  # Arm the VM's OWN clone only — the shipped repo keeps ARCHFRICAN_ISO_ARMED=0 (CI enforces it).
-  sed -i 's/^ARCHFRICAN_ISO_ARMED=0$/ARCHFRICAN_ISO_ARMED=1/' "$ROOT/lib/base-install.sh"
-  grep -qE '^ARCHFRICAN_ISO_ARMED=1$' "$ROOT/lib/base-install.sh" || die "could not arm the local clone"
-}
-
 run_installer() {
-  arm_local_clone
-  ARCHFRICAN_AUTOPILOT=1 ARCHFRICAN_ISO_GO=1 ARCHFRICAN_AUTOPILOT_CONFIRM_WIPE="$AF_AP_DISK" \
+  # Arming is a runtime opt-in (env) — no file edit; the shipped repo defaults to ARCHFRICAN_ISO_ARMED=0.
+  ARCHFRICAN_AUTOPILOT=1 ARCHFRICAN_ISO_ARMED=1 ARCHFRICAN_ISO_GO=1 ARCHFRICAN_AUTOPILOT_CONFIRM_WIPE="$AF_AP_DISK" \
     bash "$ROOT/install.sh" || die "installer exited non-zero"
 }
 

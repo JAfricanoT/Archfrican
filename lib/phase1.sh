@@ -123,6 +123,21 @@ run_phase1() {
     USER_ENC="$(printf '%s' "$USER_PW" | openssl passwd -6 -stdin)"; USER_PW=""
   fi
 
+  # ---- real install vs preview ----------------------------------------------
+  # Headless env-arm (ARCHFRICAN_ISO_ARMED=1 + ARCHFRICAN_ISO_GO=1) still works. Interactively — and not
+  # autopilot, not forced-preview — offer a REAL install, defaulting to PREVIEW so a casual run never wipes
+  # without an explicit yes. Either way run_base_install + confirm_wipe (retype the device) are the final gate.
+  if [ "${ARCHFRICAN_AUTOPILOT:-0}" != 1 ] && [ "${ARCHFRICAN_DRY_RUN:-0}" != 1 ] \
+     && ! { [ "$ARCHFRICAN_ISO_ARMED" = 1 ] && [ "${ARCHFRICAN_ISO_GO:-0}" = 1 ]; } \
+     && ui_interactive; then
+    ui_note "Una instalación REAL BORRARÁ todo en $DISK. Preview = imprime el plan, no toca el disco."
+    if ui_confirm "¿Hacer la instalación REAL ahora en $DISK?" no; then
+      ARCHFRICAN_ISO_ARMED=1; ARCHFRICAN_ISO_GO=1   # interactive arm; confirm_wipe still gates the wipe
+    else
+      ok "Preview (dry-run) — se imprime el plan, nada se toca. (ARCHFRICAN_DRY_RUN=1 lo fuerza siempre.)"
+    fi
+  fi
+
   # ---- base install (lib/base-install.sh) -----------------------------------
   step "Installing the base system" "sgdisk · cryptsetup · mkfs.btrfs · pacstrap · arch-chroot · GRUB on $DISK"
   # run_base_install prints the whole destructive plan and touches NOTHING unless armed; it sets
@@ -132,9 +147,9 @@ run_phase1() {
   DISK_PW=""; USER_ENC=""
 
   if [ "$AF_INSTALLED" != 1 ]; then
-    ok "Dry-run complete — the full plan printed above; NOTHING was touched."
-    ok "To install for real: VM-validate, set ARCHFRICAN_ISO_ARMED=1 in lib/base-install.sh, re-run with ARCHFRICAN_ISO_GO=1."
-    ok "Procedure: docs/STAGE2-VALIDATION.md"
+    ok "Preview (dry-run) — the full plan printed above; NOTHING was touched."
+    ok "For a REAL install: re-run interactively and answer 'REAL install?' yes, or set ARCHFRICAN_ISO_ARMED=1 ARCHFRICAN_ISO_GO=1."
+    ok "Procedure / VM validation: docs/STAGE2-VALIDATION.md"
     return 0
   fi
 

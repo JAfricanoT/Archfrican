@@ -16,10 +16,10 @@ No serial-console driving, no OVMF/pexpect plumbing, and it doesn't care that an
 under TCG on Apple Silicon — you boot the VM however you like and run one command in it.
 
 ## Safety
-`install`/`rerun` **wipe the target disk**. They only proceed because the harness arms the VM's *own*
-clone (`sed ARCHFRICAN_ISO_ARMED=1`) and sets the explicit autopilot gates
-(`ARCHFRICAN_AUTOPILOT=1` + `ARCHFRICAN_ISO_GO=1` + `ARCHFRICAN_AUTOPILOT_CONFIRM_WIPE=<device>`). The
-**shipped** repo always stays `ARCHFRICAN_ISO_ARMED=0` (CI enforces it), so none of this can fire from a
+`install`/`rerun` **wipe the target disk**. They only proceed because the harness sets the explicit gates in
+the env (`ARCHFRICAN_AUTOPILOT=1` + `ARCHFRICAN_ISO_ARMED=1` + `ARCHFRICAN_ISO_GO=1` +
+`ARCHFRICAN_AUTOPILOT_CONFIRM_WIPE=<device>`). The committed repo **defaults to `ARCHFRICAN_ISO_ARMED=0`**
+(CI enforces it) and autopilot also requires the exact-device confirm — so none of this can fire from a
 normal run on a real machine. Use only in a disposable VM.
 
 ## Prerequisites

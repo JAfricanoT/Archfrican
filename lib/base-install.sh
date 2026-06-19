@@ -8,14 +8,15 @@
 # │ Every destructive op goes through run()/run_pipe(), which PRINT the exact     │
 # │ command and execute NOTHING unless AF_GO=1. AF_GO=1 is set only when ALL of:  │
 # │   ARCHFRICAN_ISO_ARMED=1  AND  ARCHFRICAN_ISO_GO=1  AND  confirm_wipe passes.  │
-# │ So an unarmed run prints the whole plan and touches no disk. Flip ARMED=1 ONLY │
-# │ in the commit that lands a green VM run (docs/STAGE2-VALIDATION.md).           │
+# │ Arming is a RUNTIME opt-in — set the env vars, or answer the interactive "REAL │
+# │ install?" prompt; never committed as 1. No env + non-interactive ⇒ dry-run.   │
 # └──────────────────────────────────────────────────────────────────────────────┘
 
-# Ships 0. (CI asserts this — see .github/workflows/ci.yml iso-safety-gate.)
-# AF_INSTALLED is set here and READ by lib/phase1.sh (cross-file global) — hence the file waiver.
+# Defaults to 0; env-overridable so a real install needs NO file edit (CI asserts the safe default —
+# see .github/workflows/ci.yml iso-safety-gate). AF_INSTALLED is set here and READ by lib/phase1.sh
+# (cross-file global) — hence the file waiver.
 # shellcheck disable=SC2034
-ARCHFRICAN_ISO_ARMED=0
+ARCHFRICAN_ISO_ARMED="${ARCHFRICAN_ISO_ARMED:-0}"
 AF_GO=0            # 1 = execute destructive ops; 0 = print only (dry-run)
 AF_INSTALLED=0    # set by run_base_install: 1 = a real install happened, 0 = dry-run
 

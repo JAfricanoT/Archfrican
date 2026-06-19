@@ -53,12 +53,12 @@ jobs:
     runs-on: ubuntu-latest        # the disk-wipe path must ship DISABLED
     steps:
       - uses: actions/checkout@v4
-      - name: ISO full-install ships dry-run gated (ARCHFRICAN_ISO_ARMED=0)
+      - name: ISO full-install defaults to dry-run (ARCHFRICAN_ISO_ARMED safe-default 0)
         run: |
           set -euo pipefail
-          grep -qE '^ARCHFRICAN_ISO_ARMED=0[[:space:]]*$' lib/base-install.sh \
-            || { echo "::error::lib/base-install.sh must ship ARCHFRICAN_ISO_ARMED=0 (arm only after VM validation — docs/STAGE2-VALIDATION.md)"; exit 1; }
-          echo "iso-safety: installer ships dry-run gated"
+          grep -qE '^ARCHFRICAN_ISO_ARMED="\$\{ARCHFRICAN_ISO_ARMED:-0\}"$' lib/base-install.sh \
+            || { echo "::error::lib/base-install.sh must DEFAULT ARCHFRICAN_ISO_ARMED to 0 (env-overridable; never hardcode =1) — docs/STAGE2-VALIDATION.md"; exit 1; }
+          echo "iso-safety: installer defaults to dry-run (real install is a runtime opt-in)"
 
   cachyos-trust:
     runs-on: ubuntu-latest        # the CachyOS bootstrap runs as ROOT — must be GPG-verified, never unpinned
