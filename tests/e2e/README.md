@@ -33,18 +33,28 @@ normal run on a real machine. Use only in a disposable VM.
 niri (like every Wayland compositor) requires a DRM **render** device. A VM only exposes one when 3D
 acceleration / virtio-gpu is on. Confirm inside the guest with `ls /dev/dri/` — you want a **`renderD128`**
 (not just `card0`). To enable it on the **host**:
-- **virt-manager (QEMU/KVM)** — the VM's hardware details:
-  - **Display Spice** → *Listen type* = **None**, **OpenGL** = ✅
-  - **Video** → *Model* = **Virtio**, **3D acceleration** = ✅
-  - **Both halves are required.** If QEMU fails to start with `display backend does not have OpenGL support
-    enabled`, you set Video=3D but **not** the Display's OpenGL. If the OpenGL checkbox is greyed out, set
-    *Listen type*=None first; if it still fails, switch the Display's render node from `Auto` to
-    `/dev/dri/renderD128`.
-  - Host needs `virglrenderer` + a working render node (`ls /dev/dri/renderD128` **on the host**; else
-    `pacman -S virglrenderer` + host GPU drivers). View via the local virt-manager console (with
-    `Listen:None` you can't use a remote SPICE client). XML equivalent:
-    `<graphics type='spice'><listen type='none'/><gl enable='yes' rendernode='/dev/dri/renderD128'/></graphics>`
-    and `<video><model type='virtio' heads='1' primary='yes'><acceleration accel3d='yes'/></model></video>`.
+- **virt-manager (QEMU/KVM)** — the **XML** is the reliable path (the GUI checkboxes move/disappear between
+  versions). `virsh edit <vm>` (or `virsh -c qemu:///session edit <vm>` for the user session; or
+  virt-manager → Edit → Preferences → *Enable XML editing*, then the VM's **XML** tab). Set:
+  ```xml
+  <graphics type='spice'>
+    <listen type='none'/>
+    <gl enable='yes' rendernode='/dev/dri/renderD128'/>
+  </graphics>
+  <video><model type='virtio' heads='1' primary='yes'><acceleration accel3d='yes'/></model></video>
+  ```
+  GUI equivalent — **Display Spice**: *Listen type* (dropdown) = **None** → Apply; then the **separate
+  `OpenGL` checkbox** (it is NOT one of the Listen-type values — that dropdown only has `address`/`none`) =
+  ✅, and set its *Render node* if it shows `Auto`. **Video**: *Model* = **Virtio** + **3D acceleration** ✅.
+- **Two common errors:**
+  - `display backend does not have OpenGL support enabled` → Video 3D is on but the Display GL is not (enable
+    the OpenGL checkbox / `<gl enable='yes'/>`).
+  - `No DRM render nodes available` → the **HOST** has no usable render node (`ls /dev/dri/` on the host shows
+    no `renderD128`). Most common with the **NVIDIA proprietary** host driver — it exposes `/dev/nvidia*`, not
+    a mesa `/dev/dri/renderD128`, so virgl can't use it. Fixes: use **nouveau** on the host, run the VM on an
+    Intel/AMD/nouveau host, or add your user to the `render`/`video` group if the node exists but is
+    inaccessible.
+- With `Listen:None` you can only view via the local virt-manager console, not a remote SPICE client.
 - **plain qemu** — `-device virtio-gpu-gl-pci -display gtk,gl=on` (or `sdl,gl=on`).
 - **UTM** — Display → *Emulated Display Card* = `virtio-gpu-gl (GPU Supported)`.
 - **VirtualBox** — Display → Graphics Controller = **VMSVGA** + **Enable 3D Acceleration**.
