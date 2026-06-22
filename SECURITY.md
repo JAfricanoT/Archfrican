@@ -18,11 +18,13 @@ disk/partitioning + the bootloader, encryption/LUKS, authentication (PAM / sudo 
 the **supply chain** (the `curl | sh` bootstrap, the CachyOS repo bootstrap, AUR builds).
 
 ### Current posture (where the safety lives)
-- **Supply chain** — the CachyOS repo tarball (run as root) is verified **fail-closed** against the
-  pinned CachyOS **GPG signing-key fingerprint** (`882DCFE4…8DB35A47`, in `modules/00-base.sh`): its
-  detached `.sig` is checked before the bootstrap runs. The fingerprint is the stable trust anchor —
-  it doesn't rotate when the tarball is rebuilt, so there's no per-release pin to maintain. paru is
-  required from the signed CachyOS binary repo.
+- **Supply chain** — the CachyOS bootstrap runs as root, so we **pin CachyOS's GPG signing-key
+  fingerprint** (`882DCFE4…8DB35A47`, in `modules/00-base.sh`) and **import + locally-sign it into
+  pacman's keyring before** running the bootstrap — so every CachyOS package it installs (keyring,
+  mirrorlist, `linux-cachyos`, …) is pacman-**signature-verified** against that pinned key. (CachyOS
+  publishes no detached signature for the tarball itself.) The full fingerprint is the stable trust
+  anchor — it doesn't rotate when the tarball is rebuilt, so there's no per-release pin to maintain.
+  paru is required from the signed CachyOS binary repo.
 - **Disk** — the ISO installer **defaults to a dry-run preview** (`ARCHFRICAN_ISO_ARMED` defaults to `0`; a
   real install is an explicit env/interactive opt-in) and `confirm_wipe` makes you retype the device name
   before any format. CI enforces the committed default stays `0`.
@@ -52,11 +54,13 @@ valor son: disco/particionado + el bootloader, cifrado/LUKS, autenticación (PAM
 y la **cadena de suministro** (el bootstrap `curl | sh`, el repo de CachyOS, las builds de AUR).
 
 ### Postura actual (dónde vive la seguridad)
-- **Cadena de suministro** — el tarball del repo CachyOS (se corre como root) se verifica **fail-closed**
-  contra el **fingerprint de la clave de firma GPG** de CachyOS fijado (`882DCFE4…8DB35A47`, en
-  `modules/00-base.sh`): se comprueba su firma `.sig` antes de ejecutar el bootstrap. El fingerprint es
-  el ancla de confianza estable — no rota cuando se reconstruye el tarball, así que no hay pin por
-  versión que mantener. paru se exige desde el repo binario firmado de CachyOS.
+- **Cadena de suministro** — el bootstrap de CachyOS se corre como root, así que **fijamos el fingerprint
+  de la clave de firma GPG** de CachyOS (`882DCFE4…8DB35A47`, en `modules/00-base.sh`) y lo **importamos +
+  lo firmamos localmente en el keyring de pacman ANTES** de ejecutar el bootstrap — así cada paquete CachyOS
+  que instala (keyring, mirrorlist, `linux-cachyos`, …) queda **verificado por firma** por pacman contra esa
+  clave fijada. (CachyOS no publica firma del tarball.) El fingerprint completo es el ancla de confianza
+  estable — no rota al reconstruir el tarball, así que no hay pin por versión que mantener. paru se exige
+  desde el repo binario firmado de CachyOS.
 - **Disco** — el instalador ISO **sale en preview/dry-run por defecto** (`ARCHFRICAN_ISO_ARMED` por defecto
   `0`; un install real es opt-in explícito por env/interactivo) y `confirm_wipe` exige reescribir el nombre
   del dispositivo antes de cualquier formateo. CI asegura que el default commiteado siga en `0`.

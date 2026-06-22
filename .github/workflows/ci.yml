@@ -61,17 +61,17 @@ jobs:
           echo "iso-safety: installer defaults to dry-run (real install is a runtime opt-in)"
 
   cachyos-trust:
-    runs-on: ubuntu-latest        # the CachyOS bootstrap runs as ROOT — must be GPG-verified, never unpinned
+    runs-on: ubuntu-latest        # the CachyOS bootstrap runs as ROOT — its key must be pinned + lsigned
     steps:
       - uses: actions/checkout@v4
-      - name: CachyOS tarball is GPG-verified against a pinned 40-hex key fingerprint
+      - name: CachyOS key is pinned (40-hex fingerprint) and locally-signed into pacman's keyring
         run: |
           set -euo pipefail
           grep -qE 'CACHYOS_KEY_FPR="[0-9A-F]{40}"' modules/00-base.sh \
-            || { echo "::error::modules/00-base.sh must pin a 40-hex CACHYOS_KEY_FPR (the stable GPG trust anchor)"; exit 1; }
-          grep -qE 'gpg .*--verify[[:space:]]+repo\.tar\.xz\.sig[[:space:]]+repo\.tar\.xz' modules/00-base.sh \
-            || { echo "::error::modules/00-base.sh must GPG-verify the CachyOS tarball .sig before running it as root"; exit 1; }
-          echo "cachyos-trust: tarball is signature-verified against a pinned key"
+            || { echo "::error::modules/00-base.sh must pin a 40-hex CACHYOS_KEY_FPR (the stable trust anchor)"; exit 1; }
+          grep -qE 'pacman-key --lsign-key "\$CACHYOS_KEY_FPR"' modules/00-base.sh \
+            || { echo "::error::modules/00-base.sh must lsign the pinned CachyOS key (so its package installs are signature-verified)"; exit 1; }
+          echo "cachyos-trust: CachyOS key pinned + lsigned (its packages are signature-verified)"
 
   theme-switch-smoke:
     runs-on: ubuntu-latest        # pure bash/sed — no Arch needed
