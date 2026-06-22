@@ -84,14 +84,20 @@ pac_install() {            # pac_install pkg1 pkg2 ...
   sudo pacman -S --needed --noconfirm "${missing[@]}"
 }
 
-aur_install() {           # aur_install pkg1 pkg2 ...
-  local p missing=()
+aur_install() {           # aur_install pkg1 pkg2 ...  — per-package + NON-FATAL
+  # These are the cosmetic AUR layer (themes/icons/cursors/fonts/dock). AUR builds are inherently
+  # fragile (upstream PKGBUILD drift, checksum changes), so one failing build must NOT abort the whole
+  # first-boot resume — the core desktop is already installed. Build each on its own; warn + continue.
+  local p failed=()
   for p in "$@"; do
-    pacman -Q "$p" &>/dev/null || missing+=("$p")
+    pacman -Q "$p" &>/dev/null && continue
+    substep "building/installing AUR package: $p"
+    paru -S --needed --noconfirm "$p" || { warn "AUR build failed (continuing): $p"; failed+=("$p"); }
   done
-  [ ${#missing[@]} -eq 0 ] && { ok "already present (aur): $*"; return; }
-  substep "building/installing ${#missing[@]} AUR package(s): ${missing[*]}"
-  paru -S --needed --noconfirm "${missing[@]}"
+  [ ${#failed[@]} -eq 0 ] && { ok "AUR layer OK"; return 0; }
+  warn "AUR package(s) that did NOT build: ${failed[*]} — the desktop still works."
+  warn "retry later:  paru -S ${failed[*]}"
+  return 0
 }
 
 # ---- package-list parsing (single source of truth) ------------------------
