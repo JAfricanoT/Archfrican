@@ -27,8 +27,10 @@ if ! grep -q '\[cachyos\]' /etc/pacman.conf; then
   Its packages would be unverifiable. Retry with network up, or ARCHFRICAN_ALLOW_UNVERIFIED_CACHYOS=1 to accept the risk."
   fi
   tar xf repo.tar.xz; cd cachyos-repo || die "CachyOS tarball missing the cachyos-repo/ dir"
-  substep "running the CachyOS repo setup (adds the repo + imports its signing key)"
-  sudo ./cachyos-repo.sh
+  substep "running the CachyOS repo setup (adds the repo; package installs are signature-verified)"
+  # The script's internal `pacman -U`/`pacman -Syu` have NO --noconfirm, so a headless resume hangs on
+  # their [Y/n]. `yes |` answers them (the key is already pinned+lsigned, so those installs are verified).
+  yes | sudo ./cachyos-repo.sh
   cd /; rm -rf "$tmp"
   ok "CachyOS repo enabled"
 else
