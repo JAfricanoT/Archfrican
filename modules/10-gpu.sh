@@ -9,8 +9,8 @@ substep "GPU profile: $gpu"
 
 case "$gpu" in
   amd)
-    substep "installing the AMD open stack (mesa + vulkan-radeon)"
-    pac_install mesa vulkan-radeon libva-mesa-driver vulkan-icd-loader
+    substep "installing the AMD open stack (mesa + vulkan-radeon; mesa provides libva/VA-API)"
+    pac_install mesa vulkan-radeon vulkan-icd-loader
     ok "AMD: open stack, zero extra config — the most reliable path."
     ;;
   intel)
@@ -19,8 +19,8 @@ case "$gpu" in
     ok "Intel: open stack, zero extra config."
     ;;
   hybrid-amd-intel)
-    substep "installing both open stacks (AMD dGPU + Intel iGPU)"
-    pac_install mesa vulkan-radeon vulkan-intel libva-mesa-driver intel-media-driver vulkan-icd-loader
+    substep "installing both open stacks (AMD dGPU + Intel iGPU; mesa provides libva/VA-API)"
+    pac_install mesa vulkan-radeon vulkan-intel intel-media-driver vulkan-icd-loader
     ok "AMD + Intel: both open stacks installed."
     ;;
   nvidia|hybrid-intel-nvidia|hybrid-amd-nvidia)
