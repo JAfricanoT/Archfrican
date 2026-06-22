@@ -67,6 +67,15 @@ inject_resume() {                   # inject_resume <user> <host> <tz> <locale> 
     substep "forwarded ARCHFRICAN_ALLOW_UNVERIFIED_CACHYOS=1 to the resume"
   fi
   arch-chroot /mnt systemctl enable archfrican-resume.service
+
+  substep "first-boot console feedback (login banner + status notice) — so the headless install is visible"
+  install -m 0644 "$REPO_ROOT/templates/firstboot-notice.sh" /mnt/etc/profile.d/zz-archfrican-firstboot.sh
+  install -d -m 0755 /mnt/etc/issue.d
+  printf '%s\n' '' \
+    '  ==> Archfrican is finishing your install (desktop + dev layer) in the background.' \
+    '      Log in, then watch:  journalctl -u archfrican-resume -f' \
+    '' > /mnt/etc/issue.d/10-archfrican.issue
+
   ok "first-boot resume wired — the desktop/dev layer installs itself after reboot"
 }
 

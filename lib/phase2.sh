@@ -162,6 +162,16 @@ run_phase2() {                # run_phase2 [single-module]
 
   ok "Done. Kernel linux-cachyos (fallback linux-lts in GRUB) · compositor niri · GPU $GPU · theme $THEME."
 
+  # First-boot resume (headless): the user is on a bare console with no session, so the install ran
+  # invisibly in the journal. Tell them ON-SCREEN that it finished + to reboot. `wall` reaches any logged-in
+  # tty the instant we finish; the marker flips the /etc/profile.d notice to "reboot"; the banner is cleared.
+  if [ "${ARCHFRICAN_NONINTERACTIVE:-0}" = 1 ]; then
+    best_effort sudo install -d /var/lib/archfrican
+    best_effort sudo touch /var/lib/archfrican/firstboot-done
+    best_effort sudo rm -f /etc/issue.d/10-archfrican.issue
+    best_effort sudo wall "Archfrican: desktop ready -- reboot to enter it:  sudo systemctl reboot"
+  fi
+
   # ---- reboot modal ---------------------------------------------------------
   # Skip on the headless ISO resume — the resume service self-cleans and the login
   # manager is already enabled; the user reboots/logs in on their own terms.

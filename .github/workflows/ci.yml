@@ -17,7 +17,8 @@ jobs:
       - name: shellcheck all shell scripts
         run: |
           shellcheck -x -e SC1091 \
-            install.sh lib/*.sh modules/*.sh bin/* home/dot_local/bin/executable_* tests/e2e/*.sh
+            install.sh lib/*.sh modules/*.sh bin/* home/dot_local/bin/executable_* tests/e2e/*.sh \
+            templates/firstboot-notice.sh
 
   bashn:
     runs-on: ubuntu-latest
