@@ -28,9 +28,11 @@ if ! grep -q '\[cachyos\]' /etc/pacman.conf; then
   fi
   tar xf repo.tar.xz; cd cachyos-repo || die "CachyOS tarball missing the cachyos-repo/ dir"
   substep "running the CachyOS repo setup (adds the repo; package installs are signature-verified)"
-  # The script's internal `pacman -U`/`pacman -Syu` have NO --noconfirm, so a headless resume hangs on
-  # their [Y/n]. `yes |` answers them (the key is already pinned+lsigned, so those installs are verified).
-  yes | sudo ./cachyos-repo.sh
+  # The script's internal `pacman -U`/`pacman -Syu` have NO --noconfirm, so a headless resume hangs on their
+  # [Y/n]. Feed `yes` via process substitution (NOT a pipe): the script's exit status is what matters, and a
+  # pipe would let `yes`'s SIGPIPE/"broken pipe" trip `set -o pipefail` and fail the module after a SUCCESSFUL
+  # run. (The key is already pinned+lsigned, so these installs are signature-verified.)
+  sudo ./cachyos-repo.sh < <(yes 2>/dev/null)
   cd /; rm -rf "$tmp"
   ok "CachyOS repo enabled"
 else
