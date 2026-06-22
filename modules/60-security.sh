@@ -52,6 +52,16 @@ sudo systemctl daemon-reload
 resilient_enable nftables.service
 ok "firewall staged (active next boot). Open a port with:  fw-allow <port>/<tcp|udp>"
 
+# ---- SSH server (OPT-IN: the wizard toggle arg, or ARCHFRICAN_ENABLE_SSH=1) --
+# Off by default — a workstation is deny-inbound. When enabled, ssh_enable_hardened writes a hardened
+# sshd drop-in, enables/starts sshd, and opens 22/tcp via fw_allow. openssh itself is always installed
+# (packages/security.txt), so a later opt-in needs no reinstall.
+if [ "${1:-no}" = yes ] || [ "${ARCHFRICAN_ENABLE_SSH:-0}" = 1 ]; then
+  ssh_enable_hardened
+else
+  ok "SSH server left OFF (opt-in: the wizard toggle, or ARCHFRICAN_ENABLE_SSH=1)"
+fi
+
 # ---- sysctl: dev-safe hardening ---------------------------------------------
 substep "writing dev-safe sysctl hardening (gdb/strace/perf/eBPF/containers preserved)"
 write_system_file /etc/sysctl.d/99-archfrican-hardening.conf 0644 <<'SYSCTL'

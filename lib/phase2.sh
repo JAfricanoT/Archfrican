@@ -61,7 +61,7 @@ run_phase2() {                # run_phase2 [single-module]
   local DETECTED_GPU; DETECTED_GPU="$(detect_gpu)"
 
   # ---- defaults from live system (also the non-interactive fallback) --------
-  local HOST USER_NAME USER_PW TZ LOCALE XKB THEME GPU MULTIBOOT=no
+  local HOST USER_NAME USER_PW TZ LOCALE XKB THEME GPU MULTIBOOT=no SSH_ENABLE=no
   HOST="$(hostnamectl --static 2>/dev/null || echo archfrican)"
   USER_NAME="$USER"; USER_PW=""
   TZ="$(timedatectl show -p Timezone --value 2>/dev/null || echo America/New_York)"
@@ -89,6 +89,10 @@ run_phase2() {                # run_phase2 [single-module]
     if ui_confirm_default_no "Share this machine with another OS already installed (multi-boot)?"; then
       MULTIBOOT=yes
     fi
+    # SSH server (opt-in, default NO): a hardened sshd + an nftables allow for 22/tcp (remote access).
+    if ui_confirm_default_no "Enable the SSH server (remote access, hardened)?"; then
+      SSH_ENABLE=yes
+    fi
     # FIDO2 physical-key mode (opt-in; needs a plugged key). Enroll the touch(es) now;
     # modules/60-security.sh wires PAM. Non-exclusive: your password ALWAYS still works.
     if ui_confirm "Enable a hardware security key? (touch = sudo/login; password still works)"; then
@@ -108,6 +112,7 @@ run_phase2() {                # run_phase2 [single-module]
     TZ="${ARCHFRICAN_TZ:-$TZ}";         LOCALE="${ARCHFRICAN_LOCALE:-$LOCALE}"
     XKB="${ARCHFRICAN_XKB:-$XKB}";      THEME="${ARCHFRICAN_THEME:-$THEME}"
     GPU="${ARCHFRICAN_GPU:-$GPU}";       MULTIBOOT="${ARCHFRICAN_MULTIBOOT:-no}"
+    SSH_ENABLE="${ARCHFRICAN_SSH:-$SSH_ENABLE}"
     log "resume: loaded wizard answers (host=$HOST user=$USER_NAME gpu=$GPU theme=$THEME)"
   else
     warn "non-interactive — using detected defaults (host=$HOST user=$USER_NAME gpu=$GPU theme=$THEME)"
@@ -139,7 +144,7 @@ run_phase2() {                # run_phase2 [single-module]
   run_module 40-theming
   run_module 50-snapshots
   run_module 55-multiboot "$MULTIBOOT"
-  run_module 60-security
+  run_module 60-security "$SSH_ENABLE"
   run_module 70-hygiene
 
   step "Dotfiles" "deploying your config (niri, zsh, waybar, …) with chezmoi"

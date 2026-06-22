@@ -22,6 +22,28 @@ fw_allow() {                       # fw_allow <port>[/tcp|/udp]
   echo "allowed inbound $proto/$port (persisted; active now if the firewall is running)"
 }
 
+# Enable a HARDENED sshd + open the firewall for it. Opt-in only (modules/60-security.sh gates this).
+# root is already locked here, so PermitRootLogin no is belt-and-suspenders; password auth stays on so a
+# fresh box is reachable (switch to keys-only by uncommenting the line below + adding an authorized_keys).
+ssh_enable_hardened() {
+  substep "hardening + enabling sshd (remote access) and opening 22/tcp"
+  write_system_file /etc/ssh/sshd_config.d/10-archfrican.conf 0644 <<'SSHD'
+# Archfrican sshd hardening (drop-in overrides /etc/ssh/sshd_config).
+PermitRootLogin no
+X11Forwarding no
+MaxAuthTries 3
+ClientAliveInterval 300
+ClientAliveCountMax 2
+# Keys-only (more secure) — uncomment AFTER adding your key to ~/.ssh/authorized_keys:
+#PasswordAuthentication no
+SSHD
+  best_effort sudo sshd -t                          # validate the merged config (never abort on it)
+  resilient_enable sshd.service
+  best_effort sudo systemctl start sshd.service     # reachable now, not only next boot
+  fw_allow 22/tcp
+  ok "SSH enabled (hardened) + 22/tcp opened. Connect: ssh $USER@<host-ip>"
+}
+
 # Print the corrected faillock recovery procedure for THIS box. root is DISABLED
 # (sudo-only), so the usual "log in as root on a VT" does not apply.
 faillock_recover_doc() {

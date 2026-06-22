@@ -6,3 +6,4 @@ nftables               # the firewall (deny-inbound / allow-outbound, named tabl
 pam-u2f                # FIDO2/U2F PAM module (need >= 1.3.1 — asserted in lib/fido2.sh)
 libfido2               # FIDO2 device library (also enables ssh ed25519-sk keys)
 bubblewrap             # unprivileged sandbox primitive (install only; opt-in use)
+openssh                # ssh client + server (sshd stays OFF unless the SSH toggle is set)
