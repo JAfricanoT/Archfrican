@@ -36,10 +36,15 @@ acceleration / virtio-gpu is on. Confirm inside the guest with `ls /dev/dri/` �
 - **virt-manager (QEMU/KVM)** — the VM's hardware details:
   - **Display Spice** → *Listen type* = **None**, **OpenGL** = ✅
   - **Video** → *Model* = **Virtio**, **3D acceleration** = ✅
-  - Host needs `virglrenderer` (usually pulled by qemu; else `pacman -S virglrenderer`). View via the local
-    virt-manager console (with `Listen:None` you can't use a remote SPICE client). XML equivalent:
-    `<graphics type='spice'><listen type='none'/><gl enable='yes'/></graphics>` and
-    `<video><model type='virtio' heads='1' primary='yes'><acceleration accel3d='yes'/></model></video>`.
+  - **Both halves are required.** If QEMU fails to start with `display backend does not have OpenGL support
+    enabled`, you set Video=3D but **not** the Display's OpenGL. If the OpenGL checkbox is greyed out, set
+    *Listen type*=None first; if it still fails, switch the Display's render node from `Auto` to
+    `/dev/dri/renderD128`.
+  - Host needs `virglrenderer` + a working render node (`ls /dev/dri/renderD128` **on the host**; else
+    `pacman -S virglrenderer` + host GPU drivers). View via the local virt-manager console (with
+    `Listen:None` you can't use a remote SPICE client). XML equivalent:
+    `<graphics type='spice'><listen type='none'/><gl enable='yes' rendernode='/dev/dri/renderD128'/></graphics>`
+    and `<video><model type='virtio' heads='1' primary='yes'><acceleration accel3d='yes'/></model></video>`.
 - **plain qemu** — `-device virtio-gpu-gl-pci -display gtk,gl=on` (or `sdl,gl=on`).
 - **UTM** — Display → *Emulated Display Card* = `virtio-gpu-gl (GPU Supported)`.
 - **VirtualBox** — Display → Graphics Controller = **VMSVGA** + **Enable 3D Acceleration**.
