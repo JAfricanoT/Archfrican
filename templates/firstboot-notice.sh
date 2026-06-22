@@ -18,8 +18,17 @@ __af_firstboot_notice() {
     printf '    It will broadcast here when it is done; then reboot.\n'
     if command -v systemd-detect-virt >/dev/null 2>&1 && systemd-detect-virt --quiet 2>/dev/null \
       && [ ! -e /dev/dri/renderD128 ]; then
-      printf '    \033[1;33m[!] This VM has no 3D GPU. Enable virtio-gpu / 3D accel in your hypervisor, or the\033[0m\n'
-      printf '    \033[1;33m    graphical desktop will be a black screen (niri needs a render device).\033[0m\n'
+      printf '    \033[1;33m[!] This VM has no 3D GPU -> the graphical desktop will be a black screen\033[0m\n'
+      printf '    \033[1;33m    (niri needs a render device). Fix it on the HOST:\033[0m\n'
+      case "$(systemd-detect-virt 2>/dev/null)" in
+        kvm|qemu)
+          printf '    \033[1;33m    virt-manager: Video=Virtio + "3D acceleration"; Display=Spice + OpenGL +\033[0m\n'
+          printf '    \033[1;33m    Listen:None (host needs virglrenderer).  Details: ~/.archfrican/tests/e2e/README.md\033[0m\n' ;;
+        oracle)
+          printf '    \033[1;33m    VirtualBox: Display -> Graphics Controller=VMSVGA + Enable 3D Acceleration.\033[0m\n' ;;
+        *)
+          printf '    \033[1;33m    enable virtio-gpu / 3D accel in your hypervisor.  Details: ~/.archfrican/tests/e2e/README.md\033[0m\n' ;;
+      esac
     fi
     printf '\n'
   fi

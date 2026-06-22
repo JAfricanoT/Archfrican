@@ -26,6 +26,26 @@ normal run on a real machine. Use only in a disposable VM.
 - A **UEFI/OVMF** VM (UTM, VirtualBox with EFI enabled, or qemu `-bios OVMF`), ≥4 GB RAM, a **throwaway
   ≥25 GB disk**, networking up.
 - A current **Arch ISO** booted in it (root autologin).
+- **3D acceleration enabled in the VM** (see below) — otherwise the install completes but the **graphical
+  desktop is a black screen**: niri (Wayland) needs a GPU render device.
+
+## Wayland needs a GPU — enable 3D acceleration in your VM
+niri (like every Wayland compositor) requires a DRM **render** device. A VM only exposes one when 3D
+acceleration / virtio-gpu is on. Confirm inside the guest with `ls /dev/dri/` — you want a **`renderD128`**
+(not just `card0`). To enable it on the **host**:
+- **virt-manager (QEMU/KVM)** — the VM's hardware details:
+  - **Display Spice** → *Listen type* = **None**, **OpenGL** = ✅
+  - **Video** → *Model* = **Virtio**, **3D acceleration** = ✅
+  - Host needs `virglrenderer` (usually pulled by qemu; else `pacman -S virglrenderer`). View via the local
+    virt-manager console (with `Listen:None` you can't use a remote SPICE client). XML equivalent:
+    `<graphics type='spice'><listen type='none'/><gl enable='yes'/></graphics>` and
+    `<video><model type='virtio' heads='1' primary='yes'><acceleration accel3d='yes'/></model></video>`.
+- **plain qemu** — `-device virtio-gpu-gl-pci -display gtk,gl=on` (or `sdl,gl=on`).
+- **UTM** — Display → *Emulated Display Card* = `virtio-gpu-gl (GPU Supported)`.
+- **VirtualBox** — Display → Graphics Controller = **VMSVGA** + **Enable 3D Acceleration**.
+
+(The base install itself doesn't need 3D — only the desktop does. The installer's GPU profile **vm** installs
+software rendering, but niri still needs the DRM render node the steps above provide.)
 
 ## Steps
 1. Boot the Arch ISO in the VM. Get the repo (the one-liner self-clones into `/root/.archfrican`, or clone
