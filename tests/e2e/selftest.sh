@@ -130,7 +130,7 @@ assert_install() {            # pre-reboot: against /mnt + the LUKS container
   # first-boot resume wired
   assert "resume service installed"                          test -f /mnt/etc/systemd/system/archfrican-resume.service
   assert "resume service enabled"                            p_enabled archfrican-resume.service
-  assert "one-boot NOPASSWD sudoers staged"                  test -f /mnt/etc/sudoers.d/00-archfrican-resume
+  assert "one-boot NOPASSWD sudoers staged"                  test -f /mnt/etc/sudoers.d/99-archfrican-resume
   assert "installer copied into target home"                test -f "/mnt/home/$AF_AP_USER/.archfrican/install.sh"
   assert "wizard answers staged for the resume"             test -f "/mnt/home/$AF_AP_USER/.archfrican-answers"
   report

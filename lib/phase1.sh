@@ -9,16 +9,16 @@
 
 # The non-secret wizard answers the first-boot resume needs (no password — that was set in the
 # chroot config; the resume re-applies everything else idempotently).
-gen_answers() {                     # gen_answers <host> <user> <tz> <locale> <xkb> <theme> <gpu> <multiboot>
-  printf 'ARCHFRICAN_HOST=%q\nARCHFRICAN_USER=%q\nARCHFRICAN_TZ=%q\nARCHFRICAN_LOCALE=%q\nARCHFRICAN_XKB=%q\nARCHFRICAN_THEME=%q\nARCHFRICAN_GPU=%q\nARCHFRICAN_MULTIBOOT=%q\n' \
-    "$1" "$2" "$3" "$4" "$5" "$6" "$7" "$8"
+gen_answers() {                     # gen_answers <host> <user> <tz> <locale> <xkb> <theme> <gpu> <multiboot> <ssh>
+  printf 'ARCHFRICAN_HOST=%q\nARCHFRICAN_USER=%q\nARCHFRICAN_TZ=%q\nARCHFRICAN_LOCALE=%q\nARCHFRICAN_XKB=%q\nARCHFRICAN_THEME=%q\nARCHFRICAN_GPU=%q\nARCHFRICAN_MULTIBOOT=%q\nARCHFRICAN_SSH=%q\n' \
+    "$1" "$2" "$3" "$4" "$5" "$6" "$7" "$8" "$9"
 }
 
 # Install the self-cleaning first-boot resume into the freshly-installed target. Runs ONLY on
 # the armed path, after run_base_install. The base install leaves /mnt mounted and the wheel
 # user created, so the precondition below holds by construction.
-inject_resume() {                   # inject_resume <user> <host> <tz> <locale> <xkb> <theme> <gpu> <multiboot>
-  local user="$1" host="$2" tz="$3" loc="$4" xkb="$5" theme="$6" gpu="$7" multiboot="${8:-no}"
+inject_resume() {                   # inject_resume <user> <host> <tz> <locale> <xkb> <theme> <gpu> <multiboot> <ssh>
+  local user="$1" host="$2" tz="$3" loc="$4" xkb="$5" theme="$6" gpu="$7" multiboot="${8:-no}" ssh="${9:-no}"
   local src; src="$(clone_dest)"    # the ISO self-clone, e.g. /root/.archfrican
   mountpoint -q /mnt || die "target not mounted at /mnt — cannot wire the resume"
   local home="/mnt/home/$user"
@@ -28,7 +28,7 @@ inject_resume() {                   # inject_resume <user> <host> <tz> <locale> 
   rm -rf "$home/.archfrican"; cp -a "$src" "$home/.archfrican"
 
   substep "staging the wizard answers + theme/keyboard for the headless resume"
-  gen_answers "$host" "$user" "$tz" "$loc" "$xkb" "$theme" "$gpu" "$multiboot" > "$home/.archfrican-answers"
+  gen_answers "$host" "$user" "$tz" "$loc" "$xkb" "$theme" "$gpu" "$multiboot" "$ssh" > "$home/.archfrican-answers"
   install -d -m 0700 "$home/.config"
   printf '%s\n' "$theme" > "$home/.config/.archfrican-theme"
   printf '%s\n' "$xkb"   > "$home/.config/.archfrican-kbd"
@@ -37,9 +37,9 @@ inject_resume() {                   # inject_resume <user> <host> <tz> <locale> 
   chmod 0600 "$home/.archfrican-answers"
 
   substep "writing the temporary NOPASSWD sudoers drop-in (removed after resume)"
-  printf '%s ALL=(ALL) NOPASSWD: ALL\n' "$user" > /mnt/etc/sudoers.d/00-archfrican-resume
-  chmod 0440 /mnt/etc/sudoers.d/00-archfrican-resume
-  arch-chroot /mnt visudo -cf /etc/sudoers.d/00-archfrican-resume >/dev/null \
+  printf '%s ALL=(ALL) NOPASSWD: ALL\n' "$user" > /mnt/etc/sudoers.d/99-archfrican-resume
+  chmod 0440 /mnt/etc/sudoers.d/99-archfrican-resume
+  arch-chroot /mnt visudo -cf /etc/sudoers.d/99-archfrican-resume >/dev/null \
     || die "resume sudoers drop-in invalid — refusing to leave a broken sudo"
 
   substep "carrying the live medium's network profiles into the target (resume connectivity)"
@@ -84,6 +84,7 @@ p1_autopilot() {
   XKB="${AF_AP_XKB:-us}"
   THEME="${AF_AP_THEME:-macos-dark}"
   GPU="${AF_AP_GPU:-$(detect_gpu)}"
+  SSH_ENABLE="${AF_AP_SSH:-no}"
   [ -n "${AF_AP_USER_PASSWORD:-}" ] || die "autopilot: AF_AP_USER_PASSWORD is required"
   USER_ENC="$(printf '%s' "$AF_AP_USER_PASSWORD" | openssl passwd -6 -stdin)"
   [ "$ENCRYPT" != yes ] || DISK_PW="${AF_AP_LUKS_PASSPHRASE:?autopilot: AF_AP_LUKS_PASSPHRASE required when AF_AP_ENCRYPT=yes}"
@@ -99,7 +100,7 @@ run_phase1() {
 
   # ---- wizard (or autopilot for automated VM testing) -----------------------
   step "Setup wizard" "disk · encryption · hostname · user · locale · keyboard · theme · GPU"
-  local DISK ENCRYPT HOST USER_NAME TZ LOCALE XKB THEME GPU
+  local DISK ENCRYPT HOST USER_NAME TZ LOCALE XKB THEME GPU SSH_ENABLE=no
   # Passwords never echoed. The user password is HASHED ($6$ SHA-512, via stdin so it never hits argv)
   # and handed to the installer on fd 4; the LUKS passphrase on fd 3.
   local USER_PW DISK_PW="" USER_ENC
@@ -118,6 +119,7 @@ run_phase1() {
     THEME="$(ui_choose 'Initial theme' macos-dark macos-light catppuccin-mocha tokyo-night)"
     GPU="$(ui_choose "GPU profile (detected: $DETECTED_GPU)" \
            "$DETECTED_GPU" amd intel nvidia hybrid-intel-nvidia hybrid-amd-nvidia hybrid-amd-intel)"
+    if ui_confirm "¿Habilitar el servidor SSH (acceso remoto, endurecido)?" no; then SSH_ENABLE=yes; fi
     USER_PW="$(ui_password "Password for $USER_NAME")"
     [ "$ENCRYPT" = yes ] && DISK_PW="$(ui_password 'Disk passphrase')"
     USER_ENC="$(printf '%s' "$USER_PW" | openssl passwd -6 -stdin)"; USER_PW=""
@@ -156,7 +158,7 @@ run_phase1() {
   # ---- wire the post-reboot finish + reboot ---------------------------------
   step "Wiring the post-reboot finish" "first-boot service that adds the niri desktop + dev layer"
   # Multi-boot is NOT offered on the ISO path (it wipes $DISK); use the booted-path toggle after.
-  inject_resume "$USER_NAME" "$HOST" "$TZ" "$LOCALE" "$XKB" "$THEME" "$GPU" no
+  inject_resume "$USER_NAME" "$HOST" "$TZ" "$LOCALE" "$XKB" "$THEME" "$GPU" no "$SSH_ENABLE"
 
   step "Reboot" "into your new system; the rest installs automatically on first boot"
   ok "Base install complete. Hostname $HOST · user $USER_NAME (sudo) · GPU $GPU · theme $THEME."

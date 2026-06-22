@@ -26,7 +26,7 @@ TimeoutStartSec=infinity
 ExecStart=/usr/bin/bash /home/@USER@/.archfrican/install.sh
 # Order matters: disable while we still have NOPASSWD, then drop NOPASSWD last.
 ExecStartPost=/usr/bin/sudo /usr/bin/systemctl disable archfrican-resume.service
-ExecStartPost=/usr/bin/sudo /usr/bin/rm -f /etc/sudoers.d/00-archfrican-resume
+ExecStartPost=/usr/bin/sudo /usr/bin/rm -f /etc/sudoers.d/99-archfrican-resume
 
 [Install]
 WantedBy=multi-user.target

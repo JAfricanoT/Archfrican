@@ -71,7 +71,7 @@ The base install runs for real, `inject_resume` wires the first-boot service, an
       refresh on the live medium ran first).
 - [ ] `/mnt` is mounted at the end ⇒ `inject_resume` runs; first boot reaches `archfrican-resume.service`,
       **NetworkManager brings up the net**, it finishes the modules unattended (`journalctl -u
-      archfrican-resume`), then disables itself + removes `/etc/sudoers.d/00-archfrican-resume`. Module 50
+      archfrican-resume`), then disables itself + removes `/etc/sudoers.d/99-archfrican-resume`. Module 50
       adopts the pre-mounted `@.snapshots`.
 - [ ] `/run/archiso` exists on this ISO build (so `is_iso` routes to phase 1).
 
