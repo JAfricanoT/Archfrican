@@ -117,8 +117,8 @@ run_phase1() {
     LOCALE="$(ui_input 'Locale (LANG)' en_US.UTF-8)"
     XKB="$(ui_input 'Keyboard layout (xkb: us, latam, es, ...)' us)"
     THEME="$(ui_choose 'Initial theme' macos-dark macos-light catppuccin-mocha tokyo-night)"
-    GPU="$(ui_choose "GPU profile (detected: $DETECTED_GPU)" \
-           "$DETECTED_GPU" amd intel nvidia hybrid-intel-nvidia hybrid-amd-nvidia hybrid-amd-intel)"
+    GPU="${ARCHFRICAN_GPU:-$DETECTED_GPU}"   # auto-detected; the installer picks the driver (no mis-pick)
+    ui_note "GPU: $GPU (auto-detectada — el instalador elige el driver. Override: ARCHFRICAN_GPU=vm|nvidia|amd|intel)"
     if ui_confirm "¿Habilitar el servidor SSH (acceso remoto, endurecido)?" no; then SSH_ENABLE=yes; fi
     USER_PW="$(ui_password "Password for $USER_NAME")"
     [ "$ENCRYPT" = yes ] && DISK_PW="$(ui_password 'Disk passphrase')"

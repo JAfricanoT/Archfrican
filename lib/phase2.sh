@@ -82,8 +82,8 @@ run_phase2() {                # run_phase2 [single-module]
     LOCALE="$(ui_input 'Locale (LANG)' "$LOCALE")"
     XKB="$(ui_input 'Keyboard layout (xkb: us, latam, es, ...)' "$XKB")"
     THEME="$(ui_choose 'Initial theme' macos-dark macos-light catppuccin-mocha tokyo-night)"
-    GPU="$(ui_choose "GPU profile (detected: $DETECTED_GPU)" \
-           "$DETECTED_GPU" amd intel nvidia hybrid-intel-nvidia hybrid-amd-nvidia hybrid-amd-intel)"
+    GPU="${ARCHFRICAN_GPU:-$DETECTED_GPU}"   # auto-detected; the installer picks the driver (no mis-pick)
+    ui_note "GPU: $GPU (auto-detectada — el instalador elige el driver. Override: ARCHFRICAN_GPU=vm|nvidia|amd|intel)"
     # Multi-boot (opt-in, default NO): enable os-prober so an already-installed OS shows up
     # in the GRUB menu. Keeps the snapshot rollback submenu. Detects, never repartitions.
     if ui_confirm_default_no "Share this machine with another OS already installed (multi-boot)?"; then
