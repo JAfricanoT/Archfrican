@@ -12,7 +12,7 @@
 # Where run_module writes the per-module stamps (matches lib/phase2.sh::PHASE2_STATE).
 ARCHFRICAN_PHASE2_STATE="${XDG_STATE_HOME:-$HOME/.local/state}/archfrican"
 # Every module the orchestrator knows, in order (for drift scanning).
-ARCHFRICAN_MODULES="00-base 10-gpu 20-niri-desktop 30-dev 35-apps 40-theming 45-print 50-snapshots 55-multiboot 60-security 70-hygiene"
+ARCHFRICAN_MODULES="00-base 10-gpu 20-niri-desktop 30-dev 35-apps 40-theming 45-print 50-snapshots 55-multiboot 60-security 65-gaming 70-hygiene"
 
 # Repo-relative files whose content defines <name>'s desired state. lib/common.sh is shared by
 # all (a change to it can affect any module); the script + its package list(s) are module-specific.
@@ -31,6 +31,7 @@ module_inputs() {                 # module_inputs <name>
     45-print)        printf ' packages/print.txt' ;;
     55-multiboot)    printf ' packages/multiboot.txt lib/grub.sh' ;;
     60-security)     printf ' packages/security.txt lib/security.sh lib/fido2.sh' ;;
+    65-gaming)       printf ' gaming/packages.txt lib/detect-gpu.sh' ;;
     70-hygiene)      printf ' bin/archfrican-update bin/archfrican-doctor lib/health.sh' ;;
   esac
 }

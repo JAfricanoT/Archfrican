@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+# Laptop power & thermal tuning (opt-in). power-profiles-daemon (PPD) is the default; this lets you
+# switch to TLP (deeper battery control, mutually exclusive with PPD) and add thermald on Intel.
+# Nothing changes unless you choose it.
+set -euo pipefail
+have() { command -v "$1" >/dev/null 2>&1; }
+note() { have notify-send && notify-send "Archfrican" "$1" || echo "$1"; }
+
+sel="$(printf '%s\n' \
+  "Perfiles de energía (PPD) — equilibrado, por defecto" \
+  "TLP — control fino de batería (reemplaza PPD)" \
+  "thermald — anti-throttling térmico (Intel; complementa)" \
+  "Estado actual" \
+  | fuzzel --dmenu --prompt '  energía  ')" || exit 0
+
+case "$sel" in
+  "Perfiles de energía"*)
+    sudo systemctl disable --now tlp.service 2>/dev/null || true
+    if sudo systemctl enable --now power-profiles-daemon.service; then note "PPD activo"; fi ;;
+  "TLP"*)
+    sudo pacman -S --needed --noconfirm tlp tlp-rdw || { note "no pude instalar tlp"; exit 1; }
+    sudo systemctl disable --now power-profiles-daemon.service 2>/dev/null || true
+    if sudo systemctl enable --now tlp.service; then note "TLP activo (PPD apagado)"; fi ;;
+  "thermald"*)
+    sudo pacman -S --needed --noconfirm thermald || { note "no pude instalar thermald"; exit 1; }
+    if sudo systemctl enable --now thermald.service; then note "thermald activo"; fi ;;
+  "Estado actual")
+    out=""
+    for u in power-profiles-daemon tlp thermald; do
+      out="$out$u: $(systemctl is-active "$u.service" 2>/dev/null || echo inactive)
+"
+    done
+    printf '%s' "$out" | fuzzel --dmenu --prompt '  estado  ' >/dev/null 2>&1 || true ;;
+esac

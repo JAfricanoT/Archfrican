@@ -38,6 +38,7 @@ while :; do
     "Tienda de apps (Flatpak)" \
     "Auto claro/oscuro por el sol" \
     "Accesibilidad (lector de pantalla, contraste)" \
+    "Pantallas, escala y HDR (multi-monitor)" \
     "Cómo mantener el sistema al día" \
     "Cómo revertir tras una actualización" \
     "Migrar desde otra máquina (Mac/Linux)" \
@@ -50,6 +51,7 @@ while :; do
     "Tienda"*)                if command -v gnome-software >/dev/null 2>&1; then gnome-software; else note "tienda no instalada (módulo 35-apps)"; fi ;;
     "Auto"*)                  "$B/archfrican-auto-appearance" on ;;
     "Accesibilidad"*)         "$B/archfrican-a11y" ;;
+    "Pantallas"*)             if command -v nwg-displays >/dev/null 2>&1; then nwg-displays; else note "instala nwg-displays"; fi ;;
     "Cómo mantener"*)         card 'Un comando: archfrican-update (reporte) · archfrican-update --run (aplica, con snapshot reversible). El sistema = el repo, aplicado.' '  actualizar  ' ;;
     "Cómo revertir"*)         card 'Cada actualización toma un snapshot. Reinicia y elige una entrada Btrfs en el menú de GRUB para volver al estado anterior en un solo reinicio.' '  rollback  ' ;;
     "Migrar"*)                "$B/archfrican-migrate" ;;

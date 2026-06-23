@@ -20,7 +20,7 @@ module_label() { case "$1" in
   00-base) echo "Base system";; 10-gpu) echo "GPU drivers";; 20-niri-desktop) echo "Desktop (niri)";;
   30-dev) echo "Dev toolchains";; 35-apps) echo "Apps & Flatpak";; 40-theming) echo "Theming";;
   45-print) echo "Printing & scanning";; 50-snapshots) echo "Snapshots";;
-  55-multiboot) echo "Multi-boot";; 60-security) echo "Security";; 70-hygiene) echo "Hygiene";;
+  55-multiboot) echo "Multi-boot";; 60-security) echo "Security";; 65-gaming) echo "Gaming";; 70-hygiene) echo "Hygiene";;
   *) echo "$1";; esac; }
 module_desc() { case "$1" in
   00-base) echo "CachyOS repos, dual kernel (cachyos + lts), paru";;
@@ -32,6 +32,7 @@ module_desc() { case "$1" in
   45-print) echo "CUPS + SANE, driverless printer/scanner discovery";;
   50-snapshots) echo "snapper + grub-btrfs rollback";;
   55-multiboot) echo "os-prober: detect another installed OS (GRUB)";;
+  65-gaming) echo "Steam, gamescope, gamemode, Proton-GE, MangoHud (opt-in)";;
   60-security) echo "firewall, dev-safe hardening, screen lock, FIDO2";;
   70-hygiene) echo "maintenance timers + weekly health check (notify, never auto-change)";;
   *) echo "";; esac; }
@@ -69,7 +70,7 @@ run_phase2() {                # run_phase2 [single-module]
   local DETECTED_GPU; DETECTED_GPU="$(detect_gpu)"
 
   # ---- defaults from live system (also the non-interactive fallback) --------
-  local HOST USER_NAME USER_PW TZ LOCALE XKB THEME GPU MULTIBOOT=no SSH_ENABLE=no
+  local HOST USER_NAME USER_PW TZ LOCALE XKB THEME GPU MULTIBOOT=no SSH_ENABLE=no GAMING=no
   HOST="$(hostnamectl --static 2>/dev/null || echo archfrican)"
   USER_NAME="$USER"; USER_PW=""
   TZ="$(timedatectl show -p Timezone --value 2>/dev/null || echo America/New_York)"
@@ -101,6 +102,10 @@ run_phase2() {                # run_phase2 [single-module]
     if ui_confirm_default_no "Enable the SSH server (remote access, hardened)?"; then
       SSH_ENABLE=yes
     fi
+    # Gaming stack (opt-in, default NO): [multilib] + Steam/gamescope/gamemode/MangoHud/Proton-GE.
+    if ui_confirm_default_no "Install the gaming stack (Steam, gamescope, Proton-GE)?"; then
+      GAMING=yes
+    fi
     # FIDO2 physical-key mode (opt-in; needs a plugged key). Enroll the touch(es) now;
     # modules/60-security.sh wires PAM. Non-exclusive: your password ALWAYS still works.
     if ui_confirm "Enable a hardware security key? (touch = sudo/login; password still works)"; then
@@ -121,6 +126,7 @@ run_phase2() {                # run_phase2 [single-module]
     XKB="${ARCHFRICAN_XKB:-$XKB}";      THEME="${ARCHFRICAN_THEME:-$THEME}"
     GPU="${ARCHFRICAN_GPU:-$GPU}";       MULTIBOOT="${ARCHFRICAN_MULTIBOOT:-no}"
     SSH_ENABLE="${ARCHFRICAN_SSH:-$SSH_ENABLE}"
+    GAMING="${ARCHFRICAN_GAMING:-$GAMING}"
     log "resume: loaded wizard answers (host=$HOST user=$USER_NAME gpu=$GPU theme=$THEME)"
   else
     warn "non-interactive — using detected defaults (host=$HOST user=$USER_NAME gpu=$GPU theme=$THEME)"
@@ -133,11 +139,12 @@ run_phase2() {                # run_phase2 [single-module]
   if [ "$UPDATE" = 1 ]; then
     systemctl is-enabled --quiet sshd.service 2>/dev/null && SSH_ENABLE=yes
     grep -q '^GRUB_DISABLE_OS_PROBER=false' /etc/default/grub 2>/dev/null && MULTIBOOT=yes
+    pacman -Q steam &>/dev/null && GAMING=yes
   fi
   log "GPU profile: $GPU"
 
   if [ "$UPDATE" = 1 ]; then ui_header "Converging Archfrican (update)"; else ui_header "Installing Archfrican"; fi
-  step_total 14
+  step_total 15
 
   # ---- apply host/user BEFORE the modules (idempotent) ----------------------
   # Update/converge skips identity: hostname/user/tz/locale/theme are set ONCE at install, and
@@ -169,6 +176,7 @@ run_phase2() {                # run_phase2 [single-module]
   run_module 50-snapshots
   run_module 55-multiboot "$MULTIBOOT"
   run_module 60-security "$SSH_ENABLE"
+  run_module 65-gaming "$GAMING"
   run_module 70-hygiene
 
   step "Dotfiles" "deploying your config (niri, zsh, waybar, …) with chezmoi"

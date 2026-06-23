@@ -134,6 +134,12 @@ a high-contrast theme, larger cursor/text, and an accessibility hub (`archfrican
 input via `archfrican-ime` (fcitx5). Honest gaps: no mature Wayland-native magnifier or sticky-keys
 under niri yet — tracked upstream.
 
+**Performance & gaming:** opt-in at install (or later `~/.archfrican/install.sh 65-gaming yes`) — it
+enables `[multilib]` and installs Steam, gamescope, gamemode, MangoHud, Proton-GE and the GPU-matched
+32-bit Vulkan stack, plus ananicy-cpp on the CachyOS kernel. Laptop power/thermal tuning is opt-in via
+`archfrican-power` (PPD ⇄ TLP, thermald on Intel). Multi-monitor, fractional scaling and HDR are managed
+with `nwg-displays`; HDR support tracks niri's evolving Wayland color management.
+
 Desktop niceties: **Quick Look** — select a file in Files and press <kbd>Space</kbd> for a preview.
 Handy commands: `archfrican-auto-appearance on` (auto light/dark by sun position) ·
 `archfrican-blur on` (frosted-glass blur, `niri validate`-guarded so it can't break your config) ·

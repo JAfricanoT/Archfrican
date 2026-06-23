@@ -41,6 +41,8 @@ sel="$(printf '%s\n' \
   "Accesibilidad (lector, contraste)…" \
   "Lector de pantalla (alternar)" \
   "Método de entrada / IME (CJK)…" \
+  "Energía / batería (laptop)…" \
+  "Instalar stack de gaming (Steam)…" \
   "Bluetooth" \
   "Audio (mezclador)" \
   "Red / VPN" \
@@ -81,6 +83,8 @@ case "$sel" in
   "Accesibilidad"*)      "$B/archfrican-a11y" ;;
   "Lector de pantalla"*) "$B/archfrican-screenreader" ;;
   "Método de entrada"*)  "$B/archfrican-ime" ;;
+  "Energía"*)            "$B/archfrican-power" ;;
+  "Instalar stack de gaming"*) ghostty -e sh -c "$HOME/.archfrican/install.sh 65-gaming yes; printf '(enter para cerrar) '; read -r _" ;;
   "Bluetooth"*)          blueman-manager ;;
   "Audio"*)              pavucontrol ;;
   "Red"*)                nm-connection-editor ;;

@@ -1,0 +1,13 @@
+# Gaming stack (opt-in; installed by modules/65-gaming.sh AFTER [multilib] is enabled). This list
+# lives OUTSIDE packages/ on purpose: it has 32-bit (lib32-*) packages that only resolve once
+# multilib is enabled, so the package-resolution CI gate and the runtime preflight (which scan
+# packages/*.txt) must NOT try to resolve it before multilib exists.
+steam                      # the Steam client (multilib)
+gamescope                  # micro-compositor for games (scaling, HDR-ready, framerate limit)
+gamemode                   # on-demand performance mode — games opt in automatically
+lib32-gamemode             # 32-bit gamemode shim
+mangohud                   # in-game FPS/perf overlay (toggle Shift+F12)
+lib32-mangohud             # 32-bit MangoHud
+lib32-mesa                 # 32-bit OpenGL/Vulkan (AMD/Intel)
+lib32-vulkan-icd-loader    # 32-bit Vulkan loader
+vulkan-tools               # vulkaninfo / vkcube diagnostics
