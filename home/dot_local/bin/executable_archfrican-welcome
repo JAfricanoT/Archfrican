@@ -42,6 +42,8 @@ while :; do
     "Cómo mantener el sistema al día" \
     "Cómo revertir tras una actualización" \
     "Migrar desde otra máquina (Mac/Linux)" \
+    "Continuidad con tu móvil (KDE Connect)" \
+    "Respaldar tus archivos (~)" \
     "Terminar" \
     | fuzzel --dmenu --prompt '  bienvenido a Archfrican  ')" || break
   case "$sel" in
@@ -53,8 +55,10 @@ while :; do
     "Accesibilidad"*)         "$B/archfrican-a11y" ;;
     "Pantallas"*)             if command -v nwg-displays >/dev/null 2>&1; then nwg-displays; else note "instala nwg-displays"; fi ;;
     "Cómo mantener"*)         card 'Un comando: archfrican-update (reporte) · archfrican-update --run (aplica, con snapshot reversible). El sistema = el repo, aplicado.' '  actualizar  ' ;;
-    "Cómo revertir"*)         card 'Cada actualización toma un snapshot. Reinicia y elige una entrada Btrfs en el menú de GRUB para volver al estado anterior en un solo reinicio.' '  rollback  ' ;;
+    "Cómo revertir"*)         "$B/archfrican-rollback" ;;
     "Migrar"*)                "$B/archfrican-migrate" ;;
+    "Continuidad"*)           "$B/archfrican-continuity" ;;
+    "Respaldar"*)             "$B/archfrican-backup" ;;
     "Terminar"*)              break ;;
   esac
 done

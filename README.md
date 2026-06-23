@@ -89,7 +89,7 @@ theme-switch macos-light
 theme-switch catppuccin-mocha
 theme-switch tokyo-night
 ```
-Switching is live for waybar, mako, niri borders and GTK (no logout); ghostty
+Switching is live for waybar, swaync, niri borders and GTK (no logout); ghostty
 repaints new windows and fuzzel applies on its next launch.
 Add a theme by dropping a `themes/<name>/colors.sh` with the same variables.
 
@@ -139,6 +139,13 @@ enables `[multilib]` and installs Steam, gamescope, gamemode, MangoHud, Proton-G
 32-bit Vulkan stack, plus ananicy-cpp on the CachyOS kernel. Laptop power/thermal tuning is opt-in via
 `archfrican-power` (PPD ⇄ TLP, thermald on Intel). Multi-monitor, fractional scaling and HDR are managed
 with `nwg-displays`; HDR support tracks niri's evolving Wayland color management.
+
+**Continuity & backup:** opt-in **KDE Connect + LocalSend** (`archfrican-continuity`) bring the closest
+open Handoff/AirDrop — phone notifications, shared clipboard, drag-a-file-to-phone — opening only the
+ports they need. Because snapshots roll back the *system*, not your `~`, **`archfrican-backup`** adds a
+real Time Machine (restic: encrypted, deduplicated, to a USB or any rclone remote, with a daily timer).
+And **`archfrican-rollback`** turns the snapshot safety net into one verb — pick a checkpoint (labelled
+with the repo commit) and reboot into it.
 
 Desktop niceties: **Quick Look** — select a file in Files and press <kbd>Space</kbd> for a preview.
 Handy commands: `archfrican-auto-appearance on` (auto light/dark by sun position) ·

@@ -43,6 +43,9 @@ sel="$(printf '%s\n' \
   "Método de entrada / IME (CJK)…" \
   "Energía / batería (laptop)…" \
   "Instalar stack de gaming (Steam)…" \
+  "Continuidad (KDE Connect + LocalSend)…" \
+  "Respaldo de ~ (Time Machine)…" \
+  "Revertir actualización (rollback)…" \
   "Bluetooth" \
   "Audio (mezclador)" \
   "Red / VPN" \
@@ -85,6 +88,9 @@ case "$sel" in
   "Método de entrada"*)  "$B/archfrican-ime" ;;
   "Energía"*)            "$B/archfrican-power" ;;
   "Instalar stack de gaming"*) ghostty -e sh -c "$HOME/.archfrican/install.sh 65-gaming yes; printf '(enter para cerrar) '; read -r _" ;;
+  "Continuidad"*)        "$B/archfrican-continuity" ;;
+  "Respaldo"*)           "$B/archfrican-backup" ;;
+  "Revertir"*)           "$B/archfrican-rollback" ;;
   "Bluetooth"*)          blueman-manager ;;
   "Audio"*)              pavucontrol ;;
   "Red"*)                nm-connection-editor ;;

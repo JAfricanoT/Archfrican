@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# Undo the last update in one verb — surfaces the snapshot safety net (snapper) as a plain "roll
+# back", instead of having to know to pick a Btrfs entry in the GRUB menu. Lists checkpoints with
+# their descriptions (archfrican-update labels each with the repo commit); the chosen one becomes
+# the next boot.
+set -euo pipefail
+have() { command -v "$1" >/dev/null 2>&1; }
+note() { have notify-send && notify-send "Archfrican" "$1" || echo "$1"; }
+have snapper || { note "snapper no está (módulo 50-snapshots)"; exit 1; }
+
+# snapper list columns: number | type | pre# | date | user | cleanup | description | userdata
+line="$(sudo snapper -c root list 2>/dev/null \
+  | awk -F'|' 'NR>2 { n=$1; d=$4; desc=$7;
+      gsub(/^[ \t]+|[ \t]+$/,"",n); gsub(/^[ \t]+|[ \t]+$/,"",d); gsub(/^[ \t]+|[ \t]+$/,"",desc);
+      if (n ~ /^[0-9]+$/ && desc != "current") printf "%s  ·  %s  ·  %s\n", n, d, desc }' \
+  | fuzzel --dmenu --prompt '  revertir a  ')" || exit 0
+num="$(printf '%s' "$line" | awk '{print $1}')"
+case "$num" in ''|*[!0-9]*) exit 0 ;; esac
+
+confirm="$(printf 'Sí, revertir al snapshot %s (requiere reiniciar)\nCancelar\n' "$num" | fuzzel --dmenu --prompt '  confirmar  ')" || exit 0
+case "$confirm" in "Sí,"*) ;; *) exit 0 ;; esac
+
+if sudo snapper -c root rollback "$num"; then
+  reboot="$(printf 'Reiniciar ahora\nMás tarde\n' | fuzzel --dmenu --prompt '  reiniciar  ')" || exit 0
+  [ "$reboot" = "Reiniciar ahora" ] && sudo systemctl reboot
+else
+  note "el rollback falló (revisa: sudo snapper -c root rollback $num)"
+fi

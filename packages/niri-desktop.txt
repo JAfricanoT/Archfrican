@@ -89,3 +89,7 @@ qpwgraph                   # PipeWire patchbay — per-app audio routing
 orca                       # screen reader — archfrican-screenreader (⌘+Alt+S)
 speech-dispatcher          # speech synthesis layer for Orca
 espeak-ng                  # speech voices for speech-dispatcher
+
+# --- Fase 7: continuity + backup ---
+kdeconnect                 # phone notifications, shared clipboard, file send — archfrican-continuity
+restic                     # encrypted, deduplicated backup of your HOME — archfrican-backup

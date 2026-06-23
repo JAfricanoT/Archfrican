@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+# User-data backup of your HOME — the Time Machine the snapshots are NOT (snapper rolls back the ROOT
+# filesystem, not ~; a deleted file or a dead disk still loses your data). Powered by restic:
+# deduplicated, encrypted, to a local dir, a USB, or any rclone remote. The repo password lives in
+# ~/.config/archfrican (chmod 600), NEVER in the repo.
+set -euo pipefail
+have() { command -v "$1" >/dev/null 2>&1; }
+note() { have notify-send && notify-send "Archfrican" "$1" || echo "$1"; }
+cfg="${XDG_CONFIG_HOME:-$HOME/.config}/archfrican"; mkdir -p "$cfg"
+repofile="$cfg/restic-repo"; passfile="$cfg/restic-pass"
+have restic || { note "instala restic"; exit 1; }
+
+load() {
+  if [ -r "$repofile" ]; then RESTIC_REPOSITORY="$(cat "$repofile")"; export RESTIC_REPOSITORY; fi
+  [ -r "$passfile" ] && export RESTIC_PASSWORD_FILE="$passfile"
+}
+
+case "${1:-menu}" in
+  menu)
+    sel="$(printf '%s\n' \
+      "Configurar respaldo (elegir destino)" "Respaldar ahora" "Restaurar archivos" \
+      "Ver respaldos" "Programar diario (timer)" | fuzzel --dmenu --prompt '  respaldo  ')" || exit 0
+    case "$sel" in
+      "Configurar"*) exec "$0" init ;;
+      "Respaldar"*)  exec "$0" now ;;
+      "Restaurar"*)  exec "$0" restore ;;
+      "Ver"*)        exec "$0" list ;;
+      "Programar"*)  exec "$0" schedule ;;
+    esac ;;
+  init)
+    repo="$(fuzzel --dmenu --prompt 'destino (/ruta · /run/media/USB/bk · rclone:remoto:ruta):  ' </dev/null)" || exit 0
+    [ -n "$repo" ] || exit 0
+    printf '%s\n' "$repo" > "$repofile"
+    if [ ! -s "$passfile" ]; then ( umask 077; head -c 24 /dev/urandom | base64 > "$passfile" ); chmod 600 "$passfile"; fi
+    load
+    ghostty -e sh -c "restic cat config >/dev/null 2>&1 || restic init; printf '(enter para cerrar) '; read -r _"
+    note "respaldo configurado. Guarda una COPIA de $passfile en lugar seguro (sin ella no hay restauración)." ;;
+  now)
+    load; [ -n "${RESTIC_REPOSITORY:-}" ] || { note "primero: configurar respaldo"; exit 1; }
+    note "respaldando ~ …"
+    if restic backup "$HOME" --exclude-caches --exclude "$HOME/.cache" --exclude "$HOME/.local/share/Trash" >/dev/null 2>&1; then
+      note "respaldo completo"
+    else
+      note "el respaldo falló (revisa: restic backup ~)"
+    fi ;;
+  list)    load; ghostty -e sh -c "restic snapshots; printf '(enter) '; read -r _" ;;
+  restore) load; ghostty -e sh -c "restic snapshots; echo; echo 'Restaurar:  restic restore latest --target ~/restaurado'; printf '(enter) '; read -r _" ;;
+  schedule)
+    udir="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user"; mkdir -p "$udir"
+    cat > "$udir/archfrican-backup.service" <<'SVC'
+[Unit]
+Description=Archfrican user-data backup (restic)
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/archfrican-backup now
+SVC
+    cat > "$udir/archfrican-backup.timer" <<'TMR'
+[Unit]
+Description=Daily Archfrican user-data backup
+[Timer]
+OnCalendar=daily
+Persistent=true
+RandomizedDelaySec=30m
+[Install]
+WantedBy=timers.target
+TMR
+    systemctl --user daemon-reload 2>/dev/null || true
+    systemctl --user enable --now archfrican-backup.timer 2>/dev/null || true
+    note "respaldo diario programado (timer de usuario)" ;;
+  *) echo "usage: archfrican-backup menu|init|now|list|restore|schedule" >&2; exit 1 ;;
+esac

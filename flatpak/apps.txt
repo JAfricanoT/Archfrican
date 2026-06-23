@@ -7,6 +7,7 @@
 # Flatseal ships by default — it's the GUI to inspect/revoke each app's permissions (the App-Store
 # "this app wants camera/mic/files access" control a Mac user expects).
 com.github.tchx84.Flatseal      # manage per-app Flatpak permissions
+org.localsend.localsend_app     # LocalSend — AirDrop-class encrypted LAN file transfer
 
 # --- popular picks (uncomment what you want) ---
 # com.bitwarden.desktop          # Bitwarden password manager

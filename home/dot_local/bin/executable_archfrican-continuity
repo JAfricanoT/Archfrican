@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+# Cross-device continuity (opt-in) — the closest open replacement for macOS Handoff/AirDrop:
+# KDE Connect (phone notifications, shared clipboard, file send, remote input) + LocalSend (encrypted
+# LAN file transfer). Opens the needed firewall ports and starts the KDE Connect daemon. Nothing is
+# exposed until you run this.
+set -euo pipefail
+have() { command -v "$1" >/dev/null 2>&1; }
+note() { have notify-send && notify-send "Archfrican" "$1" || echo "$1"; }
+FW=/etc/nftables.d/archfrican-allows.nft
+
+# Range-capable allow (fw_allow only takes a single port). Mirrors its persisted nftables format so the
+# firewall reload reads it, and is idempotent on the same spec.
+allow() {  # allow <tcp|udp> <dport-spec>
+  local proto="$1" dport="$2"
+  if sudo grep -qF "$proto dport $dport accept" "$FW" 2>/dev/null; then return 0; fi
+  printf 'add rule inet filter input %s dport %s accept\n' "$proto" "$dport" | sudo tee -a "$FW" >/dev/null
+  sudo nft add rule inet filter input "$proto" dport "$dport" accept 2>/dev/null || true
+}
+
+note "abriendo puertos de continuidad (KDE Connect 1714-1764, LocalSend 53317)…"
+allow tcp 1714-1764
+allow udp 1714-1764
+allow tcp 53317
+allow udp 53317
+
+# KDE Connect daemon as a user service (persists across logins).
+kcd=""
+for p in /usr/lib/kdeconnectd /usr/lib/kf6/kdeconnectd; do [ -x "$p" ] && { kcd="$p"; break; }; done
+if [ -n "$kcd" ]; then
+  udir="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user"; mkdir -p "$udir"
+  cat > "$udir/kdeconnectd.service" <<SVC
+[Unit]
+Description=KDE Connect daemon
+PartOf=graphical-session.target
+[Service]
+Type=simple
+ExecStart=$kcd
+Restart=on-failure
+[Install]
+WantedBy=graphical-session.target
+SVC
+  systemctl --user daemon-reload 2>/dev/null || true
+  if ! systemctl --user enable --now kdeconnectd.service 2>/dev/null; then setsid "$kcd" >/dev/null 2>&1 & fi
+fi
+
+if have kdeconnect-app; then setsid kdeconnect-app >/dev/null 2>&1 &
+elif have kdeconnect-settings; then setsid kdeconnect-settings >/dev/null 2>&1 &
+fi
+note "Empareja tu móvil en KDE Connect. Para enviar archivos sin cuenta, abre LocalSend."

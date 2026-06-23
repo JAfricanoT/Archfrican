@@ -92,7 +92,8 @@ precheck() {
 # ---------- a single rollback point for the WHOLE update ----------------------
 pre_snapshot() {
   command -v snapper >/dev/null 2>&1 || { _note "snapper absent — no pre-snapshot (continuing)"; return 0; }
-  local desc; desc="archfrican-update $(date +%Y-%m-%d)"
+  local desc rev; rev="$(git -C "${ROOT:-$HOME/.archfrican}" rev-parse --short HEAD 2>/dev/null || echo '?')"
+  desc="archfrican-update $(date +%Y-%m-%d) @$rev"
   if sudo snapper -c root create -d "$desc" >/dev/null 2>&1; then
     _ok "pre-snapshot created (\"$desc\") — one reboot rolls the whole update back"
   else _note "could not create a pre-snapshot (continuing)"; fi
