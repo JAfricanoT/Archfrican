@@ -21,9 +21,7 @@ module_inputs() {                 # module_inputs <name>
   case "$1" in
     00-base)         printf ' packages/base.txt' ;;
     10-gpu)          printf ' lib/detect-gpu.sh lib/grub.sh' ;;
-    20-niri-desktop) printf ' packages/niri-desktop.txt templates/sddm.theme.conf'
-                     printf ' assets/sddm/archfrican/Main.qml assets/sddm/archfrican/theme.conf'
-                     printf ' assets/sddm/archfrican/metadata.desktop' ;;
+    20-niri-desktop) printf ' packages/niri-desktop.txt templates/sddm.theme.conf assets/sddm/archfrican' ;;
     30-dev)          printf ' packages/dev.txt' ;;
     40-theming)      printf ' packages/theming.txt packages/aur.txt' ;;
     55-multiboot)    printf ' packages/multiboot.txt lib/grub.sh' ;;
@@ -37,10 +35,13 @@ module_inputs() {                 # module_inputs <name>
 # they already match, and an explicit arg change is handled by `./install.sh <module> <arg>`
 # (FORCE). Leaving the arg out keeps drift detection free of false positives.
 module_hash() {                   # module_hash <name>
-  local name="$1" f inputs
+  local name="$1" f p inputs
   read -ra inputs <<< "$(module_inputs "$name")"
   { for f in "${inputs[@]}"; do
-      [ -r "$REPO_ROOT/$f" ] && sha256sum "$REPO_ROOT/$f" 2>/dev/null
+      p="$REPO_ROOT/$f"
+      if [ -d "$p" ]; then find "$p" -type f -exec sha256sum {} + 2>/dev/null | sort
+      elif [ -r "$p" ]; then sha256sum "$p" 2>/dev/null
+      fi
     done; } | sha256sum | awk '{print $1}'
 }
 
