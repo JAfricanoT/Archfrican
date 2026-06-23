@@ -79,7 +79,7 @@ write_system_file() {             # write_system_file <path> [mode]   (content o
 render_sddm_theme() {             # render_sddm_theme <theme-name>
   local theme="$1"
   local pal="$REPO_ROOT/themes/$theme/colors.sh" tmpl="$REPO_ROOT/templates/sddm.theme.conf"
-  [ -r "$pal" ] && [ -r "$tmpl" ] || { warn "render_sddm_theme: missing $pal or $tmpl — skipping"; return 0; }
+  if [ ! -r "$pal" ] || [ ! -r "$tmpl" ]; then warn "render_sddm_theme: missing $pal or $tmpl — skipping"; return 0; fi
   ( # shellcheck disable=SC1090
     . "$pal"
     # shellcheck disable=SC2154
