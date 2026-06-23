@@ -51,6 +51,9 @@ in_repo || bootstrap "$@"
 # --- in the repo: load helpers, detect environment, dispatch ----------------
 cd "$here"
 source lib/common.sh           # log/ok/warn/die/have/pac_install/preflight_pkgs/verify_spawns/REPO_ROOT…
+source lib/converge.sh         # module_hash/drift_modules — content-addressed module skip (resume + update)
+source lib/manifest.sh         # write_manifest/prune_candidates — desired-state ledger (drives --prune)
+source lib/migrate.sh          # mig_mark_latest — stamp a fresh install current (so it skips old migrations)
 source lib/detect-gpu.sh
 source lib/env.sh              # is_iso (canonical)
 source lib/ui.sh              # gum||plain wizard primitives
@@ -71,5 +74,11 @@ if is_iso; then
   run_phase1
 else
   [ "$EUID" -eq 0 ] && die "Run as your normal user, not root (sudo is called when needed)."
-  if [ $# -gt 0 ]; then run_phase2 "$@"; else preflight base; run_phase2; fi
+  case "${1:-}" in
+    --update)                                # desired-state converge (invoked by archfrican-update):
+      export ARCHFRICAN_UPDATE=1 ARCHFRICAN_NONINTERACTIVE=1   # no wizard, no identity re-apply,
+      run_phase2 ;;                                            # only changed modules + dotfiles re-run
+    "")  preflight base; run_phase2 ;;
+    *)   run_phase2 "$@" ;;                   # single-module shortcut: ./install.sh 30-dev
+  esac
 fi

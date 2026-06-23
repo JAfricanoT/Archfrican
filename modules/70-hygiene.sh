@@ -4,6 +4,10 @@
 # fwupd) + btrfs-progs/util-linux. Nothing here auto-updates or auto-removes — it notifies.
 source "$(dirname "$0")/../lib/common.sh"
 
+# --- state dir for the converge/update machinery (manifest, managed ledger, migration version) ---
+substep "ensuring the Archfrican state dir (/var/lib/archfrican)"
+best_effort sudo install -d -m 0755 /var/lib/archfrican
+
 # --- maintenance timers (heavy ones gated to AC power + jittered) ------------
 substep "scheduling package-cache trim (paccache, keep 3)"
 resilient_enable paccache.timer

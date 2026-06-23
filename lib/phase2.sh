@@ -34,9 +34,14 @@ module_desc() { case "$1" in
   *) echo "";; esac; }
 
 run_module() {                # run_module <name> [arg]
-  local name="$1" stamp="$PHASE2_STATE/$1.done"
-  if [ -f "$stamp" ] && [ -z "${FORCE:-}" ]; then
-    step "$(module_label "$name") — skipped" "already done (FORCE=1 to redo)"; return 0
+  local name="$1" stamp="$PHASE2_STATE/$1.done" want
+  # Content-addressed skip (lib/converge.sh): the stamp stores the hash of the module's inputs
+  # (script + package list(s) + shared libs). Equal hash = nothing changed -> skip. This drives
+  # install-resume AND update-converge with one mechanism; a bumped package list re-runs ONLY that
+  # module. (Legacy empty stamps mismatch once and re-converge harmlessly, then store the hash.)
+  want="$(module_hash "$name")"
+  if [ -z "${FORCE:-}" ] && [ -f "$stamp" ] && [ "$(cat "$stamp" 2>/dev/null)" = "$want" ]; then
+    step "$(module_label "$name") — skipped" "unchanged (FORCE=1 to redo)"; return 0
   fi
   step "$(module_label "$name")" "$(module_desc "$name")"
   current_module="$name"
@@ -46,7 +51,7 @@ run_module() {                # run_module <name> [arg]
   # so a later opt-in isn't masked. Any other nonzero is a real failure -> propagate to on_err.
   if [ "$rc" = 3 ]; then current_module=""; ok "$(module_label "$name") — not selected"; return 0; fi
   [ "$rc" = 0 ] || return "$rc"
-  touch "$stamp"; ok "$(module_label "$name") complete"; current_module=""
+  printf '%s\n' "$want" > "$stamp"; ok "$(module_label "$name") complete"; current_module=""
 }
 
 run_phase2() {                # run_phase2 [single-module]
@@ -117,21 +122,35 @@ run_phase2() {                # run_phase2 [single-module]
   else
     warn "non-interactive — using detected defaults (host=$HOST user=$USER_NAME gpu=$GPU theme=$THEME)"
   fi
+
+  # Update/converge mode (ARCHFRICAN_UPDATE=1, set by `install.sh --update`): preserve the earlier
+  # opt-ins by reading the LIVE system, so re-converging never silently disables SSH/multi-boot the
+  # user turned on (identity itself — host/user/tz/locale/theme — is left untouched; see below).
+  local UPDATE="${ARCHFRICAN_UPDATE:-0}"
+  if [ "$UPDATE" = 1 ]; then
+    systemctl is-enabled --quiet sshd.service 2>/dev/null && SSH_ENABLE=yes
+    grep -q '^GRUB_DISABLE_OS_PROBER=false' /etc/default/grub 2>/dev/null && MULTIBOOT=yes
+  fi
   log "GPU profile: $GPU"
 
-  ui_header "Installing Archfrican"
+  if [ "$UPDATE" = 1 ]; then ui_header "Converging Archfrican (update)"; else ui_header "Installing Archfrican"; fi
   step_total 12
 
   # ---- apply host/user BEFORE the modules (idempotent) ----------------------
-  step "Applying your choices" "hostname · user · timezone · locale · keyboard"
-  apply_hostname        "$HOST"
-  apply_user            "$USER_NAME" "$USER_PW"
-  apply_timezone        "$TZ"
-  apply_locale_keyboard "$LOCALE" "$XKB" "$XKB"
-  mkdir -p "$HOME/.config"
-  printf '%s\n' "$THEME" > "$HOME/.config/.archfrican-theme"   # chezmoi run_after applies it last
-  printf '%s\n' "$XKB"   > "$HOME/.config/.archfrican-kbd"     # niri config.kdl template reads it
-  ok "staged theme=$THEME, niri keyboard=$XKB"
+  # Update/converge skips identity: hostname/user/tz/locale/theme are set ONCE at install, and
+  # re-applying them could clobber a value the user changed by hand. An update re-converges only the
+  # software/config layer (the modules) + dotfiles — exactly what makes it "the repo, applied".
+  if [ "$UPDATE" != 1 ]; then
+    step "Applying your choices" "hostname · user · timezone · locale · keyboard"
+    apply_hostname        "$HOST"
+    apply_user            "$USER_NAME" "$USER_PW"
+    apply_timezone        "$TZ"
+    apply_locale_keyboard "$LOCALE" "$XKB" "$XKB"
+    mkdir -p "$HOME/.config"
+    printf '%s\n' "$THEME" > "$HOME/.config/.archfrican-theme"   # chezmoi run_after applies it last
+    printf '%s\n' "$XKB"   > "$HOME/.config/.archfrican-kbd"     # niri config.kdl template reads it
+    ok "staged theme=$THEME, niri keyboard=$XKB"
+  fi
 
   # ---- the existing phase-2 orchestration (resumable via .done checkpoints) --
   substep "verifying every listed package resolves in a repo"
@@ -161,6 +180,20 @@ run_phase2() {                # run_phase2 [single-module]
   current_module=""
 
   ok "Done. Kernel linux-cachyos (fallback linux-lts in GRUB) · compositor niri · GPU $GPU · theme $THEME."
+
+  # Record the desired-state manifest (drives drift detection + safe `--prune`). Done on every run so
+  # a fresh install also has a baseline; opt-ins (multiboot) are reflected so prune respects them.
+  write_manifest "$MULTIBOOT"
+  # Fresh install (incl. the ISO first-boot resume): stamp the migration version current so the new
+  # machine never re-runs historical migrations. In update mode archfrican-update already ran them.
+  [ "$UPDATE" = 1 ] || mig_mark_latest
+
+  # Update/converge ends here: no first-boot broadcast, no reboot modal — the user is on a running
+  # desktop and just brought it level with the repo. (archfrican-update prints the reboot hint.)
+  if [ "$UPDATE" = 1 ]; then
+    ok "Converge complete — config + dotfiles now match the repo."
+    return 0
+  fi
 
   # First-boot resume (headless): the user is on a bare console with no session, so the install ran
   # invisibly in the journal. Tell them ON-SCREEN that it finished + to reboot. `wall` reaches any logged-in
