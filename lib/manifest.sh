@@ -34,8 +34,12 @@ write_manifest() {                # write_manifest <multiboot yes|no>
   done < <(_manifest_lists "$mb") | LC_ALL=C sort -u > "$tmp"
   sudo install -d -m 0755 "$ARCHFRICAN_STATE_DIR"
   sudo install -m 0644 "$tmp" "$ARCHFRICAN_MANIFEST"
-  { sudo cat "$ARCHFRICAN_MANAGED" 2>/dev/null; cat "$tmp"; } | LC_ALL=C sort -u | sudo tee "$ARCHFRICAN_MANAGED" >/dev/null
-  rm -f "$tmp"
+  # managed.txt must be world-readable: prune_candidates reads it WITHOUT sudo. Write it with an
+  # explicit 0644 (symmetric with manifest.txt above) instead of `sudo tee`, whose mode would follow
+  # root's umask — a stricter umask could leave it unreadable and silently disable --prune.
+  { sudo cat "$ARCHFRICAN_MANAGED" 2>/dev/null; cat "$tmp"; } | LC_ALL=C sort -u > "$tmp.mgd"
+  sudo install -m 0644 "$tmp.mgd" "$ARCHFRICAN_MANAGED"
+  rm -f "$tmp" "$tmp.mgd"
   ok "recorded desired-state manifest ($(grep -c . "$ARCHFRICAN_MANIFEST") pkgs) + managed ledger"
 }
 
@@ -49,7 +53,10 @@ prune_candidates() {
   # a mismatched collation could make comm mis-pair and skip/keep the wrong package)
   comm -23 <(pacman -Qeq 2>/dev/null | LC_ALL=C sort -u) <(LC_ALL=C sort -u "$ARCHFRICAN_MANIFEST") | while IFS= read -r p; do
     grep -qxF "$p" "$ARCHFRICAN_MANAGED" || continue          # … only if Archfrican ever declared it
-    reqby="$(pacman -Qi "$p" 2>/dev/null | awk -F': *' '/^Required By/{print $2; exit}')"
+    # LC_ALL=C: `pacman -Qi` localizes BOTH the "Required By" label and the "None" value, so on a
+    # non-English LANG the awk match fails and every package looks dependency-free -> --prune silently
+    # prunes nothing. Force the C locale so the label/value stay parseable.
+    reqby="$(LC_ALL=C pacman -Qi "$p" 2>/dev/null | awk -F': *' '/^Required By/{print $2; exit}')"
     [ "$reqby" = "None" ] || continue                          # … and nothing still depends on it
     printf '%s\n' "$p"
   done

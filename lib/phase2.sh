@@ -25,7 +25,7 @@ module_label() { case "$1" in
 module_desc() { case "$1" in
   00-base) echo "CachyOS repos, dual kernel (cachyos + lts), paru";;
   10-gpu) echo "vendor-agnostic drivers for the detected GPU";;
-  20-niri-desktop) echo "compositor, greetd login, keyd, audio";;
+  20-niri-desktop) echo "compositor, SDDM login, keyd, audio";;
   30-dev) echo "editors, language servers, version managers, docker";;
   35-apps) echo "Flatpak + Flathub, software center, cloud/SMB";;
   40-theming) echo "fonts, macOS GTK theme, hot-swap switcher";;

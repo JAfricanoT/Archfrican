@@ -258,3 +258,10 @@ jobs:
           printf 'GRUB_TIMEOUT=5\n' > "$fix"
           ( append_grub_cmdline quiet ) 2>/dev/null && { echo "::error::did not die on absent CMDLINE"; exit 1; } || true
           echo "grub-helper: idempotent + verify-or-die OK"
+
+  fido2-selfcheck:
+    runs-on: ubuntu-latest        # pure bash — the no-lockout invariant + CVE-2025-23013 guard must hold
+    steps:
+      - uses: actions/checkout@v4
+      - name: FIDO2 PAM selfcheck + version guard (fixture-based, no key needed)
+        run: bash tests/unit/fido2.sh

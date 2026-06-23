@@ -17,6 +17,10 @@ attempt "font"          gsettings set org.gnome.desktop.interface font-name     
 attempt "mono-font"     gsettings set org.gnome.desktop.interface monospace-font-name  "SF Mono 11"
 attempt "color-scheme"  gsettings set org.gnome.desktop.interface color-scheme         "prefer-dark"
 
-substep "setting the default theme (your wizard pick is applied last by chezmoi)"
-attempt "default theme" env ARCHFRICAN_ROOT="$REPO_ROOT" "$REPO_ROOT/bin/theme-switch" macos-dark
+# Apply the user's chosen theme — read the staged pick (phase 2 / inject_resume wrote it; chezmoi
+# run_after re-applies it after dotfiles), NOT a hardcoded macos-dark. Hardcoding here silently
+# overrode the wizard choice on install and reset a long-standing theme on every converge.
+substep "applying the saved theme (the wizard pick, or macos-dark if none)"
+theme="$(cat "$HOME/.config/.archfrican-theme" 2>/dev/null || echo macos-dark)"
+attempt "default theme" env ARCHFRICAN_ROOT="$REPO_ROOT" "$REPO_ROOT/bin/theme-switch" "$theme"
 ok "theming module done"

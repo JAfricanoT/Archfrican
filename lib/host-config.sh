@@ -46,6 +46,9 @@ apply_timezone() {                 # apply_timezone <tz>
 apply_locale_keyboard() {          # apply_locale_keyboard <locale> <xkb-layout> <vconsole-keymap>
   local loc="$1" xkb="$2" vc="$3"
   if [ -n "$loc" ]; then
+    # $loc is interpolated into a sed regex below; reject anything outside a locale's real charset so a
+    # stray '/' or regex metacharacter can't corrupt the /etc/locale.gen edit.
+    case "$loc" in *[!A-Za-z0-9._@-]*) die "invalid locale '$loc' (allowed chars: A-Z a-z 0-9 . _ @ -)";; esac
     sudo sed -i "s/^#\\s*\\(${loc}\\b.*\\)/\\1/" /etc/locale.gen
     sudo locale-gen
     sudo localectl set-locale "LANG=$loc"; ok "locale -> $loc"

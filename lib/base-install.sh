@@ -118,6 +118,9 @@ TZ="$1"; LOCALE="$2"; HOST="$3"; U="$4"; VK="$5"; ENC="$6"; LUKS_UUID="${7:-}"
 ln -sf "/usr/share/zoneinfo/$TZ" /etc/localtime
 hwclock --systohc
 
+# LOCALE is interpolated into the sed/grep regex below; reject anything outside a locale's real
+# charset so a stray '/' or regex metacharacter can't corrupt /etc/locale.gen (and abort the install).
+case "$LOCALE" in *[!A-Za-z0-9._@-]*) echo "FATAL: invalid locale '$LOCALE'"; exit 1;; esac
 if grep -qE "^#\s*${LOCALE} " /etc/locale.gen; then sed -i "s/^#\s*\(${LOCALE} .*\)/\1/" /etc/locale.gen
 elif ! grep -qE "^${LOCALE} " /etc/locale.gen; then printf '%s UTF-8\n' "$LOCALE" >> /etc/locale.gen; fi
 locale-gen

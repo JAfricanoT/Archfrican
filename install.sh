@@ -67,7 +67,7 @@ source lib/phase2.sh          # run_phase2 (the booted experience)
 source lib/phase1.sh          # run_phase1 (the ISO full install; ships dry-run gated)
 
 if is_iso; then
-  [ "$EUID" -eq 0 ] || die "On the Arch ISO this must run as root (it drives archinstall)."
+  [ "$EUID" -eq 0 ] || die "On the Arch ISO this must run as root (it drives the bedrock base install)."
   # Full install from the live USB. SAFE by default: ships dry-run gated
   # (ARCHFRICAN_ISO_ARMED=0) so no disk is touched until VM-validated. See
   # docs/STAGE2-VALIDATION.md.
