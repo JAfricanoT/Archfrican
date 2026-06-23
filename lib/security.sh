@@ -11,6 +11,10 @@ fw_allow() {                       # fw_allow <port>[/tcp|/udp]
   [ -n "$spec" ] || { echo "usage: fw-allow <port>[/tcp|udp]   e.g. fw-allow 3000/tcp" >&2; return 2; }
   port="${spec%%/*}"; proto="${spec#*/}"; [ "$proto" = "$spec" ] && proto=tcp
   case "$port" in ''|*[!0-9]*) echo "fw-allow: port must be numeric" >&2; return 2;; esac
+  # Range-check BEFORE persisting: an out-of-range port (e.g. 70000) would pass the digits-only test,
+  # get appended to the nftables include, and then fail the whole `nft -f` reload on next boot —
+  # silently bringing the firewall up fail-OPEN. Reject it here instead.
+  { [ "$port" -ge 1 ] && [ "$port" -le 65535 ]; } || { echo "fw-allow: port must be 1-65535" >&2; return 2; }
   case "$proto" in tcp|udp) ;; *) echo "fw-allow: proto must be tcp or udp" >&2; return 2;; esac
   rule_args=(add rule inet filter input "$proto" dport "$port" accept)
   rule="${rule_args[*]}"
