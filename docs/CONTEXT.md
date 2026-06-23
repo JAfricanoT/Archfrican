@@ -34,7 +34,7 @@ es **programación de alto rendimiento** (polyglot). Nombre del proyecto: **Arch
 | Compositor | **niri** (puro), modular/swappable | Sobre Hyprland por fiabilidad: el scrolling es el núcleo (no un añadido), menor superficie de bugs, evita el churn de la migración a Lua de Hyprland 0.55 y la fragilidad de plugins (hyprscroller). El objetivo real es el *flujo* niri, no Hyprland. |
 | GPU | NVIDIA principal, pero auto-detección AMD/Intel/híbrida | `nvidia-open-dkms` + `nvidia_drm.modeset=1` + early KMS. AMD/Intel = stack mesa abierto (lo más fiable). |
 | Dotfiles | **chezmoi** | Bootstrap de un comando, templating (misma fuente → config por máquina/GPU), secretos. Nix+home-manager anotado como escalada futura si se quiere reproducibilidad total. |
-| Login | greetd + tuigreet | Mínimo, Wayland-native, sin rarezas de DMs pesados. |
+| Login | **SDDM** + tema propio `archfrican` (QML, macOS) | Login gráfico minimalista/elegante; tema versionado en `assets/sddm/` (oficial/binario, **sin AUR**), pintado desde la paleta del tema (gradiente BG→BG_ALT, acento, SF Pro). Greeter en Wayland vía `weston` (sin xorg); fallback `DisplayServer=x11` documentado. |
 | Terminal | **Ghostty** (sobre Kitty) | UI nativa GTK4, zero-config, rendimiento top, soporta protocolo de imágenes de Kitty. niri ya gestiona el tiling, así que las features de ventanas de Kitty sobran. Es el componente con **menos lock-in**. |
 | Shell | **Zsh** + zinit + fast-syntax-highlighting + zsh-autosuggestions + completions | Zsh por compatibilidad POSIX (no rompe scripts). **Sin oh-my-zsh** (lento, 400ms+). Setup ligero <50ms. |
 | Prompt | **Starship** (sobre p10k) | Cross-shell: sobrevive a un cambio de shell, encaja con el principio de no-lock-in. p10k es solo-zsh. |

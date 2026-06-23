@@ -33,7 +33,7 @@ off the Mac, and a hard requirement that **nothing explodes**.
 | Base         | Arch vanilla **+ CachyOS repos** (optimized pkgs + kernel)    |
 | Filesystem   | Btrfs + Snapper + snap-pac + grub-btrfs                       |
 | Kernel       | `linux-cachyos` (default) · `linux-lts` (fallback in GRUB)    |
-| Compositor   | **niri** (isolated module) · greetd + tuigreet login          |
+| Compositor   | **niri** (isolated module) · **SDDM** graphical login (theme `archfrican`) |
 | GPU          | auto: `nvidia-open-dkms` / `vulkan-radeon` / `vulkan-intel`   |
 | Shell        | Zsh + zinit + fast-syntax-highlighting + autosuggestions      |
 | Prompt       | **Starship** (cross-shell — survives a shell swap)            |

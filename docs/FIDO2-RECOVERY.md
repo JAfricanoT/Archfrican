@@ -17,7 +17,9 @@ cannot lock yourself out by losing the key.
   - `nouserok` → a user with *no* mapping is skipped, not blocked.
   - Each edited file is backed up once as `<file>.archfrican.bak`.
 - The installer runs `fido2_pam_selfcheck` before finishing: it refuses to proceed unless the password
-  include is still present and nothing else is `sufficient` above it. (greetd is left **OFF** in v1.)
+  include is still present and nothing else is `sufficient` above it. The key leg covers `sudo`,
+  `system-local-login` and **`sddm`** (the graphical login's own PAM service), so a touch works at the
+  SDDM greeter — the password is always still a fallback.
 
 ## The no-lockout guarantee (what we verified)
 
