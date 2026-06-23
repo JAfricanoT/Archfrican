@@ -31,10 +31,10 @@ write_manifest() {                # write_manifest <multiboot yes|no>
     [ -r "$REPO_ROOT/packages/$l.txt" ] || continue
     read_pkg_list "$REPO_ROOT/packages/$l.txt" pkgs
     printf '%s\n' "${pkgs[@]}"
-  done < <(_manifest_lists "$mb") | sort -u > "$tmp"
+  done < <(_manifest_lists "$mb") | LC_ALL=C sort -u > "$tmp"
   sudo install -d -m 0755 "$ARCHFRICAN_STATE_DIR"
   sudo install -m 0644 "$tmp" "$ARCHFRICAN_MANIFEST"
-  { sudo cat "$ARCHFRICAN_MANAGED" 2>/dev/null; cat "$tmp"; } | sort -u | sudo tee "$ARCHFRICAN_MANAGED" >/dev/null
+  { sudo cat "$ARCHFRICAN_MANAGED" 2>/dev/null; cat "$tmp"; } | LC_ALL=C sort -u | sudo tee "$ARCHFRICAN_MANAGED" >/dev/null
   rm -f "$tmp"
   ok "recorded desired-state manifest ($(grep -c . "$ARCHFRICAN_MANIFEST") pkgs) + managed ledger"
 }
@@ -45,8 +45,9 @@ prune_candidates() {
   [ -r "$ARCHFRICAN_MANAGED" ] && [ -r "$ARCHFRICAN_MANIFEST" ] || return 0
   command -v pacman >/dev/null 2>&1 || return 0
   local p reqby
-  # explicit installs that are NOT in the desired manifest …
-  comm -23 <(pacman -Qeq 2>/dev/null | sort -u) <(sort -u "$ARCHFRICAN_MANIFEST") | while IFS= read -r p; do
+  # explicit installs that are NOT in the desired manifest … (LC_ALL=C so both inputs collate identically;
+  # a mismatched collation could make comm mis-pair and skip/keep the wrong package)
+  comm -23 <(pacman -Qeq 2>/dev/null | LC_ALL=C sort -u) <(LC_ALL=C sort -u "$ARCHFRICAN_MANIFEST") | while IFS= read -r p; do
     grep -qxF "$p" "$ARCHFRICAN_MANAGED" || continue          # … only if Archfrican ever declared it
     reqby="$(pacman -Qi "$p" 2>/dev/null | awk -F': *' '/^Required By/{print $2; exit}')"
     [ "$reqby" = "None" ] || continue                          # … and nothing still depends on it

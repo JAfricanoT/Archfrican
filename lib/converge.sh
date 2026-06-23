@@ -35,12 +35,16 @@ module_inputs() {                 # module_inputs <name>
 # they already match, and an explicit arg change is handled by `./install.sh <module> <arg>`
 # (FORCE). Leaving the arg out keeps drift detection free of false positives.
 module_hash() {                   # module_hash <name>
-  local name="$1" f p inputs
+  local name="$1" f inputs
   read -ra inputs <<< "$(module_inputs "$name")"
+  # Hash CONTENT + repo-RELATIVE path only (run sha256sum from inside REPO_ROOT so the emitted paths
+  # are relative, never the absolute clone location). LC_ALL=C makes the dir listing order-stable.
+  # -> the stamp is reproducible across clone locations and locales, so install and update agree.
   { for f in "${inputs[@]}"; do
-      p="$REPO_ROOT/$f"
-      if [ -d "$p" ]; then find "$p" -type f -exec sha256sum {} + 2>/dev/null | sort
-      elif [ -r "$p" ]; then sha256sum "$p" 2>/dev/null
+      if [ -d "$REPO_ROOT/$f" ]; then
+        ( cd "$REPO_ROOT" && find "$f" -type f -exec sha256sum {} + 2>/dev/null ) | LC_ALL=C sort
+      elif [ -r "$REPO_ROOT/$f" ]; then
+        ( cd "$REPO_ROOT" && sha256sum "$f" 2>/dev/null )
       fi
     done; } | sha256sum | awk '{print $1}'
 }

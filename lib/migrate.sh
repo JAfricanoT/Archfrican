@@ -31,7 +31,8 @@ _mig_set() { printf '%s\n' "$1" | sudo tee "$ARCHFRICAN_VERSION_FILE" >/dev/null
 # full delta runs. Uses ok/substep/die from common.sh (run inside a common.sh context).
 run_migrations() {
   sudo install -d -m 0755 "$ARCHFRICAN_STATE_DIR"
-  local latest cur; latest="$(_mig_latest)"; cur="$(_mig_current)"; cur="${cur:-0}"
+  local latest cur; latest="$(_mig_latest)"; cur="$(_mig_current)"
+  [[ "$cur" =~ ^[0-9]+$ ]] || cur=0     # a corrupt/garbage state-version must not wedge migrations
   [ "$cur" -ge "$latest" ] && { ok "migrations: up to date (v$cur)"; return 0; }
   local f n ran=0
   for f in "$REPO_ROOT"/migrations/[0-9]*.sh; do
@@ -39,7 +40,8 @@ run_migrations() {
     n="$(basename "$f")"; n="${n%%-*}"; n=$((10#$n))
     [ "$n" -gt "$cur" ] || continue
     substep "migration $(basename "$f")"
-    bash "$f" || die "migration failed: $(basename "$f") — fix it, then re-run archfrican-update"
+    # return (don't die): the caller (archfrican-update::converge) handles a soft abort gracefully.
+    bash "$f" || { warn "migration failed: $(basename "$f") — fix it, then re-run archfrican-update"; return 1; }
     _mig_set "$n"; ran=$((ran + 1))
   done
   ok "migrations: applied $ran (now at v$latest)"
@@ -57,7 +59,8 @@ mig_mark_latest() {
 # Count of unrun migrations (for the drift report). An absent state-version counts as v0 (an old
 # install that still owes the full delta); a fresh install stamped its version, so it returns 0. No sudo.
 pending_migrations() {
-  local latest cur; latest="$(_mig_latest)"; cur="$(_mig_current)"; cur="${cur:-0}"
+  local latest cur; latest="$(_mig_latest)"; cur="$(_mig_current)"
+  [[ "$cur" =~ ^[0-9]+$ ]] || cur=0
   [ "$cur" -ge "$latest" ] && { printf 0; return; }
   printf '%s' "$((latest - cur))"
 }

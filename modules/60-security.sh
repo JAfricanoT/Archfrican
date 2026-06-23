@@ -143,7 +143,13 @@ fi
 if [ -f "$HOME/.config/.archfrican-fido2" ]; then
   substep "wiring FIDO2 PAM for sudo + login (non-exclusive — password still works)"
   fido2_write_pam
-  for svc in sudo system-local-login; do
+  # Self-check EVERY service fido2_write_pam touched (incl. sddm, the graphical login). Skip a service
+  # whose PAM file is absent — fido2_pam_insert skipped it too, so there's nothing to verify/rollback
+  # (keeps a single-module run on a box without sddm from failing). The graphical-login stack now gets
+  # the same lockout-proof selfcheck (key 'sufficient' + an untouched password include) as sudo/TTY.
+  # shellcheck disable=SC2086  # FIDO2_PAM_SERVICES is a deliberate space-separated service list
+  for svc in $FIDO2_PAM_SERVICES; do
+    [ -e "/etc/pam.d/$svc" ] || continue
     fido2_pam_selfcheck "$svc" || {
       [ -e "/etc/pam.d/$svc.archfrican.bak" ] && sudo mv -f "/etc/pam.d/$svc.archfrican.bak" "/etc/pam.d/$svc"
       die "FIDO2 PAM selfcheck failed for $svc — restored the backup, no changes left on disk"

@@ -104,9 +104,10 @@ converge() {
   if [ -d "$ROOT/.git" ] && command -v git >/dev/null 2>&1; then
     local old new; old="$(git -C "$ROOT" rev-parse --short HEAD 2>/dev/null)"
     if git -C "$ROOT" fetch --depth 1 origin "$ARCHFRICAN_REF" >/dev/null 2>&1; then
-      git -C "$ROOT" reset --hard FETCH_HEAD >/dev/null 2>&1
-      new="$(git -C "$ROOT" rev-parse --short HEAD 2>/dev/null)"
-      if [ "$old" != "$new" ]; then _ok "repo $old → $new"; else _ok "repo already current ($new)"; fi
+      if git -C "$ROOT" reset --hard FETCH_HEAD >/dev/null 2>&1; then
+        new="$(git -C "$ROOT" rev-parse --short HEAD 2>/dev/null)"
+        if [ "$old" != "$new" ]; then _ok "repo $old → $new"; else _ok "repo already current ($new)"; fi
+      else _note "git reset --hard failed — converging the on-disk repo ($old) as-is"; fi
     else _note "git fetch failed — converging the on-disk repo ($old)"; fi
   fi
   run_migrations || { _note "migrations failed — aborting before the converge"; return 1; }
