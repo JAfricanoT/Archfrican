@@ -3,8 +3,8 @@ niri
 ghostty                # terminal (Mod+Return). Official 'extra' repo — confirm: pacman -Si ghostty
 xwayland-satellite     # X11 app support inside niri
 keyd                   # ⌘-style shortcut remaps for ex-mac users
-greetd
-greetd-tuigreet        # minimal Wayland-native login
+sddm                   # graphical login (Qt6); themed by assets/sddm/archfrican
+weston                 # tiny reference Wayland compositor that hosts the SDDM greeter (no xorg)
 waybar                 # status bar
 fuzzel                 # launcher (styled as Spotlight)
 mako                   # notifications

@@ -72,6 +72,22 @@ write_system_file() {             # write_system_file <path> [mode]   (content o
   sudo install -D -m "$mode" "$tmp" "$path"; rm -f "$tmp"; ok "wrote $path"
 }
 
+# Paint the SDDM login theme from a palette: token-substitute templates/sddm.theme.conf with the
+# colors in themes/<theme>/colors.sh and write it to the system theme path (idempotent, via
+# write_system_file). The greeter runs pre-login (no ~/.config), so this MUST live under /usr/share.
+# Used authoritatively by modules/20-niri-desktop.sh; bin/theme-switch updates it live (best-effort).
+render_sddm_theme() {             # render_sddm_theme <theme-name>
+  local theme="$1"
+  local pal="$REPO_ROOT/themes/$theme/colors.sh" tmpl="$REPO_ROOT/templates/sddm.theme.conf"
+  [ -r "$pal" ] && [ -r "$tmpl" ] || { warn "render_sddm_theme: missing $pal or $tmpl — skipping"; return 0; }
+  ( # shellcheck disable=SC1090
+    . "$pal"
+    # shellcheck disable=SC2154
+    sed -e "s|\${BG}|$BG|g" -e "s|\${BG_ALT}|$BG_ALT|g" -e "s|\${BG_DIM}|$BG_DIM|g" \
+        -e "s|\${FG}|$FG|g" -e "s|\${FG_DIM}|$FG_DIM|g" -e "s|\${ACCENT}|$ACCENT|g" "$tmpl"
+  ) | write_system_file /usr/share/sddm/themes/archfrican/theme.conf 0644
+}
+
 # ---- idempotent package install ------------------------------------------
 # Installs only what's missing so the script is safe to re-run.
 pac_install() {            # pac_install pkg1 pkg2 ...

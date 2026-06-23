@@ -6,15 +6,36 @@ source "$(dirname "$0")/../lib/common.sh"
 substep "installing the niri desktop + Wayland utilities"
 pac_install_file "$REPO_ROOT/packages/niri-desktop.txt"
 
-substep "configuring greetd (login manager) to launch niri"
-write_system_file /etc/greetd/config.toml <<'TOML'
-[terminal]
-vt = 1
-[default_session]
-command = "tuigreet --remember --asterisks --time --cmd niri-session"
-user = "greeter"
-TOML
-enable_service greetd.service
+# --- graphical login: SDDM + the Archfrican theme (macOS, themed from the active palette) ----
+# SDDM lists Wayland sessions from /usr/share/wayland-sessions/*.desktop (niri ships niri.desktop),
+# so the session command (niri-session) is NOT hardcoded. The greeter renders on Wayland via weston
+# (no xorg). Fallback: set DisplayServer=x11 here (needs xorg-server) if a GPU dislikes the Wayland
+# greeter — see docs/CONTEXT.md.
+substep "installing the SDDM theme (archfrican)"
+sudo install -d -m 0755 /usr/share/sddm/themes/archfrican
+sudo cp -a "$REPO_ROOT/assets/sddm/archfrican/." /usr/share/sddm/themes/archfrican/
+# Paint the theme from the user's current palette (themes/<name>/colors.sh via the token template).
+substep "theming the login from the active palette"
+THEME_NOW="$(cat "$HOME/.config/.archfrican-theme" 2>/dev/null || echo macos-dark)"
+render_sddm_theme "$THEME_NOW"     # lib/common.sh helper: token-render -> /usr/share/sddm/themes/archfrican/theme.conf
+
+substep "configuring SDDM (Wayland greeter, remember last user/session)"
+# Minimal on purpose: DisplayServer=wayland makes SDDM host the greeter under its OWN packaged,
+# version-matched weston compositor command (overriding it with a specific weston shell is fragile —
+# the shell name changed across weston releases). If the Wayland greeter ever misbehaves on a GPU,
+# the documented fallback is one line: DisplayServer=x11 (and add xorg-server) — see docs/CONTEXT.md.
+write_system_file /etc/sddm.conf.d/10-archfrican.conf <<'SDDM'
+[Theme]
+Current=archfrican
+
+[General]
+DisplayServer=wayland
+
+[Users]
+RememberLastUser=true
+RememberLastSession=true
+SDDM
+enable_service sddm.service
 
 # Network: enable the NetworkManager DAEMON (the applet in packages/ is inert without it).
 # resilient_enable (not --now) so we never drop the install's own connection mid-run.

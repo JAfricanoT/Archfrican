@@ -21,7 +21,9 @@ module_inputs() {                 # module_inputs <name>
   case "$1" in
     00-base)         printf ' packages/base.txt' ;;
     10-gpu)          printf ' lib/detect-gpu.sh lib/grub.sh' ;;
-    20-niri-desktop) printf ' packages/niri-desktop.txt' ;;
+    20-niri-desktop) printf ' packages/niri-desktop.txt templates/sddm.theme.conf'
+                     printf ' assets/sddm/archfrican/Main.qml assets/sddm/archfrican/theme.conf'
+                     printf ' assets/sddm/archfrican/metadata.desktop' ;;
     30-dev)          printf ' packages/dev.txt' ;;
     40-theming)      printf ' packages/theming.txt packages/aur.txt' ;;
     55-multiboot)    printf ' packages/multiboot.txt lib/grub.sh' ;;

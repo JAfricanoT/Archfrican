@@ -1,0 +1,14 @@
+[SddmGreeterTheme]
+Name=Archfrican
+Description=Minimal macOS-style login for Archfrican
+Author=Archfrican
+License=MIT
+Type=sddm-theme
+Version=1.0
+Website=https://github.com/JAfricanoT/Archfrican
+Screenshot=
+MainScript=Main.qml
+ConfigFile=theme.conf
+TranslationsDirectory=
+Email=
+QtVersion=6
