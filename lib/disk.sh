@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Disk selection for the ISO full install (Stage 2). READ-ONLY by construction:
 # nothing here writes to a disk. pick_disk only *lists* devices (lsblk) and
-# confirm_wipe only *gates* on typed confirmation. The actual format happens
-# later, inside archinstall, and only when lib/phase1.sh is armed. Sourced after
-# lib/common.sh + lib/ui.sh.
+# confirm_wipe only *gates* on typed confirmation. The actual format happens later in
+# lib/base-install.sh (the bedrock installer that replaced archinstall), and only when
+# lib/phase1.sh is armed. Sourced after lib/common.sh + lib/ui.sh.
 
 # Human-readable size from bytes — no external `numfmt` (not on the Arch ISO).
 _hsize() {                          # _hsize <bytes>

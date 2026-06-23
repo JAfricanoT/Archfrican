@@ -25,19 +25,19 @@ You need a UEFI VM (QEMU/virt-manager, GNOME Boxes, or VirtualBox) with:
 ### Phase 0 — static checks (run anywhere, before touching a VM)
 ```bash
 # in a clone of the repo
-for f in install.sh bootstrap.sh lib/*.sh modules/*.sh bin/theme-switch themes/*/colors.sh; do bash -n "$f"; done
+for f in install.sh lib/*.sh modules/*.sh bin/* themes/*/colors.sh; do bash -n "$f"; done
 # if you have shellcheck (the CI runs it for you on push):
-shellcheck -x -e SC1091 install.sh bootstrap.sh lib/*.sh modules/*.sh bin/theme-switch
+shellcheck -x -e SC1091 install.sh lib/*.sh modules/*.sh bin/*
 ```
 Expect: no output (all pass). The GitHub Actions CI also runs shellcheck + a theme-switch idempotency
 smoke test + a package-resolution check on every push — green CI is your first gate.
 
 ---
 
-## 1. Phase 1 — base install (archinstall)
+## 1. Phase 1 — base install (minimal Arch base)
 
 ```bash
-archinstall --config archinstall/user_config.json
+archinstall          # interactive — pick the Btrfs layout / Snapper / GRUB / linux-lts options below
 ```
 - Review the TUI: confirm **Btrfs**, the subvolumes **`@ @home @log @pkg @.snapshots`**, **Snapper**
   snapshot type, **GRUB** bootloader, **linux-lts** kernel, and **select the correct disk** (the config
@@ -69,7 +69,7 @@ targets. Validate the install gets **past the first package module** with no `ta
 #   ✓ preflight: all pacman lists resolve
 # and 00-base / 20-niri-desktop installing packages cleanly.
 ```
-Pass criteria: no `error: target not found: <pkg>  # <comment>` and the install proceeds through all six
+Pass criteria: no `error: target not found: <pkg>  # <comment>` and the install proceeds through all the
 modules. To exercise the preflight explicitly:
 ```bash
 ARCHFRICAN_STRICT_PREFLIGHT=1 ./install.sh 20-niri-desktop   # should still pass; fails loudly if a list has a bad/AUR entry

@@ -42,7 +42,7 @@ best_effort() { "$@" || { warn "skipped (non-fatal): $*"; return 0; }; }
 attempt()     { local _l="$1"; shift; "$@" || { warn "FAILED (continuing): ${_l} [$*]"; return 0; }; }
 
 # Enable a unit only if it exists; never abort the caller (built on best_effort).
-# Use plain `enable_service` for units that MUST succeed (greetd, docker).
+# Use plain `enable_service` for units that MUST succeed (sddm, docker).
 resilient_enable() {
   local u="$1"
   sudo systemctl list-unit-files --no-legend -- "$u" 2>/dev/null | grep -q . \

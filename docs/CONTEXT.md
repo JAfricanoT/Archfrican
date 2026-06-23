@@ -40,7 +40,7 @@ es **programación de alto rendimiento** (polyglot). Nombre del proyecto: **Arch
 | Prompt | **Starship** (sobre p10k) | Cross-shell: sobrevive a un cambio de shell, encaja con el principio de no-lock-in. p10k es solo-zsh. |
 | Editor | **Code-OSS** (`code`, Wayland nativo), desacoplado vía LSP | Build open-source (Open VSX, sin Marketplace de MS). Los language servers se instalan a nivel de sistema (`rust-analyzer`, `gopls`, `pyright`+`ruff`, `typescript-language-server`, `clangd`); Code-OSS es solo un frontend, intercambiable por Neovim/Helix/Zed sin reconfigurar. |
 | Lenguajes | Rust/C/C++, Go, Python/datos-ML, JS/TS | Toolchains vía version managers (rustup, go, uv, fnm) en vez de versiones del sistema. |
-| Periféricos | waybar, **fuzzel** (estilo Spotlight), mako, swaylock+swayidle, swww, grim+slurp, cliphist, **paru**, nwg-dock | Todos Wayland-native, niri-friendly, en módulos independientes (vetar cualquiera). |
+| Periféricos | waybar, **fuzzel** (estilo Spotlight), mako, swaylock+swayidle, awww-daemon, grim+slurp, cliphist, **paru**, nwg-dock | Todos Wayland-native, niri-friendly, en módulos independientes (vetar cualquiera). |
 | Estética | **macOS-like**, tema default `macos-dark` | Migración desde macOS con mínima fricción. Tahoe grafito + azul de sistema, fuentes **SF Pro + SF Mono**, GTK **WhiteSur** + iconos, cursores McMojave, **blur de niri 26.04** (efecto vidrio, opt-in — ver `config.kdl`). |
 | Theming | **Switcher multi-tema en caliente** (estilo Omarchy) | `theme-switch <name>`. Temas: macos-dark, macos-light, catppuccin-mocha, tokyo-night. |
 | Fricción macOS | **keyd**: ⌘+letra → Ctrl | Mantiene muscle-memory de copy/paste/save/quit. ⌘ sigue siendo el modificador de niri para combos **sin-letra y con Shift** → sin colisiones. + scroll natural, tap-to-click, gestos 3 dedos, ⌘+Space=launcher, ⌘+Tab=overview. |
@@ -60,7 +60,7 @@ base booteada), hace preflight, corre un wizard (gum) y monta la capa desktop/de
 ```
 archfrican/
 ├── install.sh            # entrada única (curl|sh): self-clone + detect + preflight + wizard + dispatch
-├── archinstall/          # user_config.json (Btrfs+subvols+snapper, kernel lts, GRUB) — base fase 1
+├── lib/base-install.sh   # bedrock base installer (Btrfs+subvols+snapper, dual kernel, GRUB) — fase 1
 ├── lib/                  # common, detect-gpu, env, ui (gum), preflight, host-config, phase2
 ├── modules/              # 00-base 10-gpu 20-niri-desktop 30-dev 40-theming 50-snapshots
 ├── packages/             # listas por capa: base / niri-desktop / dev / theming / aur

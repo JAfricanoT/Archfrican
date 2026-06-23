@@ -14,12 +14,12 @@ have_root_config() {
 
 if ! have_root_config; then
   if mountpoint -q /.snapshots; then
-    # archinstall (snapshot_config: Snapper) already created @.snapshots mounted
-    # at /.snapshots (in fstab). `snapper create-config` would try to create its
-    # OWN /.snapshots subvolume and fail "already exists". ArchWiki procedure:
-    # free the mount, let snapper write the config, drop its throwaway subvol,
-    # then mount -a restores archinstall's @.snapshots from fstab.
-    log "/.snapshots is a pre-existing mount (archinstall) — using ArchWiki procedure"
+    # The base install (lib/base-install.sh) already created @.snapshots mounted at
+    # /.snapshots (in fstab). `snapper create-config` would try to create its OWN
+    # /.snapshots subvolume and fail "already exists". ArchWiki procedure: free the
+    # mount, let snapper write the config, drop its throwaway subvol, then mount -a
+    # restores the pre-existing @.snapshots from fstab.
+    log "/.snapshots is a pre-existing mount (from the base install) — using ArchWiki procedure"
     if sudo umount /.snapshots \
        && sudo rm -rf /.snapshots \
        && sudo snapper -c root create-config / \

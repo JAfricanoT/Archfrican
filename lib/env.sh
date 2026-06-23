@@ -2,8 +2,8 @@
 # Environment detection — the ONE canonical place that decides ISO-live vs
 # booted-base and where to clone. Sourced after lib/common.sh.
 
-# Arch live ISO marker. (a confirmar on the exact ISO build: /run/archiso is the
-# archiso airootfs run dir; cross-checked by running as root.)
+# Arch live ISO marker: /run/archiso is the archiso airootfs run dir, present only on the
+# live medium (confirmed on the current Arch ISO).
 is_iso() { [ -d /run/archiso ]; }
 
 # Where the self-clone lands. ISO -> /root (you are root); booted -> $HOME.
