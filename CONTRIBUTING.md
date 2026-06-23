@@ -54,10 +54,12 @@ separate. A component = one module + one package list + one dotfiles subtree, so
 
 ### Before you open a PR
 - Run locally: `bash -n <files>` and `shellcheck -x -e SC1091 <files>`.
-- CI gates (all must be green): **`shellcheck`**, **`bashn`**, **`firewall-ruleset`** (no `flush ruleset`),
-  **`grub-helper`** (idempotent + verify-or-die), **`iso-safety-gate`** (`ARCHFRICAN_ISO_ARMED` defaults to `0`),
-  **`theme-switch-smoke`** (themes idempotent + fully rendered), **`pkg-resolution`** (every pacman list
-  resolves).
+- CI gates (all must be green; see [.github/workflows/ci.yml](.github/workflows/ci.yml) for the authoritative
+  set): **`shellcheck`**, **`bashn`**, **`firewall-ruleset`** (no `flush ruleset`), **`grub-helper`**
+  (idempotent + verify-or-die), **`iso-safety-gate`** (`ARCHFRICAN_ISO_ARMED` defaults to `0`),
+  **`migrations-idempotent`**, **`prune-safety`**, **`cachyos-trust`** (signing-key pinned + lsigned),
+  **`theme-switch-smoke`** (themes idempotent + fully rendered), **`sddm-theme`**, **`pkg-resolution`**
+  (every pacman list resolves), **`fido2-selfcheck`** (no-lockout PAM + CVE-2025-23013 guard).
 - **Disk/boot/auth changes** are special — see [GOVERNANCE.md](GOVERNANCE.md): they need adversarial review
   + VM validation ([docs/STAGE2-VALIDATION.md](docs/STAGE2-VALIDATION.md)), and may not weaken any safety
   gate (the ISO installer always defaults `ARCHFRICAN_ISO_ARMED` to `0`; a real install is a runtime opt-in).
@@ -95,8 +97,10 @@ sed), `docs/`. **Dos capas, nunca mezcladas:** sistema (módulos + listas) vs co
 
 ### Antes de abrir un PR
 - Local: `bash -n` y `shellcheck -x -e SC1091`.
-- Gates de CI (todos en verde): **`shellcheck`**, **`bashn`**, **`firewall-ruleset`**, **`grub-helper`**,
-  **`iso-safety-gate`**, **`theme-switch-smoke`**, **`pkg-resolution`**.
+- Gates de CI (todos en verde; ver [.github/workflows/ci.yml](.github/workflows/ci.yml)): **`shellcheck`**,
+  **`bashn`**, **`firewall-ruleset`**, **`grub-helper`**, **`iso-safety-gate`**, **`migrations-idempotent`**,
+  **`prune-safety`**, **`cachyos-trust`**, **`theme-switch-smoke`**, **`sddm-theme`**, **`pkg-resolution`**,
+  **`fido2-selfcheck`**.
 - **Cambios de disco/arranque/auth** son especiales — ver [GOVERNANCE.md](GOVERNANCE.md): requieren revisión
   adversarial + validación en VM y no pueden debilitar ningún gate de seguridad.
 - El historial de commits es el changelog hasta el primer release etiquetado.
