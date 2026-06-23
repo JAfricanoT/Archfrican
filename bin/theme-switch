@@ -49,6 +49,17 @@ if [ -f "$CFG/niri/config.kdl" ]; then
   mv "$CFG/niri/config.kdl.new" "$CFG/niri/config.kdl"; rm -f "$tmpblk"
 fi
 
+# SDDM login screen lives under /usr/share (the greeter runs pre-login, with no ~/.config). Update it
+# best-effort: only if sudo is already cached (sudo -n never prompts), so switching themes in a session
+# never blocks on a password. The authoritative render happens at install/converge (40-theming).
+if [ -f "$ROOT/templates/sddm.theme.conf" ]; then
+  tmp_sddm="$(mktemp)"; render sddm.theme.conf "$tmp_sddm"
+  if sudo -n install -m 0644 "$tmp_sddm" /usr/share/sddm/themes/archfrican/theme.conf 2>/dev/null; then
+    echo "updated the SDDM login theme"
+  fi
+  rm -f "$tmp_sddm"
+fi
+
 # GTK / cursors / dark-light
 gsettings set org.gnome.desktop.interface color-scheme "$GTK_SCHEME" 2>/dev/null || true
 gsettings set org.gnome.desktop.interface gtk-theme    "$GTK_THEME"  2>/dev/null || true
