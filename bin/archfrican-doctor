@@ -7,6 +7,11 @@
 set -uo pipefail
 self="$(readlink -f "$0" 2>/dev/null || echo "$0")"
 ROOT="${ARCHFRICAN_ROOT:-$(cd "$(dirname "$self")/.." && pwd)}"
+export REPO_ROOT="$ROOT"
+# shellcheck source=/dev/null
+source "$ROOT/lib/converge.sh"   # drift_modules — for the config-drift check
+# shellcheck source=/dev/null
+source "$ROOT/lib/migrate.sh"    # pending_migrations — for the config-drift check
 # shellcheck source=/dev/null
 source "$ROOT/lib/health.sh"
 set +e +u +o pipefail
@@ -31,7 +36,7 @@ fi
 run_all_checks() {
   check_failed_units; check_journal; check_disk; check_snapshots; check_scrub; check_smart
   check_orphans; check_pacnew; check_updates; check_cve; check_firmware; check_reboot
-  check_foreign; check_timers
+  check_foreign; check_timers; check_drift
 }
 REPORT="$(mktemp)"
 run_all_checks > "$REPORT"        # NOT a subshell -> H_RED/H_AMBER update here

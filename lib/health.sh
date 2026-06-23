@@ -128,3 +128,17 @@ check_timers() {
   if [ -z "$off" ]; then _h_ok "maintenance timers" "enabled (or n/a)"
   else _h_amber "maintenance timers" "present but disabled:$off"; fi
 }
+
+# Applied state vs the on-disk repo: which modules changed (content-hash, lib/converge.sh) + any
+# pending migrations. Purely local + no sudo, so the weekly notify can flag "you're behind the repo
+# — run archfrican-update" without touching the network or auto-applying anything. Skips cleanly if
+# converge.sh/the repo aren't reachable (so health.sh stays usable on its own).
+check_drift() {
+  command -v drift_modules >/dev/null 2>&1 || { _h_skip "config drift" "converge.sh not loaded"; return; }
+  [ -n "${REPO_ROOT:-}" ] && [ -d "$REPO_ROOT/modules" ] || { _h_skip "config drift" "repo not found"; return; }
+  local d pm
+  d="$(drift_modules 2>/dev/null | grep -c . || true)"
+  pm="$(pending_migrations 2>/dev/null || echo 0)"
+  if [ "${d:-0}" -eq 0 ] && [ "${pm:-0}" -eq 0 ]; then _h_ok "config drift" "matches the repo"
+  else _h_amber "config drift" "${d} module(s) + ${pm} migration(s) behind — run: archfrican-update"; fi
+}
