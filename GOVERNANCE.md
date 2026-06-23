@@ -10,8 +10,9 @@ Decisions are made by **lazy consensus** on issues/PRs; if there's no objection,
 disagreement, the maintainer arbitrates. Only the maintainer merges to `main`.
 
 ### Merge requirements (every PR)
-- **CI is green** — all gates pass (see [CONTRIBUTING.md](CONTRIBUTING.md): `shellcheck`, `bashn`,
-  `firewall-ruleset`, `grub-helper`, `iso-safety-gate`, `theme-switch-smoke`, `pkg-resolution`).
+- **CI is green** — all gates pass (see [CONTRIBUTING.md](CONTRIBUTING.md) / `.github/workflows/ci.yml`:
+  `shellcheck`, `bashn`, `firewall-ruleset`, `grub-helper`, `iso-safety-gate`, `migrations-idempotent`,
+  `prune-safety`, `cachyos-trust`, `theme-switch-smoke`, `sddm-theme`, `pkg-resolution`, `fido2-selfcheck`).
 - **Conventional Commit** title; **no AI attribution** anywhere git-visible.
 - Stays within scope — see the [VISION.md](VISION.md) non-goals. Out-of-scope PRs are closed with a pointer.
 
@@ -29,7 +30,7 @@ supply chain** carry the highest blast radius and get extra scrutiny before merg
    (the ISO installer defaults to a dry-run preview), both disk gates (`confirm_wipe` retype + the arming
    opt-in), the FIDO2
    non-exclusive/no-lockout invariant (pam-u2f ≥ 1.3.1), the named-table-never-`flush ruleset` firewall,
-   and the fail-closed CachyOS sha256 pin. The CI `iso-safety-gate` + `firewall-ruleset` jobs enforce two
+   and the fail-closed CachyOS signing-key fingerprint pin. The CI `iso-safety-gate` + `firewall-ruleset` jobs enforce two
    of these mechanically.
 
 ### Releases & versioning
@@ -67,7 +68,7 @@ cadena de suministro** tienen el mayor radio de impacto y reciben escrutinio ext
    instalador ISO sale en preview por defecto), los dos gates de disco (`confirm_wipe` + el opt-in de
    armado), el invariante FIDO2
    no-excluyente/sin-lockout (pam-u2f ≥ 1.3.1), el firewall de tabla-nombrada-nunca-`flush ruleset`, y el
-   pin sha256 fail-closed de CachyOS. Los jobs de CI `iso-safety-gate` + `firewall-ruleset` hacen cumplir
+   pin de la huella de la clave de firma de CachyOS (fail-closed). Los jobs de CI `iso-safety-gate` + `firewall-ruleset` hacen cumplir
    dos de estos mecánicamente.
 
 ### Releases y versionado

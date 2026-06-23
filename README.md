@@ -145,9 +145,10 @@ whenever the mic or camera is in use.
 ```
 archfrican/
 ├── install.sh            # one entry (curl|sh): self-clone + detect + preflight + wizard + dispatch
-├── archinstall/          # phase-1 base config (ISO)
-├── lib/                  # common, ui, grub, detect-gpu, env, preflight, host-config, security, fido2, health, disk, phase1/2
-├── modules/              # 00-base 10-gpu 20-niri-desktop 30-dev 40-theming 50-snapshots 55-multiboot 60-security
+├── lib/                  # base-install (bedrock ISO installer — replaced archinstall), converge, manifest,
+│                         #   migrate, common, ui, grub, detect-gpu, env, preflight, host-config, security,
+│                         #   fido2, health, disk, phase1/2
+├── modules/              # numbered, run in order: 00-base, 10-gpu, 20-niri-desktop … 70-hygiene
 ├── packages/             # per-layer package lists (swap a list, not the script)
 ├── themes/               # palettes (one schema, many themes)
 ├── templates/            # per-app theme templates (pure-sed ${VAR})
