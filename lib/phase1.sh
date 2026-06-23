@@ -43,17 +43,29 @@ inject_resume() {                   # inject_resume <user> <host> <tz> <locale> 
     || die "resume sudoers drop-in invalid — refusing to leave a broken sudo"
 
   substep "carrying the live medium's network profiles into the target (resume connectivity)"
-  # The headless resume runs `preflight base` (a fatal net check) and needs the network. A wired
-  # box auto-gets DHCP, but a WiFi-only laptop has no profile unless we copy what the operator
-  # connected with on the ISO (iwctl/nmtui write to /etc/NetworkManager/system-connections).
+  # The headless resume runs `preflight base` (a fatal net check) and needs the network. A wired box
+  # auto-gets DHCP, but a WiFi-only laptop has no profile unless we copy what the operator connected
+  # with on the ISO. Two stores, depending on the tool used: `nmtui` writes NetworkManager keyfiles to
+  # /etc/NetworkManager/system-connections; the Arch ISO's standard `iwctl` is iwd and stores PSKs in
+  # /var/lib/iwd. Carry BOTH so a WiFi-only install doesn't boot-loop on the fatal net check (audit H2).
+  local carried=0
   if compgen -G '/etc/NetworkManager/system-connections/*' >/dev/null 2>&1; then
     install -d -m 0755 /mnt/etc/NetworkManager/system-connections
     cp -a /etc/NetworkManager/system-connections/. /mnt/etc/NetworkManager/system-connections/
     chmod 600 /mnt/etc/NetworkManager/system-connections/* 2>/dev/null || true
-    ok "copied live network profiles → target"
-  else
-    warn "no live NetworkManager profiles to copy — the resume relies on auto wired DHCP (fine for a wired/VM target)"
+    ok "copied live NetworkManager profiles → target"; carried=1
   fi
+  if compgen -G '/var/lib/iwd/*' >/dev/null 2>&1; then
+    install -d -m 0700 /mnt/var/lib/iwd
+    cp -a /var/lib/iwd/. /mnt/var/lib/iwd/
+    chmod 600 /mnt/var/lib/iwd/* 2>/dev/null || true
+    # point the target's NetworkManager at the iwd backend so the carried PSKs provide connectivity
+    install -d -m 0755 /mnt/etc/NetworkManager/conf.d
+    printf '[device]\nwifi.backend=iwd\n' > /mnt/etc/NetworkManager/conf.d/wifi-backend.conf
+    arch-chroot /mnt systemctl enable iwd.service >/dev/null 2>&1 || true
+    ok "copied live iwd (iwctl) WiFi credentials → target + set NetworkManager wifi.backend=iwd"; carried=1
+  fi
+  [ "$carried" = 1 ] || warn "no live WiFi/NetworkManager profiles to copy — the resume relies on auto wired DHCP (fine for a wired/VM target)"
 
   substep "installing + enabling archfrican-resume.service (runs once on first boot)"
   sed "s/@USER@/$user/g" "$REPO_ROOT/templates/archfrican-resume.service" \

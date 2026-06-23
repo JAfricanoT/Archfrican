@@ -7,8 +7,12 @@
 # (ARCHFRICAN_NONINTERACTIVE=1, no TTY) so it reads ~/.archfrican-answers instead
 # of prompting. On SUCCESS the ExecStartPost lines disable this unit and remove the
 # temporary NOPASSWD sudoers drop-in — so the elevated window is exactly one boot.
-# On failure it stays enabled and retries next boot (phase-2 .done checkpoints make
-# that safe), keeping the drop-in until it finally succeeds.
+# On failure it retries next boot (phase-2 .done checkpoints make that safe). The
+# elevated window is BOUNDED: ExecStartPre (lib/resume-guard.sh) counts boots and,
+# after ARCHFRICAN_RESUME_MAX_BOOTS (default 5), drops the NOPASSWD drop-in and
+# disables the unit — so passwordless root can never linger on a permanently-failing
+# install (fail-closed). ARCHFRICAN_STRICT_PREFLIGHT=1 makes an unresolvable package
+# fail loudly at preflight BEFORE any state change, instead of mid-module.
 [Unit]
 Description=Archfrican first-boot install (niri desktop + dev layer)
 After=network-online.target systemd-user-sessions.service
@@ -22,7 +26,11 @@ User=@USER@
 WorkingDirectory=/home/@USER@/.archfrican
 Environment=HOME=/home/@USER@
 Environment=ARCHFRICAN_NONINTERACTIVE=1
+# Make a dropped/renamed package fail loudly at preflight (before any module mutates state).
+Environment=ARCHFRICAN_STRICT_PREFLIGHT=1
 TimeoutStartSec=infinity
+# Fail-safe: bound the elevated retry window — gives up + drops the NOPASSWD grant after N boots.
+ExecStartPre=/usr/bin/bash /home/@USER@/.archfrican/lib/resume-guard.sh
 ExecStart=/usr/bin/bash /home/@USER@/.archfrican/install.sh
 # Order matters: disable while we still have NOPASSWD, then drop NOPASSWD last.
 ExecStartPost=/usr/bin/sudo /usr/bin/systemctl disable archfrican-resume.service
