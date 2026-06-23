@@ -50,6 +50,9 @@ sel="$(printf '%s\n' \
   "Huella digital para sudo…" \
   "Splash de arranque (Plymouth)…" \
   "Cámara (ajustes)" \
+  "Auto-unlock por TPM (disco cifrado)…" \
+  "Secure Boot (sbctl)…" \
+  "Privacidad…" \
   "Bluetooth" \
   "Audio (mezclador)" \
   "Red / VPN" \
@@ -99,6 +102,9 @@ case "$sel" in
   "Huella"*)             "$B/archfrican-fingerprint" ;;
   "Splash"*)             "$B/archfrican-plymouth" ;;
   "Cámara"*)             cameractrls ;;
+  "Auto-unlock por TPM"*) "$B/archfrican-tpm-unlock" ;;
+  "Secure Boot"*)        "$B/archfrican-secureboot" ;;
+  "Privacidad"*)         "$B/archfrican-privacy" ;;
   "Bluetooth"*)          blueman-manager ;;
   "Audio"*)              pavucontrol ;;
   "Red"*)                nm-connection-editor ;;

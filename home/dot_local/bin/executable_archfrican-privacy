@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# Privacy posture — Archfrican ships no telemetry of its own. This surfaces the stance and flips the
+# few app-level opt-outs worth having. (DO_NOT_TRACK=1 is already set in the session; it's honored by a
+# growing set of modern tools, not all of them.)
+set -euo pipefail
+have() { command -v "$1" >/dev/null 2>&1; }
+note() { have notify-send && notify-send "Archfrican" "$1" || echo "$1"; }
+sel="$(printf '%s\n' \
+  "Ver la postura de privacidad (docs/PRIVACY.md)" \
+  "Desactivar telemetría de VS Code (Code-OSS)" \
+  "¿Qué puede 'phone home'? (resumen)" \
+  | fuzzel --dmenu --prompt '  privacidad  ')" || exit 0
+case "$sel" in
+  "Ver la postura"*)
+    f="$HOME/.archfrican/docs/PRIVACY.md"
+    if [ -r "$f" ]; then ghostty -e sh -c "less '$f'"; else note "ver docs/PRIVACY.md en el repo"; fi ;;
+  "Desactivar telemetría de VS Code"*)
+    d="$HOME/.config/Code - OSS/User"; s="$d/settings.json"; mkdir -p "$d"
+    if [ ! -s "$s" ]; then
+      printf '{\n  "telemetry.telemetryLevel": "off"\n}\n' > "$s"; note "telemetría Code-OSS: off (reinicia el editor)"
+    else
+      note "añade a $s:  \"telemetry.telemetryLevel\": \"off\""
+    fi ;;
+  *)
+    note "Archfrican no tiene telemetría propia. fwupd solo SUBE historial si lo pides; navegador/Steam/Flatpak/extensiones tienen sus propios ajustes. Detalles: docs/PRIVACY.md" ;;
+esac

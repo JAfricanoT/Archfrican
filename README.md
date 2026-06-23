@@ -154,6 +154,13 @@ theme kept in user state, so it never causes drift). Opt-in **fingerprint** for 
 **Plymouth** boot splash (`archfrican-plymouth`, initramfs-gated with backup/restore — VM-validate
 first). Plus color management (colord) and webcam controls (cameractrls).
 
+**Hardware-rooted trust & privacy (opt-in):** `archfrican-tpm-unlock` enrolls a TPM2 so the encrypted
+disk unlocks without a passphrase (FileVault-style) — *safe by design*: it only adds a keyslot, so your
+passphrase always still works. `archfrican-secureboot` sets up Secure Boot with **sbctl** while keeping
+GRUB (signs the bootloader + kernels, verifies, and leaves *enabling* it to you in firmware). Both are
+boot-critical and meant to be VM-validated first. Archfrican collects **no telemetry of its own** — see
+[docs/PRIVACY.md](docs/PRIVACY.md) (and why it stays snapshot-recoverable rather than image-immutable).
+
 Desktop niceties: **Quick Look** — select a file in Files and press <kbd>Space</kbd> for a preview.
 Handy commands: `archfrican-auto-appearance on` (auto light/dark by sun position) ·
 `archfrican-blur on` (frosted-glass blur, `niri validate`-guarded so it can't break your config) ·

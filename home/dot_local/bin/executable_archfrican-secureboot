@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+# Secure Boot with sbctl — OPT-IN, and it KEEPS GRUB (no bootloader change, respecting GRUB-only).
+# Creates + enrolls keys (firmware MUST be in Setup Mode) and SIGNS GRUB + the kernels, then VERIFIES.
+# It does NOT flip Secure Boot on — you do that in firmware AFTER `sbctl verify` is clean. If a boot
+# ever fails: disable Secure Boot in firmware (not a brick). ⚠️ Validate in a VM first.
+set -euo pipefail
+have() { command -v "$1" >/dev/null 2>&1; }
+note() { have notify-send && notify-send "Archfrican" "$1" || echo "$1"; }
+have sbctl || sudo pacman -S --needed --noconfirm sbctl || { note "instala sbctl"; exit 1; }
+
+if ! sbctl status 2>/dev/null | grep -qiE 'setup mode:.*(enabled|✓|true)'; then
+  note "Secure Boot NO está en Setup Mode. Entra al firmware (systemctl reboot --firmware-setup), borra las claves (Clear Secure Boot keys / Setup Mode), reinicia y reejecuta."
+  exit 1
+fi
+if [ -d /var/lib/sbctl/keys ] || [ -d /usr/share/secureboot/keys ]; then
+  c="$(printf 'Sí, sobrescribir las claves sbctl existentes\nCancelar\n' | fuzzel --dmenu --prompt '  ya hay claves sbctl  ')" || exit 0
+  case "$c" in "Sí,"*) ;; *) exit 0 ;; esac
+fi
+
+ghostty -e sh -c "set -e
+echo '== Respaldo de claves sbctl previas (si las hay) =='; sudo cp -a /var/lib/sbctl /var/lib/sbctl.archfrican.bak 2>/dev/null || true
+echo '== Creando claves (PK/KEK/db) =='; sudo sbctl create-keys
+echo '== Enrolando claves + Microsoft CA (-m: evita brick por Option ROM de GPU/NIC) =='; sudo sbctl enroll-keys -m
+echo '== Firmando GRUB + kernels + fallback (los que existan) =='
+for f in /efi/EFI/GRUB/grubx64.efi /boot/EFI/GRUB/grubx64.efi /efi/EFI/BOOT/BOOTX64.EFI /boot/EFI/BOOT/BOOTX64.EFI /boot/vmlinuz-linux-cachyos /boot/vmlinuz-linux-lts /boot/vmlinuz-linux; do
+  [ -f \"\$f\" ] && sudo sbctl sign -s \"\$f\" || true
+done
+echo; echo '== Verificación — TODO lo que arranca debe quedar firmado ANTES de activar Secure Boot =='; sudo sbctl verify
+echo; echo 'Si sbctl verify está LIMPIO: reinicia, entra al firmware y ACTIVA Secure Boot.'
+echo 'Si aparece algo unsigned: fírmalo con  sudo sbctl sign -s <ruta>  (sobre todo el grubx64.efi real).'
+echo 'Recovery si no arranca: desactiva Secure Boot en el firmware (no es un brick).'
+printf '(enter para cerrar) '; read -r _"
+note "Secure Boot preparado. Confirma 'sbctl verify' LIMPIO antes de activarlo en el firmware."

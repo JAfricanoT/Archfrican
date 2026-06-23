@@ -46,6 +46,7 @@ while :; do
     "Migrar desde otra máquina (Mac/Linux)" \
     "Continuidad con tu móvil (KDE Connect)" \
     "Respaldar tus archivos (~)" \
+    "Privacidad y telemetría" \
     "Terminar" \
     | fuzzel --dmenu --prompt '  bienvenido a Archfrican  ')" || break
   case "$sel" in
@@ -63,6 +64,7 @@ while :; do
     "Migrar"*)                "$B/archfrican-migrate" ;;
     "Continuidad"*)           "$B/archfrican-continuity" ;;
     "Respaldar"*)             "$B/archfrican-backup" ;;
+    "Privacidad"*)            "$B/archfrican-privacy" ;;
     "Terminar"*)              break ;;
   esac
 done
