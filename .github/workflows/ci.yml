@@ -157,7 +157,7 @@ jobs:
     runs-on: ubuntu-latest        # the graphical login theme: must render for every palette + be well-formed
     steps:
       - uses: actions/checkout@v4
-      - name: SDDM theme renders for every palette (no stray tokens) + asset structure is valid
+      - name: SDDM theme well-formed (components + QML brace/paren balance) + renders for every palette
         run: |
           set -euo pipefail
           a=assets/sddm/archfrican
@@ -166,17 +166,34 @@ jobs:
           done
           grep -q '^MainScript=Main.qml'  "$a/metadata.desktop" || { echo "::error::metadata.desktop: MainScript must be Main.qml"; exit 1; }
           grep -q '^ConfigFile=theme.conf' "$a/metadata.desktop" || { echo "::error::metadata.desktop: ConfigFile must be theme.conf"; exit 1; }
-          # the QML must read the config palette (so theme.conf actually drives the look)
-          grep -q 'config\.accentColor' "$a/Main.qml" || { echo "::error::Main.qml does not read config.accentColor"; exit 1; }
+          # every component the theme imports must exist
+          for c in Background AuroraBackground VideoBackground Clock LoginCard PowerMenu SessionPicker VirtualKeyboard; do
+            [ -r "$a/Components/$c.qml" ] || { echo "::error::missing component Components/$c.qml"; exit 1; }
+          done
+          # QML structural smoke: balanced braces + parens per file (line-comments stripped). Not a full
+          # parser (no Qt in CI) — it catches the truncations/typos that would crash the greeter at load.
+          for q in "$a"/Main.qml "$a"/Components/*.qml; do
+            code="$(sed 's#//.*##' "$q")"
+            ob=$(printf '%s' "$code" | tr -cd '{' | wc -c); cb=$(printf '%s' "$code" | tr -cd '}' | wc -c)
+            op=$(printf '%s' "$code" | tr -cd '(' | wc -c); cp=$(printf '%s' "$code" | tr -cd ')' | wc -c)
+            [ "$ob" -eq "$cb" ] || { echo "::error::$q unbalanced braces ($ob { vs $cb })"; exit 1; }
+            [ "$op" -eq "$cp" ] || { echo "::error::$q unbalanced parens ($op ( vs $cp ))"; exit 1; }
+          done
+          # the orchestrator must read the config palette + dispatch the background (so theme.conf drives it)
+          grep -q 'config\.accentColor' "$a/Main.qml"       || { echo "::error::Main.qml must read config.accentColor"; exit 1; }
+          grep -q 'config\.backgroundMode' "$a/Main.qml"    || { echo "::error::Main.qml must read config.backgroundMode"; exit 1; }
+          # render the palette for every theme; assert no stray tokens + valid hex colours
           tmpl=templates/sddm.theme.conf
           for t in macos-dark macos-light catppuccin-mocha tokyo-night; do
             out="$( ( . "themes/$t/colors.sh"
                       sed -e "s|\${BG}|$BG|g" -e "s|\${BG_ALT}|$BG_ALT|g" -e "s|\${BG_DIM}|$BG_DIM|g" \
-                          -e "s|\${FG}|$FG|g" -e "s|\${FG_DIM}|$FG_DIM|g" -e "s|\${ACCENT}|$ACCENT|g" "$tmpl" ) )"
+                          -e "s|\${FG}|$FG|g" -e "s|\${FG_DIM}|$FG_DIM|g" -e "s|\${ACCENT}|$ACCENT|g" \
+                          -e "s|\${MAGENTA}|$MAGENTA|g" -e "s|\${CYAN}|$CYAN|g" "$tmpl" ) )"
             echo "$out" | grep -qE '\$\{[A-Z_]+\}' && { echo "::error::unrendered token in $t"; exit 1; }
             echo "$out" | grep -qE '^accentColor=#[0-9a-fA-F]{6}$' || { echo "::error::accentColor not a hex color in $t"; exit 1; }
+            echo "$out" | grep -qE '^tint2=#[0-9a-fA-F]{6}$'       || { echo "::error::tint2 not a hex color in $t"; exit 1; }
           done
-          echo "sddm-theme: 4 palettes render clean + asset structure OK"
+          echo "sddm-theme: 8 components present + QML balanced + 4 palettes render clean"
 
   pkg-resolution:
     runs-on: ubuntu-latest
