@@ -27,7 +27,9 @@ Item {
 
     // ---- UX knobs (strings from theme.conf) ----
     readonly property string bgMode:  config.backgroundMode || "motion"     // motion | image | video
-    readonly property bool   vkOn:    (config.virtualKeyboardEnabled || "true") !== "false"
+    // default OFF (matches theme.conf + the module's InputMethod gate): a damaged/empty config must NOT
+    // silently turn the on-screen keyboard on (the input-method side would be unwired -> confusing UX).
+    readonly property bool   vkOn:    (config.virtualKeyboardEnabled || "false") === "true"
     readonly property bool   anims:   (config.animationsEnabled || "true") !== "false"
 
     property int sessionIndex: sessionPicker.sessionIndex

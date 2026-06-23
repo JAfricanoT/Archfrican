@@ -13,6 +13,9 @@ Item {
         id: player
         loops: MediaPlayer.Infinite
         videoOutput: vout
+        // Background.qml sets `source` in its Loader.onLoaded — AFTER this item's Component.onCompleted —
+        // so play() must follow the source, not construction, or video mode would load but never start.
+        onSourceChanged: if (source != "") play()
     }
     VideoOutput {
         id: vout

@@ -179,6 +179,13 @@ jobs:
             [ "$ob" -eq "$cb" ] || { echo "::error::$q unbalanced braces ($ob { vs $cb })"; exit 1; }
             [ "$op" -eq "$cp" ] || { echo "::error::$q unbalanced parens ($op ( vs $cp ))"; exit 1; }
           done
+          # fail-safe-core invariant: the ALWAYS-loaded path (Main + the directly-instantiated components)
+          # must NOT import a possibly-missing module — those live ONLY behind Loaders. A leak here would let
+          # an absent qt6-multimedia/qt6-virtualkeyboard/Effects crash the WHOLE greeter (no login).
+          for q in Main.qml Components/Background.qml Components/Clock.qml Components/LoginCard.qml Components/PowerMenu.qml Components/SessionPicker.qml; do
+            grep -qE '^[[:space:]]*import[[:space:]]+(QtQuick\.Effects|QtMultimedia|QtQuick\.VirtualKeyboard)' "$a/$q" \
+              && { echo "::error::$q imports a Loader-only module into the always-loaded core (fail-safe-core invariant broken)"; exit 1; } || true
+          done
           # the orchestrator must read the config palette + dispatch the background (so theme.conf drives it)
           grep -q 'config\.accentColor' "$a/Main.qml"       || { echo "::error::Main.qml must read config.accentColor"; exit 1; }
           grep -q 'config\.backgroundMode' "$a/Main.qml"    || { echo "::error::Main.qml must read config.backgroundMode"; exit 1; }

@@ -60,6 +60,7 @@ p_enabled()     { test -e "/mnt/etc/systemd/system/multi-user.target.wants/$1"; 
 # post-boot predicates (run on the installed system, as the user)
 b_booted_enc()  { findmnt -no SOURCE / | grep -q '/dev/mapper/'; }
 b_resume_clean(){ ! systemctl is-enabled archfrican-resume.service 2>/dev/null | grep -q '^enabled'; }
+b_greetd_off()  { ! systemctl is-enabled greetd.service 2>/dev/null | grep -q '^enabled'; }
 b_snapper_cfg() {
   # /etc/snapper/configs/root is root-only (0640); read it authoritatively ONLY if sudo is already
   # cached (-n never prompts — keeps this suite prompt-free), else fall back to the user-visible
@@ -160,6 +161,7 @@ assert_postboot() {           # post-reboot: on the installed system, as the use
   fi
   assert "resume self-disabled after success (cleanup ran)"  b_resume_clean
   assert "SDDM display manager is active (graphical login)"  systemctl is-active --quiet sddm.service
+  assert "greetd is NOT enabled (SDDM took over; migration 0002 ran)" b_greetd_off
   assert "archfrican SDDM theme installed"                   test -r /usr/share/sddm/themes/archfrican/Main.qml
   assert "snapper 'root' wired (config -> / via sudo, or @.snapshots subvol mounted)" b_snapper_cfg
   assert "NetworkManager is active"                          systemctl is-active --quiet NetworkManager.service
