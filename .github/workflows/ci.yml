@@ -153,6 +153,31 @@ jobs:
           done
           echo "theme-switch: all 4 themes render + are idempotent"
 
+  sddm-theme:
+    runs-on: ubuntu-latest        # the graphical login theme: must render for every palette + be well-formed
+    steps:
+      - uses: actions/checkout@v4
+      - name: SDDM theme renders for every palette (no stray tokens) + asset structure is valid
+        run: |
+          set -euo pipefail
+          a=assets/sddm/archfrican
+          for f in metadata.desktop Main.qml theme.conf; do
+            [ -r "$a/$f" ] || { echo "::error::missing $a/$f"; exit 1; }
+          done
+          grep -q '^MainScript=Main.qml'  "$a/metadata.desktop" || { echo "::error::metadata.desktop: MainScript must be Main.qml"; exit 1; }
+          grep -q '^ConfigFile=theme.conf' "$a/metadata.desktop" || { echo "::error::metadata.desktop: ConfigFile must be theme.conf"; exit 1; }
+          # the QML must read the config palette (so theme.conf actually drives the look)
+          grep -q 'config\.accentColor' "$a/Main.qml" || { echo "::error::Main.qml does not read config.accentColor"; exit 1; }
+          tmpl=templates/sddm.theme.conf
+          for t in macos-dark macos-light catppuccin-mocha tokyo-night; do
+            out="$( ( . "themes/$t/colors.sh"
+                      sed -e "s|\${BG}|$BG|g" -e "s|\${BG_ALT}|$BG_ALT|g" -e "s|\${BG_DIM}|$BG_DIM|g" \
+                          -e "s|\${FG}|$FG|g" -e "s|\${FG_DIM}|$FG_DIM|g" -e "s|\${ACCENT}|$ACCENT|g" "$tmpl" ) )"
+            echo "$out" | grep -qE '\$\{[A-Z_]+\}' && { echo "::error::unrendered token in $t"; exit 1; }
+            echo "$out" | grep -qE '^accentColor=#[0-9a-fA-F]{6}$' || { echo "::error::accentColor not a hex color in $t"; exit 1; }
+          done
+          echo "sddm-theme: 4 palettes render clean + asset structure OK"
+
   pkg-resolution:
     runs-on: ubuntu-latest
     container: archlinux:latest

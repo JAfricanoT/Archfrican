@@ -159,6 +159,8 @@ assert_postboot() {           # post-reboot: on the installed system, as the use
     assert "cryptdevice present in the live kernel cmdline"           grep -q 'cryptdevice=UUID=' /proc/cmdline
   fi
   assert "resume self-disabled after success (cleanup ran)"  b_resume_clean
+  assert "SDDM display manager is active (graphical login)"  systemctl is-active --quiet sddm.service
+  assert "archfrican SDDM theme installed"                   test -r /usr/share/sddm/themes/archfrican/Main.qml
   assert "snapper 'root' wired (config -> / via sudo, or @.snapshots subvol mounted)" b_snapper_cfg
   assert "NetworkManager is active"                          systemctl is-active --quiet NetworkManager.service
   assert "login shell is zsh"                                b_shell_zsh
