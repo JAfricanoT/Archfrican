@@ -84,7 +84,8 @@ render_sddm_theme() {             # render_sddm_theme <theme-name>
     . "$pal"
     # shellcheck disable=SC2154
     sed -e "s|\${BG}|$BG|g" -e "s|\${BG_ALT}|$BG_ALT|g" -e "s|\${BG_DIM}|$BG_DIM|g" \
-        -e "s|\${FG}|$FG|g" -e "s|\${FG_DIM}|$FG_DIM|g" -e "s|\${ACCENT}|$ACCENT|g" "$tmpl"
+        -e "s|\${FG}|$FG|g" -e "s|\${FG_DIM}|$FG_DIM|g" -e "s|\${ACCENT}|$ACCENT|g" \
+        -e "s|\${MAGENTA}|$MAGENTA|g" -e "s|\${CYAN}|$CYAN|g" "$tmpl"
   ) | write_system_file /usr/share/sddm/themes/archfrican/theme.conf 0644
 }
 

@@ -35,6 +35,19 @@ DisplayServer=wayland
 RememberLastUser=true
 RememberLastSession=true
 SDDM
+
+# On-screen keyboard: only wire SDDM's input method when the theme opts in (the rendered theme.conf
+# knob). Default-off keeps the desktop login clean (qtvirtualkeyboard auto-raises on field focus);
+# flip virtualKeyboardEnabled=true + re-converge for a touchscreen.
+if grep -q '^virtualKeyboardEnabled=true' /usr/share/sddm/themes/archfrican/theme.conf 2>/dev/null; then
+  substep "enabling the on-screen keyboard input method (virtualKeyboardEnabled=true)"
+  write_system_file /etc/sddm.conf.d/15-archfrican-vkbd.conf <<'VK'
+[General]
+InputMethod=qtvirtualkeyboard
+VK
+else
+  best_effort sudo rm -f /etc/sddm.conf.d/15-archfrican-vkbd.conf
+fi
 enable_service sddm.service
 
 # Network: enable the NetworkManager DAEMON (the applet in packages/ is inert without it).

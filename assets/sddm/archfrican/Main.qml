@@ -1,217 +1,118 @@
-// Archfrican — a minimal, elegant macOS-style SDDM greeter. Pure QtQuick (Qt6), no extra modules,
-// no GraphicalEffects/blur (kept reliable on old GPUs). Colors come from theme.conf (the `config`
-// object), each with a hard fallback so a missing key can never break the login. Layout: a soft
-// vertical gradient, a large thin clock + date up top, a centered card (avatar · user · password),
-// a discreet session picker, and subtle power controls.
+// Archfrican — the premium login. macOS-lock layout: a living aurora background, a big thin clock, a
+// centered glass card (avatar · user · password · caps/layout), and a discreet bottom bar (session ·
+// keyboard · power-with-confirm). Engineered "spectacular but never explodes": the CORE (Background
+// base, Clock, LoginCard, PowerMenu, SessionPicker) uses ONLY core QtQuick imports, so it cannot fail
+// to load and the password field is always there. The risky layers (aurora blur, video, virtual
+// keyboard) live behind Loaders that fall back silently. Palette + knobs come from theme.conf (config.*),
+// each with a hard fallback. Built original (inspired by SilentSDDM/astronaut/qylock + macOS), not copied.
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
+import "Components"
 
-Rectangle {
+Item {
     id: root
     width: 1920
     height: 1080
 
-    // ---- palette (theme.conf -> config, with fallbacks) ----
-    readonly property color cBgTop:   config.bgTop      || "#2c2c2e"
-    readonly property color cBgBot:   config.bgBottom   || "#1c1c1e"
-    readonly property color cField:   config.fieldBg    || "#3a3a3c"
-    readonly property color cAccent:  config.accentColor|| "#0a84ff"
-    readonly property color cText:    config.textColor  || "#f5f5f7"
-    readonly property color cDim:     config.dimColor   || "#8e8e93"
-    readonly property string cFont:   config.fontFamily || "Inter"
+    // ---- palette (theme.conf -> config, hard fallbacks) ----
+    readonly property color cBgTop:   config.bgTop       || "#2c2c2e"
+    readonly property color cBgBot:   config.bgBottom    || "#1c1c1e"
+    readonly property color cField:   config.fieldBg     || "#3a3a3c"
+    readonly property color cAccent:  config.accentColor || "#0a84ff"
+    readonly property color cText:    config.textColor   || "#f5f5f7"
+    readonly property color cDim:     config.dimColor    || "#8e8e93"
+    readonly property string cFont:   config.fontFamily  || "Inter"
+    readonly property string cIcon:   "JetBrainsMono Nerd Font"
 
-    gradient: Gradient {
-        GradientStop { position: 0.0; color: root.cBgTop }
-        GradientStop { position: 1.0; color: root.cBgBot }
+    // ---- UX knobs (strings from theme.conf) ----
+    readonly property string bgMode:  config.backgroundMode || "motion"     // motion | image | video
+    readonly property bool   vkOn:    (config.virtualKeyboardEnabled || "true") !== "false"
+    readonly property bool   anims:   (config.animationsEnabled || "true") !== "false"
+
+    property int sessionIndex: sessionPicker.sessionIndex
+
+    // ===== background (safe to instantiate; its own Loader handles the risky aurora/video) =====
+    Background {
+        anchors.fill: parent
+        mode: root.bgMode
+        bgTop: root.cBgTop; bgBottom: root.cBgBot
+        accent: root.cAccent
+        tint2: config.tint2 || "#bf5af2"
+        tint3: config.tint3 || "#64d2ff"
+        imagePath: config.backgroundImage || ""
+        videoPath: config.backgroundVideo || ""
     }
 
-    property int sessionIndex: sessionModel.lastIndex
+    // ===== foreground (fades in once) =====
+    Item {
+        id: foreground
+        anchors.fill: parent
+        opacity: root.anims ? 0 : 1
+        Component.onCompleted: if (root.anims) fadeIn.start()
+        NumberAnimation { id: fadeIn; target: foreground; property: "opacity"; from: 0; to: 1; duration: 450; easing.type: Easing.OutCubic }
 
-    function doLogin() {
-        message.text = ""
-        sddm.login(userField.currentText, passwordField.text, root.sessionIndex)
-    }
-
-    // ---- clock + date ----
-    Column {
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.top: parent.top
-        anchors.topMargin: parent.height * 0.16
-        spacing: 2
-        Text {
-            id: clock
+        // clock
+        Clock {
             anchors.horizontalCenter: parent.horizontalCenter
-            color: root.cText
-            font.family: root.cFont
-            font.pixelSize: 82
-            font.weight: Font.Thin
-            text: Qt.formatTime(new Date(), "HH:mm")
+            anchors.top: parent.top
+            anchors.topMargin: parent.height * 0.15
+            textColor: root.cText; dimColor: root.cDim; fontFamily: root.cFont
         }
-        Text {
-            id: dateText
-            anchors.horizontalCenter: parent.horizontalCenter
-            color: root.cDim
-            font.family: root.cFont
-            font.pixelSize: 20
-            text: Qt.formatDate(new Date(), "dddd, MMMM d")
-        }
-    }
-    Timer {
-        interval: 1000; running: true; repeat: true
-        onTriggered: {
-            clock.text = Qt.formatTime(new Date(), "HH:mm")
-            dateText.text = Qt.formatDate(new Date(), "dddd, MMMM d")
-        }
-    }
 
-    // ---- centered login card ----
-    Column {
-        anchors.centerIn: parent
-        spacing: 18
-        width: 320
+        // the login card (fail-safe heart)
+        LoginCard {
+            id: loginCard
+            anchors.centerIn: parent
+            accentColor: root.cAccent; textColor: root.cText; dimColor: root.cDim
+            fieldBg: root.cField; fontFamily: root.cFont; iconFont: root.cIcon
+            sessionIndex: root.sessionIndex
+        }
 
-        // avatar: a circle with the selected user's initial (no image dependency)
-        Rectangle {
-            anchors.horizontalCenter: parent.horizontalCenter
-            width: 96; height: 96; radius: 48
-            color: root.cField
-            border.width: 1
-            border.color: Qt.rgba(1, 1, 1, 0.08)
-            Text {
-                anchors.centerIn: parent
-                color: root.cText
-                font.family: root.cFont
-                font.pixelSize: 40
-                font.weight: Font.Light
-                text: (userField.currentText || "?").charAt(0).toUpperCase()
+        // bottom-left: session
+        SessionPicker {
+            id: sessionPicker
+            anchors.left: parent.left; anchors.bottom: parent.bottom; anchors.margins: 28
+            textColor: root.cText; dimColor: root.cDim; fontFamily: root.cFont
+        }
+
+        // bottom-right: keyboard toggle + power
+        Row {
+            anchors.right: parent.right; anchors.bottom: parent.bottom; anchors.margins: 28
+            spacing: 22
+            Text {                              // virtual-keyboard toggle
+                visible: root.vkOn
+                anchors.verticalCenter: parent.verticalCenter
+                text: ""                       // nf keyboard
+                font.family: root.cIcon; font.pixelSize: 18
+                color: kbdArea.containsMouse ? root.cText : root.cDim
+                MouseArea {
+                    id: kbdArea; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                    onClicked: {
+                        loginCard.focusPassword()
+                        if (Qt.inputMethod.visible) Qt.inputMethod.hide(); else Qt.inputMethod.show()
+                    }
+                }
+            }
+            PowerMenu {
+                anchors.verticalCenter: parent.verticalCenter
+                textColor: root.cText; dimColor: root.cDim; fontFamily: root.cFont; iconFont: root.cIcon
             }
         }
-
-        // user selector (looks like a label for a single user; a real picker for many)
-        ComboBox {
-            id: userField
-            anchors.horizontalCenter: parent.horizontalCenter
-            width: implicitWidth
-            model: userModel
-            textRole: "name"
-            currentIndex: userModel.lastIndex
-            flat: true
-            font.family: root.cFont
-            font.pixelSize: 20
-            contentItem: Text {
-                text: userField.currentText
-                color: root.cText
-                font: userField.font
-                horizontalAlignment: Text.AlignHCenter
-                verticalAlignment: Text.AlignVCenter
-            }
-            indicator: Item {}                      // hide the dropdown arrow — keep it clean
-            background: Item {}
-        }
-
-        // password field — rounded, translucent, accent on focus
-        Rectangle {
-            anchors.horizontalCenter: parent.horizontalCenter
-            width: parent.width
-            height: 46
-            radius: 12
-            color: root.cField
-            border.width: passwordField.activeFocus ? 2 : 1
-            border.color: passwordField.activeFocus ? root.cAccent : Qt.rgba(1, 1, 1, 0.10)
-            TextField {
-                id: passwordField
-                anchors.fill: parent
-                anchors.leftMargin: 14
-                anchors.rightMargin: 14
-                echoMode: TextInput.Password
-                placeholderText: "Password"
-                color: root.cText
-                placeholderTextColor: root.cDim
-                font.family: root.cFont
-                font.pixelSize: 16
-                verticalAlignment: TextInput.AlignVCenter
-                background: Item {}                 // the wrapper Rectangle is the visible field
-                focus: true
-                onAccepted: root.doLogin()
-            }
-        }
-
-        // status / error line
-        Text {
-            id: message
-            anchors.horizontalCenter: parent.horizontalCenter
-            color: root.cAccent
-            font.family: root.cFont
-            font.pixelSize: 13
-            text: ""
-        }
     }
 
-    Connections {
-        target: sddm
-        function onLoginFailed() {
-            message.text = "Incorrect password — try again"
-            passwordField.selectAll()
-            passwordField.forceActiveFocus()
-        }
-    }
-
-    // ---- discreet session picker (bottom-left) ----
-    ComboBox {
-        id: sessionField
-        anchors.left: parent.left
+    // ===== virtual keyboard (risky import -> Loader-gated; silent if module absent) =====
+    Loader {
+        anchors.left: parent.left; anchors.right: parent.right
         anchors.bottom: parent.bottom
-        anchors.margins: 24
-        model: sessionModel
-        textRole: "name"
-        currentIndex: sessionModel.lastIndex
-        flat: true
-        font.family: root.cFont
-        font.pixelSize: 13
-        onActivated: root.sessionIndex = currentIndex
-        contentItem: Text {
-            text: "Session: " + sessionField.currentText
-            color: root.cDim
-            font: sessionField.font
-            verticalAlignment: Text.AlignVCenter
-        }
-        indicator: Item {}
-        background: Item {}
+        active: root.vkOn
+        source: "Components/VirtualKeyboard.qml"
+        onStatusChanged: if (status === Loader.Error)
+                             console.log("archfrican greeter: virtual keyboard unavailable (qt6-virtualkeyboard?)")
     }
 
-    // ---- power controls (bottom-right) ----
-    Row {
-        anchors.right: parent.right
-        anchors.bottom: parent.bottom
-        anchors.margins: 24
-        spacing: 22
-
-        Text {
-            visible: sddm.canSuspend
-            text: "Suspend"
-            color: suspendArea.containsMouse ? root.cText : root.cDim
-            font.family: root.cFont
-            font.pixelSize: 13
-            MouseArea { id: suspendArea; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: sddm.suspend() }
-        }
-        Text {
-            visible: sddm.canReboot
-            text: "Restart"
-            color: rebootArea.containsMouse ? root.cText : root.cDim
-            font.family: root.cFont
-            font.pixelSize: 13
-            MouseArea { id: rebootArea; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: sddm.reboot() }
-        }
-        Text {
-            visible: sddm.canPowerOff
-            text: "Shut Down"
-            color: poweroffArea.containsMouse ? root.cText : root.cDim
-            font.family: root.cFont
-            font.pixelSize: 13
-            MouseArea { id: poweroffArea; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: sddm.powerOff() }
-        }
-    }
-
-    Component.onCompleted: passwordField.forceActiveFocus()
+    // type-anywhere: a keypress focuses the password field
+    focus: true
+    Keys.onPressed: function (event) { loginCard.focusPassword() }
+    Component.onCompleted: loginCard.focusPassword()
 }

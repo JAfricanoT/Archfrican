@@ -5,6 +5,7 @@ xwayland-satellite     # X11 app support inside niri
 keyd                   # ⌘-style shortcut remaps for ex-mac users
 sddm                   # graphical login (Qt6); themed by assets/sddm/archfrican
 weston                 # tiny reference Wayland compositor that hosts the SDDM greeter (no xorg)
+qt6-virtualkeyboard    # on-screen keyboard for the greeter (touch; default-off, Loader-gated in the theme)
 waybar                 # status bar
 fuzzel                 # launcher (styled as Spotlight)
 mako                   # notifications
