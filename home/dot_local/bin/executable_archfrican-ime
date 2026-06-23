@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+# Input method (CJK/Indic/emoji) — OPT-IN fcitx5. Installs fcitx5 + common engines and runs it as a
+# user service. Wayland-native apps get input via text-input-v3 (no env needed); for XWayland apps,
+# add `export XMODIFIERS=@im=fcitx` to your shell. Configure engines with fcitx5-configtool.
+set -euo pipefail
+have() { command -v "$1" >/dev/null 2>&1; }
+note() { have notify-send && notify-send "Archfrican" "$1" || echo "$1"; }
+
+case "${1:-install}" in
+  install)
+    note "instalando fcitx5 + motores (CJK)…"
+    sudo pacman -S --needed --noconfirm \
+      fcitx5 fcitx5-configtool fcitx5-gtk fcitx5-qt fcitx5-mozc fcitx5-chinese-addons fcitx5-hangul \
+      || { note "falló la instalación de fcitx5"; exit 1; }
+    udir="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user"; mkdir -p "$udir"
+    cat > "$udir/fcitx5.service" <<'SVC'
+[Unit]
+Description=Fcitx5 input method
+PartOf=graphical-session.target
+After=graphical-session.target
+[Service]
+Type=simple
+ExecStart=/usr/bin/fcitx5
+Restart=on-failure
+[Install]
+WantedBy=graphical-session.target
+SVC
+    systemctl --user daemon-reload 2>/dev/null || true
+    systemctl --user enable --now fcitx5.service 2>/dev/null || true
+    note "fcitx5 listo. Elige motores: fcitx5-configtool. XWayland: export XMODIFIERS=@im=fcitx" ;;
+  config)
+    have fcitx5-configtool || { note "primero: archfrican-ime install"; exit 1; }
+    exec fcitx5-configtool ;;
+  *)
+    echo "usage: archfrican-ime install|config" >&2; exit 1 ;;
+esac

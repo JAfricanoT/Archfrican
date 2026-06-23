@@ -59,6 +59,7 @@ environment {
     // Never set GDK_BACKEND globally — it breaks the screencast portal.
     QT_QPA_PLATFORM "wayland;xcb"
     QT_QPA_PLATFORMTHEME "qt6ct"
+    QT_ACCESSIBILITY "1"          // expose Qt apps to the Orca screen reader
     MOZ_ENABLE_WAYLAND "1"
     SDL_VIDEODRIVER "wayland"
     _JAVA_AWT_WM_NONREPARENTING "1"
@@ -162,4 +163,7 @@ binds {
     // control center / notifications (swaync)
     Mod+Shift+D { spawn "swaync-client" "-t" "-sw"; }   // toggle control center
     Mod+Shift+T { spawn "{{ .chezmoi.homeDir }}/.local/bin/archfrican-layout"; }   // tiling layout picker
+
+    // accessibility: toggle the Orca screen reader (niri exposes its UI via AccessKit)
+    Mod+Alt+S { spawn "{{ .chezmoi.homeDir }}/.local/bin/archfrican-screenreader"; }
 }

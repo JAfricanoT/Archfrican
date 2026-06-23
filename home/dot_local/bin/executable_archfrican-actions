@@ -38,6 +38,9 @@ sel="$(printf '%s\n' \
   "VPN (Tailscale/WireGuard)…" \
   "Audio: efectos / EQ (EasyEffects)" \
   "Audio: patchbay (qpwgraph)" \
+  "Accesibilidad (lector, contraste)…" \
+  "Lector de pantalla (alternar)" \
+  "Método de entrada / IME (CJK)…" \
   "Bluetooth" \
   "Audio (mezclador)" \
   "Red / VPN" \
@@ -75,6 +78,9 @@ case "$sel" in
   "VPN"*)                "$B/archfrican-vpn" ;;
   "Audio: efectos"*)     easyeffects ;;
   "Audio: patchbay"*)    qpwgraph ;;
+  "Accesibilidad"*)      "$B/archfrican-a11y" ;;
+  "Lector de pantalla"*) "$B/archfrican-screenreader" ;;
+  "Método de entrada"*)  "$B/archfrican-ime" ;;
   "Bluetooth"*)          blueman-manager ;;
   "Audio"*)              pavucontrol ;;
   "Red"*)                nm-connection-editor ;;

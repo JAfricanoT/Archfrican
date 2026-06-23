@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+# Accessibility hub — screen reader, high contrast, larger cursor & text. Honest about niri's gaps
+# (no mature Wayland-native magnifier or sticky/slow keys yet).
+set -euo pipefail
+B="$HOME/.local/bin"
+gs() { gsettings "$@" 2>/dev/null || true; }
+note() { command -v notify-send >/dev/null 2>&1 && notify-send "Archfrican" "$1" || echo "$1"; }
+themefile="$HOME/.config/.archfrican-theme"
+prevfile="$HOME/.config/.archfrican-prev-theme"
+
+sel="$(printf '%s\n' \
+  "Lector de pantalla (Orca): alternar" \
+  "Alto contraste: activar" \
+  "Alto contraste: desactivar" \
+  "Cursor grande" \
+  "Cursor normal" \
+  "Texto más grande" \
+  "Texto normal" \
+  "Magnificador / sticky keys (info)" \
+  | fuzzel --dmenu --prompt '  accesibilidad  ')" || exit 0
+case "$sel" in
+  "Lector"*)
+    "$B/archfrican-screenreader" ;;
+  "Alto contraste: activar")
+    cur="$(cat "$themefile" 2>/dev/null || echo macos-dark)"
+    if [ "$cur" != high-contrast ]; then printf '%s\n' "$cur" > "$prevfile"; fi
+    theme-switch high-contrast
+    gs set org.gnome.desktop.a11y.interface high-contrast true ;;
+  "Alto contraste: desactivar")
+    theme-switch "$(cat "$prevfile" 2>/dev/null || echo macos-dark)"
+    gs set org.gnome.desktop.a11y.interface high-contrast false ;;
+  "Cursor grande")    gs set org.gnome.desktop.interface cursor-size 48; note "cursor grande" ;;
+  "Cursor normal")    gs set org.gnome.desktop.interface cursor-size 24; note "cursor normal" ;;
+  "Texto más grande") gs set org.gnome.desktop.interface text-scaling-factor 1.25; note "texto más grande" ;;
+  "Texto normal")     gs set org.gnome.desktop.interface text-scaling-factor 1.0; note "texto normal" ;;
+  "Magnificador"*)    note "niri aún no tiene magnificador ni sticky-keys nativos en Wayland — en seguimiento upstream." ;;
+esac

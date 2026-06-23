@@ -84,3 +84,8 @@ networkmanager-openvpn     # OpenVPN in the NM connection editor
 networkmanager-openconnect # Cisco AnyConnect / OpenConnect in the NM connection editor
 easyeffects                # mic noise suppression (RNNoise) + system EQ
 qpwgraph                   # PipeWire patchbay — per-app audio routing
+
+# --- Fase 5: accessibility (niri is the only tiling Wayland WM with a real a11y tree) ---
+orca                       # screen reader — archfrican-screenreader (⌘+Alt+S)
+speech-dispatcher          # speech synthesis layer for Orca
+espeak-ng                  # speech voices for speech-dispatcher

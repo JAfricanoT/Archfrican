@@ -141,7 +141,7 @@ jobs:
           cp home/dot_config/niri/config.kdl.tmpl "$HOME/.config/niri/config.kdl"
           files=(ghostty/colors waybar/colors.css fuzzel/colors.ini swaync/colors.css niri/config.kdl)
           snap() { for f in "${files[@]}"; do cat "$HOME/.config/$f"; done | sha256sum; }
-          for t in macos-dark macos-light catppuccin-mocha tokyo-night; do
+          for t in macos-dark macos-light catppuccin-mocha tokyo-night high-contrast; do
             bin/theme-switch "$t" >/dev/null; a="$(snap)"
             bin/theme-switch "$t" >/dev/null; b="$(snap)"
             [ "$a" = "$b" ] || { echo "::error::theme-switch not idempotent for $t"; exit 1; }

@@ -128,6 +128,12 @@ SSH/GPG keys and Flatpak app set from a backup or another machine, so you arrive
 Plus a Snap-Layouts-style **layout picker** (`⌘ + Shift + T`), a project/**session** restorer, and a
 distraction-free **focus** mode.
 
+**Accessibility & i18n:** Archfrican ships **Orca** (`⌘ + Alt + S`) — and because niri exposes its UI
+via AccessKit, the screen reader actually works on a tiling Wayland compositor (Hyprland can't). Plus
+a high-contrast theme, larger cursor/text, and an accessibility hub (`archfrican-a11y`). Opt-in CJK/IME
+input via `archfrican-ime` (fcitx5). Honest gaps: no mature Wayland-native magnifier or sticky-keys
+under niri yet — tracked upstream.
+
 Desktop niceties: **Quick Look** — select a file in Files and press <kbd>Space</kbd> for a preview.
 Handy commands: `archfrican-auto-appearance on` (auto light/dark by sun position) ·
 `archfrican-blur on` (frosted-glass blur, `niri validate`-guarded so it can't break your config) ·
