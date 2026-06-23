@@ -1,54 +1,168 @@
 #!/usr/bin/env bash
-# archfrican-update — a READ-ONLY pre-update safety gate, then (optionally) the upgrade.
-#   archfrican-update          run the checks + print the exact commands (does NOT change anything)
-#   archfrican-update --run     run an interactive `sudo pacman -Syu` after the checks
-# AUR stays separate + manual (paru -Sua). Never --noconfirm; nothing is auto-removed. (informant is
-# deliberately not used — its PreTransaction hook would block our own modules + the resume service.)
+# archfrican-update — bring this machine to the repo's desired state, then upgrade packages, all
+# under a pre-snapshot (reversible). The promise: "updating an old Archfrican == a fresh install".
+#   archfrican-update              read-only report — pre-checks + drift (changes NOTHING)
+#   archfrican-update --run        full pipeline: snapshot → repo refresh → migrate → converge
+#                                  (only changed modules) → pacman -Syu → AUR (reviewed)
+#   archfrican-update --converge   just re-apply the repo's config/dotfiles (no package upgrade)
+#   archfrican-update --prune      offer to remove Archfrican-managed pkgs no longer in the repo
+#                                  (interactive; your own hand-installed packages are NEVER listed)
+#   archfrican-update --no-aur     skip the AUR phase in --run
+# Never --noconfirm. Nothing is auto-removed. An AUR build failure never blocks the system upgrade.
 set -uo pipefail
-set +e
-warn=0
+self="$(readlink -f "$0" 2>/dev/null || echo "$0")"
+ROOT="${ARCHFRICAN_ROOT:-$(cd "$(dirname "$self")/.." && pwd)}"
+# shellcheck source=/dev/null
+source "$ROOT/lib/common.sh"        # ok/warn/read_pkg_list/REPO_ROOT
+# shellcheck source=/dev/null
+source "$ROOT/lib/converge.sh"      # drift_modules/module_hash
+# shellcheck source=/dev/null
+source "$ROOT/lib/manifest.sh"      # prune_candidates
+# shellcheck source=/dev/null
+source "$ROOT/lib/migrate.sh"       # run_migrations/pending_migrations
+set +e +u +o pipefail               # interactive flow: many probes exit non-zero on the healthy path
+
+ARCHFRICAN_REF="${ARCHFRICAN_REF:-main}"
+RUN=0; CONVERGE=0; PRUNE=0; NO_AUR=0
+for a in "$@"; do case "$a" in
+  --run)      RUN=1 ;;
+  --converge) CONVERGE=1 ;;
+  --prune)    PRUNE=1 ;;
+  --no-aur)   NO_AUR=1 ;;
+  -h|--help)  sed -n '2,12p' "$self"; exit 0 ;;
+  *) printf 'archfrican-update: unknown flag %q (see --help)\n' "$a" >&2; exit 2 ;;
+esac; done
+
+warn_n=0
 _ok()   { printf '  \e[32m✓\e[0m %s\n' "$*"; }
-_note() { printf '  \e[33m!\e[0m %s\n' "$*"; warn=$((warn+1)); }
+_note() { printf '  \e[33m!\e[0m %s\n' "$*"; warn_n=$((warn_n + 1)); }
+_hd()   { printf '\n\e[1m  %s\e[0m\n\n' "$*"; }
 
-printf '\n\e[1m  Archfrican — pre-update check\e[0m\n\n'
+# ---------- pre-update report (read-only) ------------------------------------
+precheck() {
+  _hd "Archfrican — pre-update check"
 
-# disk headroom (a new kernel + a big upgrade need room on / and /boot)
-ar="$(df -BM --output=avail / 2>/dev/null | tail -1 | tr -dc 0-9)"
-if [ -n "$ar" ] && [ "$ar" -ge 3000 ]; then _ok "root: ${ar}M free"
-else _note "root low on space (${ar:-?}M) — a large upgrade may fail"; fi
-if mountpoint -q /boot 2>/dev/null; then
-  ab="$(df -BM --output=avail /boot 2>/dev/null | tail -1 | tr -dc 0-9)"
-  if [ -n "$ab" ] && [ "$ab" -ge 100 ]; then _ok "/boot: ${ab}M free"
-  else _note "/boot tight (${ab:-?}M) — remove an old kernel first"; fi
-fi
+  ar="$(df -BM --output=avail / 2>/dev/null | tail -1 | tr -dc 0-9)"
+  if [ -n "$ar" ] && [ "$ar" -ge 3000 ]; then _ok "root: ${ar}M free"
+  else _note "root low on space (${ar:-?}M) — a large upgrade may fail"; fi
+  if mountpoint -q /boot 2>/dev/null; then
+    ab="$(df -BM --output=avail /boot 2>/dev/null | tail -1 | tr -dc 0-9)"
+    if [ -n "$ab" ] && [ "$ab" -ge 100 ]; then _ok "/boot: ${ab}M free"
+    else _note "/boot tight (${ab:-?}M) — remove an old kernel first"; fi
+  fi
 
-# snapshot safety net (snap-pac checkpoints each pacman transaction)
-command -v snapper >/dev/null 2>&1 && _ok "snapshots active (snap-pac will checkpoint this upgrade)"
+  command -v snapper >/dev/null 2>&1 \
+    && _ok "snapshots active (--run takes a pre-snapshot; snap-pac checkpoints the -Syu)"
 
-# mirror freshness
-if [ -f /etc/pacman.d/mirrorlist ]; then
-  age=$(( ( $(date +%s) - $(stat -c %Y /etc/pacman.d/mirrorlist 2>/dev/null || echo 0) ) / 86400 ))
-  if [ "$age" -le 30 ]; then _ok "mirrorlist ${age}d old"
-  else _note "mirrorlist ${age}d old — refresh (reflector) if downloads are slow"; fi
-fi
+  if [ -f /etc/pacman.d/mirrorlist ]; then
+    age=$(( ( $(date +%s) - $(stat -c %Y /etc/pacman.d/mirrorlist 2>/dev/null || echo 0) ) / 86400 ))
+    if [ "$age" -le 30 ]; then _ok "mirrorlist ${age}d old"
+    else _note "mirrorlist ${age}d old — refresh (reflector) if downloads are slow"; fi
+  fi
 
-# Arch news (light Atom-feed peek — read the site before a big upgrade)
-news="$(curl -fsS --max-time 8 'https://archlinux.org/feeds/news/' 2>/dev/null | grep -oE '<title>[^<]+' | sed -n '2p' | sed 's/<title>//')"
-if [ -n "$news" ]; then _note "latest Arch news: \"$news\" — check https://archlinux.org/news/ before upgrading"
-else _ok "Arch news feed unreachable (skipped)"; fi
+  news="$(curl -fsS --max-time 8 'https://archlinux.org/feeds/news/' 2>/dev/null \
+            | grep -oE '<title>[^<]+' | sed -n '2p' | sed 's/<title>//')"
+  [ -n "$news" ] && _note "latest Arch news: \"$news\" — read https://archlinux.org/news/ before a big upgrade"
 
-# CVE pre-check + available count
-if command -v arch-audit >/dev/null 2>&1; then
-  n="$(arch-audit --quiet --upgradable 2>/dev/null | grep -c .)"
-  if [ "${n:-0}" -eq 0 ]; then _ok "no known fixable CVEs"
-  else _note "$n package(s) with fixable CVEs — this upgrade should clear them"; fi
-fi
-command -v checkupdates >/dev/null 2>&1 && printf '\n  %s update(s) available.\n' "$(checkupdates 2>/dev/null | grep -c .)"
+  if command -v arch-audit >/dev/null 2>&1; then
+    n="$(arch-audit --quiet --upgradable 2>/dev/null | grep -c .)"
+    if [ "${n:-0}" -eq 0 ]; then _ok "no known fixable CVEs"
+    else _note "$n package(s) with fixable CVEs — this upgrade should clear them"; fi
+  fi
 
-printf '\n  Update (interactive, never --noconfirm):\n    sudo pacman -Syu\n'
-printf '  Then AUR, separately + reviewed:\n    paru -Sua\n\n'
+  # --- drift: is the repo behind origin? (lightweight shallow fetch) ---
+  if [ -d "$ROOT/.git" ] && command -v git >/dev/null 2>&1; then
+    if git -C "$ROOT" fetch --depth 1 origin "$ARCHFRICAN_REF" >/dev/null 2>&1; then
+      behind="$(git -C "$ROOT" rev-list --count HEAD..FETCH_HEAD 2>/dev/null)"
+      if [ "${behind:-0}" -gt 0 ]; then _note "repo: $behind commit(s) behind origin/$ARCHFRICAN_REF — --run pulls them"
+      else _ok "repo: current with origin/$ARCHFRICAN_REF"; fi
+    fi
+  fi
+  # --- drift: applied modules whose on-disk inputs changed + pending migrations ---
+  d="$(drift_modules 2>/dev/null | grep -c .)"
+  if [ "${d:-0}" -gt 0 ]; then _note "config drift: $d module(s) changed in the repo — --run re-converges them"
+  else _ok "config: applied state matches the on-disk repo"; fi
+  pm="$(pending_migrations 2>/dev/null)"
+  [ "${pm:-0}" -gt 0 ] && _note "$pm migration(s) pending"
 
-if [ "${1:-}" = "--run" ]; then
-  [ "$warn" -gt 0 ] && printf '  \e[33m%d caution(s) above.\e[0m\n\n' "$warn"
-  exec sudo pacman -Syu
+  command -v checkupdates >/dev/null 2>&1 \
+    && printf '\n  %s package update(s) available.\n' "$(checkupdates 2>/dev/null | grep -c .)"
+}
+
+# ---------- a single rollback point for the WHOLE update ----------------------
+pre_snapshot() {
+  command -v snapper >/dev/null 2>&1 || { _note "snapper absent — no pre-snapshot (continuing)"; return 0; }
+  local desc; desc="archfrican-update $(date +%Y-%m-%d)"
+  if sudo snapper -c root create -d "$desc" >/dev/null 2>&1; then
+    _ok "pre-snapshot created (\"$desc\") — one reboot rolls the whole update back"
+  else _note "could not create a pre-snapshot (continuing)"; fi
+}
+
+# ---------- desired-state converge -------------------------------------------
+converge() {
+  _hd "Converge — re-apply the repo's desired state"
+  if [ -d "$ROOT/.git" ] && command -v git >/dev/null 2>&1; then
+    local old new; old="$(git -C "$ROOT" rev-parse --short HEAD 2>/dev/null)"
+    if git -C "$ROOT" fetch --depth 1 origin "$ARCHFRICAN_REF" >/dev/null 2>&1; then
+      git -C "$ROOT" reset --hard FETCH_HEAD >/dev/null 2>&1
+      new="$(git -C "$ROOT" rev-parse --short HEAD 2>/dev/null)"
+      if [ "$old" != "$new" ]; then _ok "repo $old → $new"; else _ok "repo already current ($new)"; fi
+    else _note "git fetch failed — converging the on-disk repo ($old)"; fi
+  fi
+  run_migrations || { _note "migrations failed — aborting before the converge"; return 1; }
+  # The converge subprocess runs the freshly-pulled installer; only changed modules re-run.
+  ARCHFRICAN_UPDATE=1 bash "$ROOT/install.sh" --update || { _note "converge reported an error — review above"; return 1; }
+}
+
+# ---------- opt-in prune (only Archfrican-managed, never your packages) -------
+do_prune() {
+  _hd "Prune — Archfrican-managed packages no longer in the repo"
+  local cand ans; mapfile -t cand < <(prune_candidates)
+  if [ "${#cand[@]}" -eq 0 ]; then _ok "nothing to prune (no managed-but-undesired packages)"; return 0; fi
+  printf '  Installed by Archfrican, no longer in any list (your own packages never appear here):\n'
+  printf '    %s\n' "${cand[@]}"
+  printf '\n  Remove them now? [y/N] '; read -r ans
+  case "$ans" in
+    y|Y) sudo pacman -Rns "${cand[@]}" ;;   # never --noconfirm; pacman itself refuses unsafe removals
+    *)   printf '  Skipped. To remove later:\n    sudo pacman -Rns %s\n' "${cand[*]}" ;;
+  esac
+}
+
+# ---------- post-update summary ----------------------------------------------
+post_summary() {
+  _hd "Post-update health"
+  "$ROOT/bin/archfrican-doctor" 2>/dev/null || true
+  printf '\n  \e[32m✓ Update complete.\e[0m If a kernel changed: sudo systemctl reboot\n\n'
+}
+
+# ---------- dispatch ----------------------------------------------------------
+if [ "$RUN" = 1 ]; then
+  precheck
+  pre_snapshot
+  converge || exit 1
+  _hd "System upgrade (official repos) — interactive, never --noconfirm"
+  [ "$warn_n" -gt 0 ] && printf '  \e[33m%d caution(s) in the pre-check above.\e[0m\n\n' "$warn_n"
+  sudo pacman -Syu || _note "pacman -Syu reported an error — review above"
+  if [ "$NO_AUR" = 0 ] && command -v paru >/dev/null 2>&1; then
+    _hd "AUR upgrade (reviewed; a failed build never blocks the system)"
+    paru -Sua || _note "an AUR build failed — the official upgrade still applied; retry later: paru -Sua"
+  fi
+  [ "$PRUNE" = 1 ] && do_prune
+  post_summary
+
+elif [ "$CONVERGE" = 1 ]; then
+  precheck
+  pre_snapshot
+  converge || exit 1
+  [ "$PRUNE" = 1 ] && do_prune
+  printf '\n  \e[32m✓ Converge complete\e[0m — config + dotfiles match the repo (no package upgrade; use --run).\n\n'
+
+elif [ "$PRUNE" = 1 ]; then
+  do_prune                                  # prune against the last recorded manifest
+
+else
+  precheck
+  printf '\n  Bring this machine to the repo + upgrade packages:\n    \e[1marchfrican-update --run\e[0m\n'
+  printf '  Re-apply config/dotfiles only (no upgrade):\n    archfrican-update --converge\n'
+  printf '  Also drop Archfrican-managed pkgs no longer wanted:\n    archfrican-update --run --prune\n\n'
 fi
