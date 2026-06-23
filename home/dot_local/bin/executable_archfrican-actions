@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+# archfrican-actions — the command surface / "control center in the launcher".
+# One fuzzel menu that reaches every Archfrican action and every launcher mode,
+# the way Spotlight Actions / omarchy-menu / a KRunner do. Each item is a named
+# verb (same spirit as the bin/ tools), so the keyboard-driven system stays
+# discoverable instead of memorized.
+set -euo pipefail
+B="$HOME/.local/bin"
+toggle() { [ "$("$1" status 2>/dev/null)" = on ] && echo off || echo on; }
+
+sel="$(printf '%s\n' \
+  "Cambiar tema…" \
+  "Buscar actualizaciones (archfrican-update)" \
+  "Salud del sistema (archfrican-doctor)" \
+  "Apps por defecto (navegador/correo)…" \
+  "Auto claro/oscuro (alternar)" \
+  "Blur frosted-glass (alternar)" \
+  "Pantallas / monitores" \
+  "Atajos de teclado" \
+  "Portapapeles (historial)" \
+  "Emoji / símbolos" \
+  "Calculadora" \
+  "Buscar archivos" \
+  "Buscar en la web" \
+  "Navegador (Brave/Vivaldi)…" \
+  "Tienda de apps (Flatpak)" \
+  "Permisos de apps (Flatseal)" \
+  "Crear web-app…" \
+  "Nube / SMB…" \
+  "Bluetooth" \
+  "Audio (mezclador)" \
+  "Red / VPN" \
+  | fuzzel --dmenu --prompt '  acciones  ')" || exit 0
+
+case "$sel" in
+  "Cambiar tema"*)
+    t="$(for d in "$HOME"/.archfrican/themes/*/; do [ -d "$d" ] && basename "$d"; done \
+        | fuzzel --dmenu --prompt '  tema  ')" && [ -n "$t" ] && theme-switch "$t" ;;
+  *"actualizaciones"*)   ghostty -e archfrican-update ;;
+  *"Salud"*)             ghostty -e archfrican-doctor ;;
+  "Apps por defecto"*)   "$B/archfrican-defaults" ;;
+  "Auto claro/oscuro"*)  "$B/archfrican-auto-appearance" "$(toggle "$B/archfrican-auto-appearance")" ;;
+  "Blur"*)               "$B/archfrican-blur" "$(toggle "$B/archfrican-blur")" ;;
+  "Pantallas"*)          nwg-displays ;;
+  "Atajos"*)             "$B/archfrican-keys" ;;
+  "Portapapeles"*)       sh -c 'cliphist list | fuzzel --dmenu | cliphist decode | wl-copy' ;;
+  "Emoji"*)              "$B/archfrican-emoji" ;;
+  "Calculadora"*)        "$B/archfrican-calc" ;;
+  "Buscar archivos"*)    "$B/archfrican-find" ;;
+  "Buscar en la web"*)   "$B/archfrican-websearch" ;;
+  "Navegador"*)          "$B/archfrican-browser" ;;
+  "Tienda"*)             gnome-software ;;
+  "Permisos"*)           flatpak run com.github.tchx84.Flatseal ;;
+  "Crear web-app"*)      "$B/archfrican-webapp" ;;
+  "Nube"*)               "$B/archfrican-cloud" ;;
+  "Bluetooth"*)          blueman-manager ;;
+  "Audio"*)              pavucontrol ;;
+  "Red"*)                nm-connection-editor ;;
+esac

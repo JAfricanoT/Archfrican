@@ -9,3 +9,4 @@ window#waybar {
 #workspaces button.focused { color: @accent; }
 #clock, #cpu, #memory, #battery, #network, #pulseaudio, #tray { padding: 0 8px; }
 #clock { font-weight: 600; }
+#custom-privacy { color: #ff5f56; padding: 0 8px; }   /* mic/camera in use — fixed warm color, stands out by design */

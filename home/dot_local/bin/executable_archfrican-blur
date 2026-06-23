@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# Safely enable/disable niri's frosted-glass blur. Guards with `niri validate` and
+# REVERTS if your niri is too old to understand the directive — so it can never
+# leave you with a config niri won't start. niri live-reloads on save.
+set -euo pipefail
+cfg="${XDG_CONFIG_HOME:-$HOME/.config}/niri/config.kdl"
+[ -r "$cfg" ] || { echo "no niri config at $cfg" >&2; exit 1; }
+
+on_block=$'    blur {\n        on\n        passes 3\n        radius 8\n    }'
+off_block=$'    // blur {\n    //     on\n    //     passes 3\n    //     radius 8\n    // }'
+
+splice() {   # splice <replacement> — print config with the region between markers replaced
+  awk -v repl="$1" '
+    /\/\/ BLUR-START/ { print; print repl; skip = 1; next }
+    /\/\/ BLUR-END/   { skip = 0 }
+    !skip { print }
+  ' "$cfg"
+}
+
+case "${1:-status}" in
+  on|off)
+    grep -q 'BLUR-START' "$cfg" || { echo "no blur markers in $cfg (re-apply the niri dotfile)" >&2; exit 1; }
+    blk="$off_block"; [ "$1" = on ] && blk="$on_block"
+    cp "$cfg" "$cfg.afbak"
+    splice "$blk" > "$cfg.new" && mv "$cfg.new" "$cfg"
+    if [ "$1" = on ] && command -v niri >/dev/null 2>&1 && ! niri validate >/dev/null 2>&1; then
+      mv "$cfg.afbak" "$cfg"; echo "your niri rejected blur (likely too old) — reverted, no change." >&2; exit 1
+    fi
+    rm -f "$cfg.afbak"; echo "blur: $1 (niri live-reloads on save)" ;;
+  status)
+    if awk '/BLUR-START/{f=1;next}/BLUR-END/{f=0}f' "$cfg" | grep -qE '^[[:space:]]*blur[[:space:]]*\{'; then
+      echo on; else echo off; fi ;;
+  *)
+    echo "usage: archfrican-blur on|off|status" >&2; exit 1 ;;
+esac

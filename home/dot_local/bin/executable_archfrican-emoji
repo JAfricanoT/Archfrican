@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# Emoji / symbol picker launcher mode. Prefers bemoji (rich, AUR); falls back to a
+# compact built-in list piped to fuzzel. Copies the chosen emoji to the clipboard.
+set -euo pipefail
+if command -v bemoji >/dev/null 2>&1; then
+  exec bemoji        # default action: copy to clipboard
+fi
+
+list='😀 grinning
+😂 tears of joy
+🙂 slight smile
+😉 wink
+😍 heart eyes
+🤔 thinking
+😎 cool
+😭 sob
+😡 angry
+👍 thumbs up
+👎 thumbs down
+🙏 thanks / pray
+👏 clap
+💪 muscle
+🔥 fire
+✨ sparkles
+🎉 party
+❤️ red heart
+✅ check
+❌ cross
+⚠️ warning
+⭐ star
+💡 idea
+📌 pin
+🚀 rocket
+☕ coffee
+👀 eyes
+💯 hundred
+🤝 handshake'
+sel="$(printf '%s\n' "$list" | fuzzel --dmenu --prompt '😀  ')" || exit 0
+emoji="${sel%% *}"
+[ -n "$emoji" ] || exit 0
+printf '%s' "$emoji" | wl-copy
+command -v notify-send >/dev/null 2>&1 && notify-send "Copiado" "$emoji" || true

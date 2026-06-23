@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+# archfrican-keys — a live, never-drifting keyboard cheatsheet. Reads the niri
+# config that is ACTUALLY applied (so it can't go stale) plus the keyd ⌘→Ctrl
+# map, and shows everything in a fuzzel picker. Read-only: selecting just closes.
+set -euo pipefail
+cfg="${XDG_CONFIG_HOME:-$HOME/.config}/niri/config.kdl"
+keyd="/etc/keyd/default.conf"
+
+emit() {
+  if [ -r "$cfg" ]; then
+    # Each niri bind lives on one line: "Keys { action; }   // human comment".
+    awk '
+      /^[[:space:]]*(Mod|Print|XF86)[A-Za-z0-9+]*[[:space:]]*\{/ {
+        line = $0
+        key = line; sub(/[[:space:]]*\{.*/, "", key); gsub(/^[[:space:]]+/, "", key)
+        if (line ~ /\/\//) { desc = line; sub(/.*\/\/[[:space:]]*/, "", desc) }
+        else { desc = line; sub(/^[^{]*\{[[:space:]]*/, "", desc); sub(/[[:space:]]*;?[[:space:]]*\}.*/, "", desc) }
+        gsub(/Mod/, "⌘", key)
+        printf "  %-26s  %s\n", key, desc
+      }' "$cfg"
+  fi
+  if [ -r "$keyd" ]; then
+    printf '\n  ── macOS ⌘ shortcuts (keyd) ──\n'
+    awk '
+      /^meta\.[a-z]+[[:space:]]*=/ {
+        gsub(/[[:space:]]/, "")
+        n = index($0, "="); k = substr($0, 6, n - 6); v = substr($0, n + 1)
+        sub(/^C-/, "", v)
+        printf "  ⌘+%s%s  →  Ctrl+%s\n", toupper(substr(k, 1, 1)), substr(k, 2), toupper(v)
+      }' "$keyd"
+  fi
+}
+
+emit | fuzzel --dmenu --prompt "  atajos  " >/dev/null 2>&1 || true

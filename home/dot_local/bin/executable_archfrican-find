@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# Local file-search launcher mode — fast, private, no telemetry. Indexes only YOUR
+# home dir (no root) with plocate's updatedb, then opens the chosen file in its
+# default app. The index refreshes in the background when older than a day.
+set -euo pipefail
+have() { command -v "$1" >/dev/null 2>&1; }
+have plocate || { have notify-send && notify-send "archfrican-find" "instala plocate"; exit 1; }
+UPDATEDB="$(command -v updatedb || command -v plocate-updatedb || true)"
+[ -n "$UPDATEDB" ] || { have notify-send && notify-send "archfrican-find" "no encuentro updatedb (plocate)"; exit 1; }
+
+cache="${XDG_CACHE_HOME:-$HOME/.cache}/archfrican"; db="$cache/home.db"
+mkdir -p "$cache"
+build() { "$UPDATEDB" --require-visibility 0 --output "$db" --database-root "$HOME" >/dev/null 2>&1; }
+
+if [ ! -f "$db" ]; then
+  have notify-send && notify-send "archfrican-find" "indexando tu carpeta personal (solo la primera vez)…"
+  build || { have notify-send && notify-send "archfrican-find" "updatedb falló"; exit 1; }
+elif [ -n "$(find "$db" -mmin +1440 2>/dev/null)" ]; then
+  ( build & ) >/dev/null 2>&1   # stale (>24h): refresh in the background; search the current db now
+fi
+
+q="$(fuzzel --dmenu --prompt '  archivos  ' </dev/null)" || exit 0
+[ -n "$q" ] || exit 0
+sel="$(plocate --database "$db" --ignore-case --limit 250 -- "$q" 2>/dev/null | fuzzel --dmenu --prompt "  $q  ")" || exit 0
+[ -n "$sel" ] || exit 0
+xdg-open "$sel" >/dev/null 2>&1 || { have notify-send && notify-send "No pude abrir" "$sel"; }

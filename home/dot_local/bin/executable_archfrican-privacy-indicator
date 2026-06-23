@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+# waybar custom module — a privacy "in use" dot for mic/camera, like macOS/GNOME.
+# Reads PipeWire (pw-dump + jq) for RUNNING capture streams; prints an empty
+# string when idle (waybar then hides the module). No extra daemon.
+set -uo pipefail
+if ! command -v pw-dump >/dev/null 2>&1 || ! command -v jq >/dev/null 2>&1; then
+  printf '{"text":""}\n'; exit 0
+fi
+
+classes="$(pw-dump 2>/dev/null | jq -r '
+  [ .[]
+    | select(.type == "PipeWire:Interface:Node")
+    | select(.info.state? == "running")
+    | .info.props["media.class"]?
+    | select(. == "Stream/Input/Audio" or . == "Stream/Input/Video") ]
+  | unique | .[]' 2>/dev/null)"
+
+mic=0; cam=0
+case "$classes" in *Audio*) mic=1 ;; esac
+case "$classes" in *Video*) cam=1 ;; esac
+
+parts=""
+[ "$mic" = 1 ] && parts="Micrófono"
+[ "$cam" = 1 ] && parts="${parts:+$parts · }Cámara"
+
+# macOS-style: a single warm recording dot when the mic/camera is live; the
+# tooltip says which. A plain ● renders in any font (no Nerd-Font dependency).
+if [ -n "$parts" ]; then
+  printf '{"text":"●","class":"privacy","tooltip":"%s en uso"}\n' "$parts"
+else
+  printf '{"text":""}\n'
+fi

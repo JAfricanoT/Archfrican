@@ -42,11 +42,13 @@ hotkey-overlay { skip-at-startup; }
 window-rule {
     geometry-corner-radius 10
     clip-to-geometry true
+    // BLUR-START — frosted glass; OFF by default (older niri lacks it). Enable safely: `archfrican-blur on`
     // blur {
     //     on
     //     passes 3
     //     radius 8
     // }
+    // BLUR-END
 }
 
 environment {
@@ -84,6 +86,7 @@ spawn-at-startup "nwg-dock" "-d" "-i" "48"   // macOS-style dock
 spawn-at-startup "swayosd-server"            // on-screen volume/brightness OSD
 spawn-at-startup "nm-applet" "--indicator"   // network tray + secret agent
 spawn-at-startup "udiskie" "-t"              // automount removable media (tray)
+spawn-at-startup "{{ .chezmoi.homeDir }}/.local/bin/archfrican-welcome-notify"   // one-time desktop welcome (stamp-gated)
 
 binds {
     // launchers / core
@@ -93,6 +96,7 @@ binds {
     Mod+Shift+Q       { close-window; }            // ⌘+W closes app tabs via keyd
     Mod+Shift+E       { quit; }
     Mod+Shift+Slash   { show-hotkey-overlay; }
+    Mod+Shift+K       { spawn "{{ .chezmoi.homeDir }}/.local/bin/archfrican-keys"; }   // searchable key cheatsheet
 
     // scrolling navigation (the niri core)
     Mod+Left          { focus-column-left; }
@@ -145,4 +149,13 @@ binds {
 
     // lock
     Mod+Shift+L { spawn "swaylock"; }
+
+    // clipboard history (⌘+Shift+V) — surfaces the cliphist daemon already running at startup
+    Mod+Shift+V { spawn "sh" "-c" "cliphist list | fuzzel --dmenu | cliphist decode | wl-copy"; }   // clipboard history
+
+    // launcher command-surface (Spotlight/Raycast-style modes over fuzzel)
+    Mod+Shift+A { spawn "{{ .chezmoi.homeDir }}/.local/bin/archfrican-actions"; }   // actions / settings hub
+    Mod+Shift+W { spawn "{{ .chezmoi.homeDir }}/.local/bin/archfrican-window"; }    // window switcher
+    Mod+Shift+C { spawn "{{ .chezmoi.homeDir }}/.local/bin/archfrican-calc"; }      // calculator
+    Mod+Shift+G { spawn "{{ .chezmoi.homeDir }}/.local/bin/archfrican-find"; }      // search files
 }

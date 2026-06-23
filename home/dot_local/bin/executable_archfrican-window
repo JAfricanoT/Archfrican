@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# Window switcher (an Alt-Tab over ALL windows) — lists every niri window and
+# focuses the chosen one. Pure niri IPC, no plugins.
+set -euo pipefail
+command -v niri >/dev/null 2>&1 || exit 1
+command -v jq >/dev/null 2>&1 || exit 1
+tab="$(printf '\t')"
+
+line="$(niri msg --json windows \
+  | jq -r '.[] | "\(.id)\t\(.app_id // "app")  ·  \(.title // "")"' \
+  | sort -t "$tab" -k2 \
+  | fuzzel --dmenu --prompt '  ventanas  ')" || exit 0
+id="${line%%"$tab"*}"
+[ -n "$id" ] || exit 0
+niri msg action focus-window --id "$id"

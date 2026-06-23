@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# Calculator launcher mode — the Spotlight "just type a sum" trick. Type an
+# expression in fuzzel, get the result, pick it to copy. Powered by qalc
+# (libqalculate): handles units, conversions, and constants.
+set -euo pipefail
+have() { command -v "$1" >/dev/null 2>&1; }
+have qalc || { have notify-send && notify-send "archfrican-calc" "instala libqalculate (qalc)"; exit 1; }
+
+expr="$(fuzzel --dmenu --prompt '=  ' </dev/null)" || exit 0
+[ -n "$expr" ] || exit 0
+res="$(qalc -t " $expr" 2>/dev/null | head -1)"
+[ -n "$res" ] || { have notify-send && notify-send "= ?" "no pude evaluar: $expr"; exit 0; }
+
+pick="$(printf '%s\nCopiar resultado: %s\n' "$expr = $res" "$res" | fuzzel --dmenu --prompt '=  ')" || exit 0
+case "$pick" in
+  "Copiar resultado: "*) printf '%s' "$res" | wl-copy && { have notify-send && notify-send "Copiado" "$res"; } ;;
+esac

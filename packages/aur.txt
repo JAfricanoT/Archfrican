@@ -5,3 +5,4 @@ mcmojave-cursors
 otf-san-francisco            # SF Pro family
 otf-san-francisco-mono       # SF Mono
 nwg-dock                     # macOS-style dock for Wayland
+bemoji                       # emoji/symbol picker for the launcher (archfrican-emoji falls back if absent)

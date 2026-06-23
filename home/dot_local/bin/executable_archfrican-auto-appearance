@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+# Toggle automatic light/dark by sun position (darkman). OFF by default — the one
+# consequential default we keep opt-in, because it changes your theme by time of
+# day. It only flips macos-light ⇄ macos-dark; a manual catppuccin/tokyo-night
+# pick is left untouched (see ~/.local/share/{light,dark}-mode.d hooks).
+#
+# darkman needs a location for sunrise/sunset. By default it tries geoclue; if you
+# pass coordinates they're pinned so it works even without a geoclue agent (a
+# minimal niri session often has none):  archfrican-auto-appearance on 19.43 -99.13
+set -euo pipefail
+conf="${XDG_CONFIG_HOME:-$HOME/.config}/darkman/config.yaml"
+case "${1:-status}" in
+  on)
+    mkdir -p "$(dirname "$conf")"
+    if [ "$#" -ge 3 ]; then
+      printf 'usegeoclue: false\ndbusserver: true\nlat: %s\nlng: %s\n' "$2" "$3" > "$conf"
+      echo "pinned location: lat=$2 lng=$3"
+    elif [ ! -e "$conf" ]; then
+      printf 'usegeoclue: true\ndbusserver: true\n' > "$conf"
+    fi
+    systemctl --user enable --now darkman.service
+    echo "auto light/dark: ON — macos-light ⇄ macos-dark by sun position."
+    echo "if the theme doesn't follow the sun (no geoclue agent), pin it: archfrican-auto-appearance on <lat> <lng>"
+    ;;
+  off)
+    systemctl --user disable --now darkman.service 2>/dev/null || true
+    echo "auto light/dark: OFF" ;;
+  status)
+    if systemctl --user is-enabled --quiet darkman.service 2>/dev/null; then echo on; else echo off; fi ;;
+  *)
+    echo "usage: archfrican-auto-appearance on [<lat> <lng>] | off | status" >&2; exit 1 ;;
+esac

@@ -1,0 +1,7 @@
+#!/bin/sh
+# darkman dark-mode hook → Archfrican: switch to the dark macOS palette, but ONLY
+# when the user is already on a macOS theme (never override a manual pick).
+cur="$(cat "$HOME/.config/.archfrican-theme" 2>/dev/null || echo macos-dark)"
+case "$cur" in
+  macos-dark|macos-light) exec "$HOME/.local/bin/theme-switch" macos-dark ;;
+esac

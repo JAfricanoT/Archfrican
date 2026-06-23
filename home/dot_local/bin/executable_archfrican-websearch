@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# Web-search launcher mode with bang prefixes: "g cats", "yt lofi", "w arch linux",
+# "aw niri" (arch wiki), "aur paru", "gh fuzzel". No prefix → DuckDuckGo. Opens in
+# your default browser (set one with archfrican-defaults if links don't open).
+set -euo pipefail
+have() { command -v "$1" >/dev/null 2>&1; }
+enc() { printf %s "$1" | jq -sRr @uri; }
+
+q="$(fuzzel --dmenu --prompt '  web  ' </dev/null)" || exit 0
+[ -n "$q" ] || exit 0
+bang="${q%% *}"; rest="${q#"$bang"}"; rest="${rest# }"
+case "$bang" in
+  g)        url="https://www.google.com/search?q=$(enc "$rest")" ;;
+  ddg|d)    url="https://duckduckgo.com/?q=$(enc "$rest")" ;;
+  yt)       url="https://www.youtube.com/results?search_query=$(enc "$rest")" ;;
+  w)        url="https://en.wikipedia.org/w/index.php?search=$(enc "$rest")" ;;
+  aw|wiki)  url="https://wiki.archlinux.org/index.php?search=$(enc "$rest")" ;;
+  aur)      url="https://aur.archlinux.org/packages?K=$(enc "$rest")" ;;
+  gh)       url="https://github.com/search?q=$(enc "$rest")&type=repositories" ;;
+  *)        url="https://duckduckgo.com/?q=$(enc "$q")" ;;
+esac
+xdg-open "$url" >/dev/null 2>&1 || { have notify-send && notify-send "Sin navegador por defecto" "Configura uno: archfrican-defaults"; }
