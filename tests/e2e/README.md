@@ -97,7 +97,7 @@ tests/e2e/selftest.sh rerun     # installs, then installs AGAIN; the stale-state
   the container, mkinitcpio HOOKS order, user created + root locked, NetworkManager(+wait-online) enabled,
   zram, and the resume fully wired.
 - **postboot**: booted with the LUKS root unlocked, `cryptdevice` in the live cmdline, resume self-disabled
-  (cleanup ran), snapper `root` config present, NetworkManager active, login shell zsh, `awww-daemon`
+  (cleanup ran), snapper `root` snapshots wired (the `@.snapshots` subvol), NetworkManager active, login shell zsh, `awww-daemon`
   resolves, both kernels installed, niri config rendered.
 
 ## CI

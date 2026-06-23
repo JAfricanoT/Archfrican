@@ -60,7 +60,13 @@ p_enabled()     { test -e "/mnt/etc/systemd/system/multi-user.target.wants/$1"; 
 # post-boot predicates (run on the installed system, as the user)
 b_booted_enc()  { findmnt -no SOURCE / | grep -q '/dev/mapper/'; }
 b_resume_clean(){ ! systemctl is-enabled archfrican-resume.service 2>/dev/null | grep -q '^enabled'; }
-b_snapper_cfg() { test -e /etc/snapper/configs/root && grep -q '^SUBVOLUME="/"' /etc/snapper/configs/root; }
+b_snapper_cfg() {
+  # /etc/snapper/configs/root is root-only (0640); read it authoritatively ONLY if sudo is already
+  # cached (-n never prompts — keeps this suite prompt-free), else fall back to the user-visible
+  # signal that module 50 wired the root snapshot subvol (/.snapshots = the @.snapshots subvol).
+  sudo -n grep -q '^SUBVOLUME="/"' /etc/snapper/configs/root 2>/dev/null && return 0
+  findmnt -rno SOURCE /.snapshots 2>/dev/null | grep -qF '@.snapshots'
+}
 b_shell_zsh()   { getent passwd "$(id -un)" | grep -qE ':/usr/bin/zsh$|:/bin/zsh$'; }
 
 # --- answers / arming -------------------------------------------------------
@@ -150,7 +156,7 @@ assert_postboot() {           # post-reboot: on the installed system, as the use
     assert "cryptdevice present in the live kernel cmdline"           grep -q 'cryptdevice=UUID=' /proc/cmdline
   fi
   assert "resume self-disabled after success (cleanup ran)"  b_resume_clean
-  assert "snapper 'root' config exists + targets /"          b_snapper_cfg
+  assert "snapper 'root' wired (config -> / via sudo, or @.snapshots subvol mounted)" b_snapper_cfg
   assert "NetworkManager is active"                          systemctl is-active --quiet NetworkManager.service
   assert "login shell is zsh"                                b_shell_zsh
   assert "wallpaper daemon binary resolves (awww-daemon)"    command -v awww-daemon
