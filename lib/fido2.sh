@@ -6,8 +6,10 @@
 
 FIDO2_AUTHFILE=/etc/u2f_mappings
 FIDO2_APPID="pam://archfrican"
-# PAM services that get the key leg by default (greetd is DEFAULT-OFF until VM-proven).
-FIDO2_PAM_SERVICES="sudo system-local-login"
+# PAM services that get the key leg by default. `sddm` is the graphical login's own PAM service
+# (it does NOT go through system-local-login), so it needs the leg explicitly for a key touch to work
+# at the SDDM greeter. The password always stays a fallback (the leg is `sufficient`, add-only).
+FIDO2_PAM_SERVICES="sudo system-local-login sddm"
 
 # pam-u2f < 1.3.1 had a fallthrough weakness (CVE-2025-23013). Refuse to wire PAM on older.
 fido2_assert_version() {
