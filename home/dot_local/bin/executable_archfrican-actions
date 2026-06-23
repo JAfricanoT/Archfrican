@@ -17,6 +17,11 @@ sel="$(printf '%s\n' \
   "Blur frosted-glass (alternar)" \
   "Pantallas / monitores" \
   "Atajos de teclado" \
+  "Bienvenida / tour" \
+  "Migrar desde otra máquina…" \
+  "Layout de ventana…" \
+  "Abrir una sesión/proyecto…" \
+  "Modo concentración (alternar)" \
   "Portapapeles (historial)" \
   "Emoji / símbolos" \
   "Calculadora" \
@@ -49,6 +54,11 @@ case "$sel" in
   "Blur"*)               "$B/archfrican-blur" "$(toggle "$B/archfrican-blur")" ;;
   "Pantallas"*)          nwg-displays ;;
   "Atajos"*)             "$B/archfrican-keys" ;;
+  "Bienvenida"*)         "$B/archfrican-welcome" --tour ;;
+  "Migrar"*)             "$B/archfrican-migrate" ;;
+  "Layout"*)             "$B/archfrican-layout" ;;
+  "Abrir una sesión"*)   "$B/archfrican-session" ;;
+  "Modo concentración"*) "$B/archfrican-focus" ;;
   "Portapapeles"*)       sh -c 'cliphist list | fuzzel --dmenu | cliphist decode | wl-copy' ;;
   "Emoji"*)              "$B/archfrican-emoji" ;;
   "Calculadora"*)        "$B/archfrican-calc" ;;

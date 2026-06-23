@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# Project/session restorer — "open my dev setup" launches a declared set of apps onto specific niri
+# workspaces in one verb. Sessions live in ~/.config/archfrican/sessions/<name>.session, each line
+# "<workspace> <command>" (first token = workspace number; the rest is the command). Pure niri IPC.
+set -euo pipefail
+dir="${XDG_CONFIG_HOME:-$HOME/.config}/archfrican/sessions"
+mkdir -p "$dir"
+command -v niri >/dev/null 2>&1 || exit 1
+
+name="${1:-}"
+if [ -z "$name" ]; then
+  names=""
+  for f in "$dir"/*.session; do [ -e "$f" ] || continue; names="$names$(basename "$f" .session)
+"; done
+  [ -n "$names" ] || { command -v notify-send >/dev/null 2>&1 && notify-send "Archfrican" "Sin sesiones. Crea ~/.config/archfrican/sessions/<n>.session (mira dev.session.example)"; exit 0; }
+  name="$(printf '%s' "$names" | fuzzel --dmenu --prompt '  sesión  ')" || exit 0
+fi
+[ -n "$name" ] || exit 0
+file="$dir/$name.session"
+[ -r "$file" ] || { echo "no existe: $file" >&2; exit 1; }
+
+while read -r ws cmd || [ -n "$ws" ]; do
+  case "$ws" in ''|\#*) continue ;; esac
+  [ -n "$cmd" ] || continue
+  niri msg action focus-workspace "$ws" 2>/dev/null || true
+  setsid sh -c "$cmd" >/dev/null 2>&1 &
+  sleep 1
+done < "$file"

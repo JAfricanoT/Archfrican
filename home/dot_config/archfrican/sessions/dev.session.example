@@ -1,0 +1,6 @@
+# Example Archfrican session — copy to dev.session (drop the .example) and edit, then run it with
+# archfrican-session (or pick it from the actions hub). Format, one app per line:
+#   <workspace-number> <command...>      (lines starting with # are ignored)
+1 ghostty
+2 code-oss
+3 ghostty -e yazi

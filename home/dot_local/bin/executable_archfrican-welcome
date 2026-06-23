@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+# Guided onboarding / welcome hub (keyboard-driven, screen-reader-friendly fuzzel). Fresh-install
+# mode teaches the handful of Archfrican-specific keys & commands and offers the consequential
+# toggles; post-update mode shows what changed since you were last onboarded. The Omarchy lesson:
+# a gentle, optional tour beats a blocking wizard.
+set -euo pipefail
+B="$HOME/.local/bin"
+ROOT="${ARCHFRICAN_ROOT:-$HOME/.archfrican}"
+state="${XDG_STATE_HOME:-$HOME/.local/state}/archfrican"; mkdir -p "$state"
+note() { command -v notify-send >/dev/null 2>&1 && notify-send "Archfrican" "$1" || echo "$1"; }
+card() { printf '%s\n' "$1" | fuzzel --dmenu --prompt "$2" >/dev/null 2>&1 || true; }
+
+cur="$(git -C "$ROOT" rev-parse --short HEAD 2>/dev/null || echo unknown)"
+last="$(cat "$state/onboarded-rev" 2>/dev/null || true)"
+
+# Post-update "what changed": already onboarded + the repo moved + not an explicit --tour.
+if [ "${1:-}" != "--tour" ] && [ -n "$last" ] && [ "$last" != "$cur" ]; then
+  changes="$(git -C "$ROOT" log --pretty='%s' "$last..HEAD" 2>/dev/null | head -20)"
+  if [ -n "$changes" ]; then
+    printf 'Novedades desde tu última visita:\n\n%s\n' "$changes" \
+      | fuzzel --dmenu --prompt '  novedades  ' >/dev/null 2>&1 || true
+  fi
+  printf '%s\n' "$cur" > "$state/onboarded-rev"
+  exit 0
+fi
+
+pick_theme() {
+  local t
+  t="$(for d in "$ROOT"/themes/*/; do [ -d "$d" ] && basename "$d"; done | fuzzel --dmenu --prompt '  tema  ')" \
+    && [ -n "$t" ] && theme-switch "$t"
+}
+
+while :; do
+  sel="$(printf '%s\n' \
+    "Atajos esenciales (⌘+Space, ⌘+Shift+K/V/A)" \
+    "Cambiar el tema" \
+    "Instalar un navegador (Brave o Vivaldi)" \
+    "Tienda de apps (Flatpak)" \
+    "Auto claro/oscuro por el sol" \
+    "Cómo mantener el sistema al día" \
+    "Cómo revertir tras una actualización" \
+    "Migrar desde otra máquina (Mac/Linux)" \
+    "Terminar" \
+    | fuzzel --dmenu --prompt '  bienvenido a Archfrican  ')" || break
+  case "$sel" in
+    "Atajos"*)                "$B/archfrican-keys" ;;
+    "Cambiar"*)               pick_theme ;;
+    "Instalar un navegador"*) "$B/archfrican-browser" ;;
+    "Tienda"*)                if command -v gnome-software >/dev/null 2>&1; then gnome-software; else note "tienda no instalada (módulo 35-apps)"; fi ;;
+    "Auto"*)                  "$B/archfrican-auto-appearance" on ;;
+    "Cómo mantener"*)         card 'Un comando: archfrican-update (reporte) · archfrican-update --run (aplica, con snapshot reversible). El sistema = el repo, aplicado.' '  actualizar  ' ;;
+    "Cómo revertir"*)         card 'Cada actualización toma un snapshot. Reinicia y elige una entrada Btrfs en el menú de GRUB para volver al estado anterior en un solo reinicio.' '  rollback  ' ;;
+    "Migrar"*)                "$B/archfrican-migrate" ;;
+    "Terminar"*)              break ;;
+  esac
+done
+printf '%s\n' "$cur" > "$state/onboarded-rev"
+: > "$state/welcome-done"

@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+# Migration Assistant — arrive already personalized. Restore dotfiles, SSH/GPG keys, your Flatpak app
+# set, and theme from a backup, a USB, or another machine. Secrets come from YOUR backup, NEVER the
+# repo. This is the macOS Migration Assistant that desktop Linux almost entirely lacks.
+set -euo pipefail
+ROOT="${ARCHFRICAN_ROOT:-$HOME/.archfrican}"
+have() { command -v "$1" >/dev/null 2>&1; }
+note() { have notify-send && notify-send "Archfrican" "$1" || echo "$1"; }
+ask()  { fuzzel --dmenu --prompt "$1" </dev/null; }
+
+do_dotfiles() {
+  have chezmoi || { note "instala chezmoi"; return; }
+  local url; url="$(ask 'repo chezmoi (git URL):  ')" || return
+  [ -n "$url" ] || return
+  ghostty -e sh -c "chezmoi init --apply '$url'; echo; printf '(enter para cerrar) '; read -r _"
+}
+do_keys() {
+  local src; src="$(ask 'carpeta de respaldo (ej: /run/media/USB):  ')" || return
+  [ -d "$src" ] || { note "no existe: $src"; return; }
+  if [ -d "$src/.ssh" ]; then
+    mkdir -p "$HOME/.ssh"; cp -an "$src/.ssh/." "$HOME/.ssh/" 2>/dev/null || true
+    chmod 700 "$HOME/.ssh"; find "$HOME/.ssh" -type f -exec chmod 600 {} + 2>/dev/null || true
+    note "SSH restaurado"
+  fi
+  if [ -d "$src/.gnupg" ]; then
+    mkdir -p "$HOME/.gnupg"; cp -an "$src/.gnupg/." "$HOME/.gnupg/" 2>/dev/null || true
+    chmod 700 "$HOME/.gnupg"; note "GPG restaurado"
+  fi
+}
+do_apps() {
+  have flatpak || { note "flatpak no está (módulo 35-apps)"; return; }
+  local catalog="$ROOT/flatpak/apps.txt" line app n=0
+  [ -r "$catalog" ] || { note "no encuentro el catálogo Flatpak"; return; }
+  flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo 2>/dev/null || true
+  note "instalando apps Flatpak (usuario) en segundo plano…"
+  while IFS= read -r line || [ -n "$line" ]; do
+    app="${line%%#*}"; app="$(printf '%s' "$app" | tr -d '[:space:]')"
+    [ -n "$app" ] || continue
+    flatpak info "$app" >/dev/null 2>&1 && continue
+    flatpak install --user -y --noninteractive flathub "$app" >/dev/null 2>&1 && n=$((n + 1))
+  done < "$catalog"
+  note "apps Flatpak instaladas: $n"
+}
+
+sel="$(printf '%s\n' \
+  "Dotfiles desde un repo chezmoi" \
+  "Llaves SSH/GPG desde un respaldo/USB" \
+  "Set de apps Flatpak (catálogo del repo)" \
+  "Todo lo anterior (guiado)" \
+  | fuzzel --dmenu --prompt '  migrar  ')" || exit 0
+case "$sel" in
+  "Dotfiles"*)    do_dotfiles ;;
+  "Llaves"*)      do_keys ;;
+  "Set de apps"*) do_apps ;;
+  "Todo"*)        do_dotfiles; do_keys; do_apps ;;
+esac

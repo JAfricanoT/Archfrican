@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# Visual tiling layout picker for niri — a Snap-Layouts-style ramp into the scrolling tiler. Pops a
+# menu of common column arrangements and applies the choice to the focused column via niri IPC.
+# Teaches niri's model without a manual (the thing that makes raw tiling approachable for newcomers).
+set -euo pipefail
+command -v niri >/dev/null 2>&1 || exit 1
+sel="$(printf '%s\n' \
+  "Un tercio (1/3)" \
+  "Mitad (1/2)" \
+  "Dos tercios (2/3)" \
+  "Maximizar columna" \
+  "Pantalla completa" \
+  "Consumir ventana en la columna" \
+  "Expulsar ventana de la columna" \
+  | fuzzel --dmenu --prompt '  layout  ')" || exit 0
+case "$sel" in
+  "Un tercio"*)   niri msg action set-column-width "33%" ;;
+  "Mitad"*)       niri msg action set-column-width "50%" ;;
+  "Dos tercios"*) niri msg action set-column-width "67%" ;;
+  "Maximizar"*)   niri msg action maximize-column ;;
+  "Pantalla"*)    niri msg action fullscreen-window ;;
+  "Consumir"*)    niri msg action consume-window-into-column ;;
+  "Expulsar"*)    niri msg action expel-window-from-column ;;
+esac

@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# Distraction-free / presentation mode — hide the bar + dock for a clean single-app view; toggle
+# back to restore them. A lightweight focus session without leaving niri.
+set -euo pipefail
+state="${XDG_RUNTIME_DIR:-/tmp}/archfrican-focus"
+note() { command -v notify-send >/dev/null 2>&1 && notify-send "Archfrican" "$1" || true; }
+if [ -e "$state" ]; then
+  rm -f "$state"
+  setsid waybar >/dev/null 2>&1 &
+  setsid nwg-dock -d -i 48 >/dev/null 2>&1 &
+  note "Modo normal"
+else
+  : > "$state"
+  pkill -x waybar 2>/dev/null || true
+  pkill -x nwg-dock 2>/dev/null || true
+  note "Modo concentración (sin barras)"
+fi

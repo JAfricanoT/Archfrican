@@ -121,6 +121,13 @@ toggles (Wi-Fi, Bluetooth, dark/light, night light, displays) with a real Do-Not
 `archfrican-vpn` (Tailscale or WireGuard/OpenVPN); pro-audio with EasyEffects (mic noise suppression
 + EQ) and a qpwgraph patchbay.
 
+**Onboarding & identity:** the first login shows a gentle, optional welcome (`archfrican-welcome`)
+that teaches the few Archfrican keys and offers the consequential toggles — and after a major update
+it shows what changed. A **Migration Assistant** (`archfrican-migrate`) restores your dotfiles,
+SSH/GPG keys and Flatpak app set from a backup or another machine, so you arrive already at home.
+Plus a Snap-Layouts-style **layout picker** (`⌘ + Shift + T`), a project/**session** restorer, and a
+distraction-free **focus** mode.
+
 Desktop niceties: **Quick Look** — select a file in Files and press <kbd>Space</kbd> for a preview.
 Handy commands: `archfrican-auto-appearance on` (auto light/dark by sun position) ·
 `archfrican-blur on` (frosted-glass blur, `niri validate`-guarded so it can't break your config) ·
