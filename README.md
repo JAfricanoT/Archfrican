@@ -55,8 +55,12 @@ sh -c "$(curl -fsSL https://raw.githubusercontent.com/JAfricanoT/Archfrican/refs
 
 It self-clones the repo to `~/.archfrican`, verifies the environment (preflight), runs a comfortable
 wizard (hostname, user + password, timezone/locale/keyboard, theme, GPU), installs the niri desktop +
-dev layer, and ends with a reboot prompt. Re-running is safe (idempotent; completed modules skipped);
-run one module with `~/.archfrican/install.sh 30-dev`.
+dev layer, and ends with a reboot prompt. Re-running is safe and **convergent**: each module re-runs
+only when its inputs change (content-hashed `.done`), so **updating an old install converges to the
+same state as a fresh one**. Run one module with `~/.archfrican/install.sh 30-dev`.
+
+Keep it current with one command — `archfrican-update` (report) / `--run` (snapshot → refresh →
+converge → `pacman -Syu` → AUR, all reversible). See [docs/UPDATES.md](docs/UPDATES.md).
 
 > Full install straight from the Arch ISO (disk + base + desktop in one shot) is coming in a
 > VM-validated release — for now use the base-Arch one-liner above.

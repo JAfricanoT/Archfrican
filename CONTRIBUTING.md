@@ -32,8 +32,13 @@ separate. A component = one module + one package list + one dotfiles subtree, so
   job (it globs `packages/*.txt` and skips `aur.txt`). `read_pkg_list` strips inline + whole-line `#`.
 - **/etc/default/grub:** edit only through `lib/grub.sh` (`set_grub_key`, `append_grub_cmdline`) —
   token-idempotent + verify-or-die. Never raw `sed` on it.
-- **Idempotency:** modules must be safe to re-run; `run_module` checkpoints with `.done` and supports
-  `./install.sh <NN-name>` (single module) and `FORCE=1` (redo all).
+- **Idempotency + convergence:** modules must be safe to re-run; `run_module` skips by a **content
+  hash** of the module's inputs (script + its `packages/*.txt` + shared libs) recorded in `.done`, so
+  a module re-runs only when its definition changes — driving both install-resume and
+  `archfrican-update` (the system converges to the repo: an update == a fresh install). Supports
+  `./install.sh <NN-name>` (single module) and `FORCE=1` (redo all). If a module's behaviour depends
+  on a file not in its `module_inputs` list (`lib/converge.sh`), add that file there. See
+  [docs/UPDATES.md](docs/UPDATES.md).
 - **niri + keyd:** niri must **never** bind a plain `Mod+<letter>` (keyd remaps those to Ctrl). Use
   `Mod+<non-letter>` or `Mod+Shift+<letter>`. Every niri `spawn` must resolve to an installed package
   (`verify_spawns` checks the rendered config).
