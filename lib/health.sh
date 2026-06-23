@@ -135,7 +135,7 @@ check_timers() {
 # converge.sh/the repo aren't reachable (so health.sh stays usable on its own).
 check_drift() {
   command -v drift_modules >/dev/null 2>&1 || { _h_skip "config drift" "converge.sh not loaded"; return; }
-  [ -n "${REPO_ROOT:-}" ] && [ -d "$REPO_ROOT/modules" ] || { _h_skip "config drift" "repo not found"; return; }
+  if [ -z "${REPO_ROOT:-}" ] || [ ! -d "$REPO_ROOT/modules" ]; then _h_skip "config drift" "repo not found"; return; fi
   local d pm
   d="$(drift_modules 2>/dev/null | grep -c . || true)"
   pm="$(pending_migrations 2>/dev/null || echo 0)"
