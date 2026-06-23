@@ -21,10 +21,13 @@ module_inputs() {                 # module_inputs <name>
   case "$1" in
     00-base)         printf ' packages/base.txt' ;;
     10-gpu)          printf ' lib/detect-gpu.sh lib/grub.sh' ;;
-    20-niri-desktop) printf ' packages/niri-desktop.txt templates/sddm.theme.conf assets/sddm/archfrican' ;;
+    # theming inputs include the palettes (themes/) + the switcher/templates so editing a palette or
+    # bin/theme-switch is seen by drift detection and re-converges the rendered theme (audit H1/M1).
+    # module_hash tree-hashes a directory, so the bare dir names cover every file + stay future-proof.
+    20-niri-desktop) printf ' packages/niri-desktop.txt templates/sddm.theme.conf assets/sddm/archfrican themes' ;;
     30-dev)          printf ' packages/dev.txt' ;;
     35-apps)         printf ' packages/apps.txt flatpak/apps.txt' ;;
-    40-theming)      printf ' packages/theming.txt packages/aur.txt' ;;
+    40-theming)      printf ' packages/theming.txt packages/aur.txt bin/theme-switch themes templates' ;;
     45-print)        printf ' packages/print.txt' ;;
     55-multiboot)    printf ' packages/multiboot.txt lib/grub.sh' ;;
     60-security)     printf ' packages/security.txt lib/security.sh lib/fido2.sh' ;;

@@ -10,6 +10,9 @@ FIDO2_APPID="pam://archfrican"
 # (it does NOT go through system-local-login), so it needs the leg explicitly for a key touch to work
 # at the SDDM greeter. The password always stays a fallback (the leg is `sufficient`, add-only).
 FIDO2_PAM_SERVICES="sudo system-local-login sddm"
+# Base dir of the PAM service files. Overridable so the no-lockout selfcheck + the CVE version guard
+# are fixture-testable in CI (tests/unit/fido2.sh) without touching the real /etc/pam.d.
+FIDO2_PAM_DIR="${FIDO2_PAM_DIR:-/etc/pam.d}"
 
 # pam-u2f < 1.3.1 had a fallthrough weakness (CVE-2025-23013). Refuse to wire PAM on older.
 fido2_assert_version() {
@@ -68,14 +71,14 @@ fido2_pam_insert() {               # fido2_pam_insert <pam-service-file>
 fido2_write_pam() {
   fido2_assert_version || return 1
   local svc
-  for svc in $FIDO2_PAM_SERVICES; do fido2_pam_insert "/etc/pam.d/$svc"; done
+  for svc in $FIDO2_PAM_SERVICES; do fido2_pam_insert "$FIDO2_PAM_DIR/$svc"; done
 }
 
 # The visudo-analogue for PAM (no `pam -cf` exists). Refuses to leave a lockout-prone stack.
 # Static asserts run WITHOUT pamtester so a fresh box still self-checks.
 fido2_pam_selfcheck() {            # fido2_pam_selfcheck <service>
   local svc="$1" rc=0
-  local f="/etc/pam.d/$svc"
+  local f="$FIDO2_PAM_DIR/$svc"
   [ -r "$f" ] || { warn "selfcheck: $f missing"; return 1; }
   grep -qE '^auth[[:space:]]+sufficient[[:space:]]+pam_u2f\.so' "$f" \
     || { warn "selfcheck FAIL ($svc): pam_u2f is not 'sufficient'"; rc=1; }
