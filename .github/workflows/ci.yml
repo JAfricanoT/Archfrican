@@ -18,7 +18,7 @@ jobs:
         run: |
           shellcheck -x -e SC1091 \
             install.sh lib/*.sh modules/*.sh bin/* home/dot_local/bin/executable_* tests/e2e/*.sh \
-            templates/firstboot-notice.sh
+            migrations/*.sh templates/firstboot-notice.sh
 
   bashn:
     runs-on: ubuntu-latest
@@ -27,7 +27,7 @@ jobs:
       - name: bash -n (syntax)
         run: |
           for f in install.sh lib/*.sh modules/*.sh bin/* home/dot_local/bin/executable_* \
-                   themes/*/colors.sh tests/e2e/*.sh; do bash -n "$f"; done
+                   themes/*/colors.sh tests/e2e/*.sh migrations/*.sh; do bash -n "$f"; done
 
   firewall-ruleset:
     runs-on: ubuntu-latest        # the firewall must never `flush ruleset` (kills Docker)
@@ -60,6 +60,60 @@ jobs:
           grep -qE '^ARCHFRICAN_ISO_ARMED="\$\{ARCHFRICAN_ISO_ARMED:-0\}"$' lib/base-install.sh \
             || { echo "::error::lib/base-install.sh must DEFAULT ARCHFRICAN_ISO_ARMED to 0 (env-overridable; never hardcode =1) — docs/STAGE2-VALIDATION.md"; exit 1; }
           echo "iso-safety: installer defaults to dry-run (real install is a runtime opt-in)"
+
+  migrations-idempotent:
+    runs-on: ubuntu-latest        # the converge update path: migrations must be fresh-safe + idempotent
+    steps:
+      - uses: actions/checkout@v4
+      - name: old install (no state-version) runs the full delta + idempotent; fresh marks-latest w/o running
+        run: |
+          set -uo pipefail
+          export REPO_ROOT="$PWD"
+          export ARCHFRICAN_STATE_DIR; ARCHFRICAN_STATE_DIR="$(mktemp -d)/state"
+          # shellcheck disable=SC1091
+          source lib/common.sh; source lib/migrate.sh
+          set +e +o pipefail
+          latest="$(_mig_latest)"; [ "$latest" -ge 1 ] || { echo "::error::no migrations found"; exit 1; }
+          # OLD/pre-migrations install (no state-version) => treated as v0 => owes the full delta …
+          [ "$(pending_migrations)" -eq "$latest" ] || { echo "::error::old install should owe the full delta"; exit 1; }
+          run_migrations >/dev/null
+          [ "$(cat "$ARCHFRICAN_STATE_DIR/state-version")" = "$latest" ] \
+            || { echo "::error::delta did not reach latest"; exit 1; }
+          # … and a SECOND run is a no-op
+          run_migrations | grep -q 'up to date' || { echo "::error::second run not idempotent"; exit 1; }
+          # FRESH install path: mig_mark_latest stamps current WITHOUT running anything
+          rm -f "$ARCHFRICAN_STATE_DIR/state-version"; mig_mark_latest
+          [ "$(cat "$ARCHFRICAN_STATE_DIR/state-version")" = "$latest" ] \
+            || { echo "::error::mig_mark_latest did not stamp latest"; exit 1; }
+          [ "$(pending_migrations)" -eq 0 ] || { echo "::error::fresh-stamped install should owe nothing"; exit 1; }
+          echo "migrations: old-runs-delta + idempotent + fresh-marks-latest OK"
+
+  prune-safety:
+    runs-on: ubuntu-latest        # --prune must NEVER target a hand-installed or depended-upon package
+    steps:
+      - uses: actions/checkout@v4
+      - name: prune candidates = managed ∩ installed − desired − has-dependents (and nothing else)
+        run: |
+          set -uo pipefail
+          export REPO_ROOT="$PWD"
+          export ARCHFRICAN_STATE_DIR; ARCHFRICAN_STATE_DIR="$(mktemp -d)"
+          # shellcheck disable=SC1091
+          source lib/common.sh; source lib/manifest.sh
+          set +e +o pipefail
+          printf '%s\n' base-pkg desired-pkg                       | sort -u > "$ARCHFRICAN_MANIFEST"
+          printf '%s\n' base-pkg desired-pkg dropped-pkg dep-pkg   | sort -u > "$ARCHFRICAN_MANAGED"
+          pacman() { case "$1 ${2:-}" in
+            "-Qeq ")        printf '%s\n' base-pkg desired-pkg dropped-pkg user-pkg dep-pkg ;;
+            "-Qi dep-pkg")  printf 'Required By : some-consumer\n' ;;
+            "-Qi "*)        printf 'Required By : None\n' ;;
+          esac; }
+          export -f pacman
+          got="$(prune_candidates | tr '\n' ' ')"
+          # dropped-pkg: managed+undesired+no-deps -> candidate. user-pkg: not managed (hand-installed)
+          # -> excluded. dep-pkg: has a dependent -> excluded. desired/base: wanted -> excluded.
+          [ "$got" = "dropped-pkg " ] \
+            || { echo "::error::prune unsafe: got [$got], expected 'dropped-pkg '"; exit 1; }
+          echo "prune-safety: only managed+undesired+no-deps; hand-installed & depended pkgs excluded"
 
   cachyos-trust:
     runs-on: ubuntu-latest        # the CachyOS bootstrap runs as ROOT — its key must be pinned + lsigned

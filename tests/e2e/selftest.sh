@@ -68,6 +68,9 @@ b_snapper_cfg() {
   findmnt -rno SOURCE /.snapshots 2>/dev/null | grep -qF '@.snapshots'
 }
 b_shell_zsh()   { getent passwd "$(id -un)" | grep -qE ':/usr/bin/zsh$|:/bin/zsh$'; }
+# update/converge predicates (need lib/converge.sh sourced + REPO_ROOT set; see assert_update)
+b_no_drift()    { [ -z "$(drift_modules 2>/dev/null)" ]; }
+b_drift_is()    { [ "$(drift_modules 2>/dev/null | tr '\n' ' ')" = "$1 " ]; }
 
 # --- answers / arming -------------------------------------------------------
 load_answers() {
@@ -166,6 +169,39 @@ assert_postboot() {           # post-reboot: on the installed system, as the use
   report
 }
 
+assert_update() {             # on the installed system: the "update == fresh install" guarantee
+  hd "update/converge assertions (installed system)"
+  [ ! -d /run/archiso ] || die "run 'update' on the INSTALLED system, not the ISO"
+  export REPO_ROOT="$ROOT"
+  # shellcheck source=/dev/null
+  . "$ROOT/lib/converge.sh"     # drift_modules + ARCHFRICAN_PHASE2_STATE (no set -e: safe to source here)
+
+  # 1. a fresh install IS converged: with the on-disk repo unchanged, nothing drifts.
+  assert "no module drift right after install (applied state == on-disk repo)" b_no_drift
+
+  # 2. a change drifts ONLY the affected module, and the converge re-applies ONLY it. Simulate by
+  #    perturbing 30-dev's recorded stamp (cheap + reversible), then run the real converge engine
+  #    (install.sh --update; NOT archfrican-update, so there's no git pull — a true on-disk no-op).
+  local stamp="$ARCHFRICAN_PHASE2_STATE/30-dev.done"
+  if [ -f "$stamp" ]; then
+    printf 'drifted\n' > "$stamp"
+    assert "perturbing 30-dev's stamp drifts that module ONLY"            b_drift_is 30-dev
+    note "running the converge (install.sh --update) — should re-apply only the drifted module …"
+    if env ARCHFRICAN_SKIP_PREFLIGHT=1 bash "$ROOT/install.sh" --update >/tmp/af-converge.log 2>&1; then
+      assert "converge (install.sh --update) succeeded"                   true
+    else
+      assert "converge (install.sh --update) succeeded"                   false
+      note "converge failed — see /tmp/af-converge.log"
+    fi
+    assert "converge cleared the drift (30-dev re-applied to match the repo)" b_no_drift
+  else
+    note "30-dev.done absent — skipping the targeted-drift cycle"
+  fi
+  hd "next"
+  say "  re-run  ~/.archfrican/tests/e2e/selftest.sh postboot  to confirm the converge kept everything green"
+  report
+}
+
 # --- subcommands ------------------------------------------------------------
 do_install() {
   [ -d /run/archiso ] || die "run 'install' on the Arch live ISO (no /run/archiso)"
@@ -199,6 +235,7 @@ case "${1:-}" in
   install)  do_install ;;
   assert)   load_answers; assert_install ;;
   postboot) assert_postboot ;;
+  update)   assert_update ;;
   rerun)    do_rerun ;;
-  *) say "usage: selftest.sh {install|assert|postboot|rerun}   (see tests/e2e/README.md)"; exit 2 ;;
+  *) say "usage: selftest.sh {install|assert|postboot|update|rerun}   (see tests/e2e/README.md)"; exit 2 ;;
 esac
