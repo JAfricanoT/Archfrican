@@ -11,7 +11,13 @@ ROOT="${ARCHFRICAN_ROOT:-$HOME/.archfrican}"
   echo "set ARCHFRICAN_ROOT=<archfrican repo dir>, or run install.sh to clone ~/.archfrican" >&2
   exit 1; }
 THEME="${1:?usage: theme-switch <theme-name>}"
-PAL="$ROOT/themes/$THEME/colors.sh"
+# 'dynamic' = the wallpaper-generated palette in user state (archfrican-wallpaper). It lives OUTSIDE
+# themes/ on purpose, so a re-tint never changes the converge hash. Any other name is a curated theme.
+if [ "$THEME" = dynamic ] && [ -r "$HOME/.config/archfrican/dynamic-colors.sh" ]; then
+  PAL="$HOME/.config/archfrican/dynamic-colors.sh"
+else
+  PAL="$ROOT/themes/$THEME/colors.sh"
+fi
 [ -f "$PAL" ] || { echo "no such theme: $THEME"; echo "available:"; ls "$ROOT/themes"; exit 1; }
 # shellcheck disable=SC1090
 source "$PAL"

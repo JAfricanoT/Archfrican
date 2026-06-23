@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+# Boot splash (Plymouth) — OPT-IN. A clean spinner so boot -> SDDM -> desktop has no text-mode seam.
+# WARNING: this touches the initramfs — it is gated and best validated in a VM first. Recovery if boot
+# ever misbehaves: pick linux-lts or a Btrfs snapshot in the GRUB menu. Backs up + restores on failure.
+set -euo pipefail
+have() { command -v "$1" >/dev/null 2>&1; }
+note() { have notify-send && notify-send "Archfrican" "$1" || echo "$1"; }
+
+confirm="$(printf 'Sí, instalar el splash de arranque\nCancelar\n' | fuzzel --dmenu --prompt '  Plymouth (toca initramfs)  ')" || exit 0
+case "$confirm" in "Sí,"*) ;; *) exit 0 ;; esac
+sudo pacman -S --needed --noconfirm plymouth || { note "no pude instalar plymouth"; exit 1; }
+
+mk=/etc/mkinitcpio.conf
+if ! grep -qE '^HOOKS=.*\bplymouth\b' "$mk"; then
+  sudo cp "$mk" "$mk.archfrican.bak"
+  sudo sed -i -E 's/^(HOOKS=\([^)]*\budev\b)/\1 plymouth/' "$mk"
+  if ! grep -qE '^HOOKS=.*\bplymouth\b' "$mk"; then
+    sudo sed -i -E 's/^(HOOKS=\([^)]*\bsystemd\b)/\1 plymouth/' "$mk"
+  fi
+fi
+
+gd=/etc/default/grub
+if [ -f "$gd" ] && ! grep -q splash "$gd"; then
+  sudo cp "$gd" "$gd.archfrican.bak"
+  sudo sed -i -E 's/^(GRUB_CMDLINE_LINUX_DEFAULT=")/\1splash /' "$gd"
+  if have grub-mkconfig; then sudo grub-mkconfig -o /boot/grub/grub.cfg >/dev/null 2>&1 || true; fi
+fi
+
+sudo plymouth-set-default-theme spinner 2>/dev/null || true
+
+if sudo mkinitcpio -P; then
+  note "Plymouth instalado (spinner). Reinicia para verlo. Recovery: linux-lts/snapshot en GRUB."
+else
+  if [ -f "$mk.archfrican.bak" ]; then sudo mv -f "$mk.archfrican.bak" "$mk"; sudo mkinitcpio -P || true; fi
+  note "mkinitcpio falló — restauré HOOKS. Plymouth NO activado."
+fi

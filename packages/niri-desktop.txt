@@ -93,3 +93,12 @@ espeak-ng                  # speech voices for speech-dispatcher
 # --- Fase 7: continuity + backup ---
 kdeconnect                 # phone notifications, shared clipboard, file send — archfrican-continuity
 restic                     # encrypted, deduplicated backup of your HOME — archfrican-backup
+
+# --- Fase 8: visual polish & identity ---
+matugen                    # Material You palette from a wallpaper — archfrican-wallpaper
+fprintd                    # fingerprint auth (opt-in) — archfrican-fingerprint
+libfprint                  # fingerprint reader drivers
+colord                     # color-management daemon (ICC profiles)
+colord-gtk                 # GTK color-management integration
+v4l-utils                  # webcam / V4L controls
+cameractrls                # GTK webcam settings panel (exposure, pan/zoom, white balance)

@@ -34,6 +34,8 @@ while :; do
   sel="$(printf '%s\n' \
     "Atajos esenciales (⌘+Space, ⌘+Shift+K/V/A)" \
     "Cambiar el tema" \
+    "Fondo de pantalla + theming dinámico" \
+    "Huella digital para sudo" \
     "Instalar un navegador (Brave o Vivaldi)" \
     "Tienda de apps (Flatpak)" \
     "Auto claro/oscuro por el sol" \
@@ -49,6 +51,8 @@ while :; do
   case "$sel" in
     "Atajos"*)                "$B/archfrican-keys" ;;
     "Cambiar"*)               pick_theme ;;
+    "Fondo de pantalla"*)     "$B/archfrican-wallpaper" ;;
+    "Huella"*)                "$B/archfrican-fingerprint" ;;
     "Instalar un navegador"*) "$B/archfrican-browser" ;;
     "Tienda"*)                if command -v gnome-software >/dev/null 2>&1; then gnome-software; else note "tienda no instalada (módulo 35-apps)"; fi ;;
     "Auto"*)                  "$B/archfrican-auto-appearance" on ;;

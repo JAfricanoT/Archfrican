@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# Fingerprint (Touch-ID-style) auth for sudo — OPT-IN. pam_fprintd is inserted as "sufficient" BEFORE
+# the password, so your password ALWAYS still works (no lockout). Fail-open, mirroring the FIDO2 wiring:
+# enroll, back up the PAM file, insert, self-check, and restore on any doubt.
+set -euo pipefail
+have() { command -v "$1" >/dev/null 2>&1; }
+note() { have notify-send && notify-send "Archfrican" "$1" || echo "$1"; }
+have fprintd-enroll || { note "instala fprintd"; exit 1; }
+
+note "enrolando huella — sigue las instrucciones en la terminal."
+ghostty -e sh -c 'fprintd-enroll; printf "(enter para cerrar) "; read -r _' || true
+fprintd-list "$USER" 2>/dev/null | grep -qi finger || { note "no se enroló ninguna huella (¿lector presente?) — PAM sin cambios."; exit 1; }
+
+pamf=/etc/pam.d/sudo
+if sudo grep -q pam_fprintd.so "$pamf" 2>/dev/null; then note "la huella ya estaba activada para sudo"; exit 0; fi
+sudo cp "$pamf" "$pamf.archfrican.bak"
+sudo sed -i '1i auth      sufficient   pam_fprintd.so' "$pamf"
+if sudo grep -qE '^auth[[:space:]]+(include|substack)[[:space:]]' "$pamf"; then
+  note "huella activada para sudo (tu contraseña sigue funcionando)."
+else
+  sudo mv -f "$pamf.archfrican.bak" "$pamf"; note "self-check PAM falló — restaurado, sin cambios."
+fi

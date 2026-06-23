@@ -147,6 +147,13 @@ real Time Machine (restic: encrypted, deduplicated, to a USB or any rclone remot
 And **`archfrican-rollback`** turns the snapshot safety net into one verb — pick a checkpoint (labelled
 with the repo commit) and reboot into it.
 
+**Visual polish & identity:** drop a wallpaper and the whole shell re-tints from it —
+`archfrican-wallpaper` runs matugen (Material You) into Archfrican's own token system (a `dynamic`
+theme kept in user state, so it never causes drift). Opt-in **fingerprint** for sudo
+(`archfrican-fingerprint`, inserted as *sufficient* so your password always still works) and an opt-in
+**Plymouth** boot splash (`archfrican-plymouth`, initramfs-gated with backup/restore — VM-validate
+first). Plus color management (colord) and webcam controls (cameractrls).
+
 Desktop niceties: **Quick Look** — select a file in Files and press <kbd>Space</kbd> for a preview.
 Handy commands: `archfrican-auto-appearance on` (auto light/dark by sun position) ·
 `archfrican-blur on` (frosted-glass blur, `niri validate`-guarded so it can't break your config) ·

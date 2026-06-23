@@ -46,6 +46,10 @@ sel="$(printf '%s\n' \
   "Continuidad (KDE Connect + LocalSend)…" \
   "Respaldo de ~ (Time Machine)…" \
   "Revertir actualización (rollback)…" \
+  "Wallpaper / theming dinámico…" \
+  "Huella digital para sudo…" \
+  "Splash de arranque (Plymouth)…" \
+  "Cámara (ajustes)" \
   "Bluetooth" \
   "Audio (mezclador)" \
   "Red / VPN" \
@@ -91,6 +95,10 @@ case "$sel" in
   "Continuidad"*)        "$B/archfrican-continuity" ;;
   "Respaldo"*)           "$B/archfrican-backup" ;;
   "Revertir"*)           "$B/archfrican-rollback" ;;
+  "Wallpaper"*)          "$B/archfrican-wallpaper" ;;
+  "Huella"*)             "$B/archfrican-fingerprint" ;;
+  "Splash"*)             "$B/archfrican-plymouth" ;;
+  "Cámara"*)             cameractrls ;;
   "Bluetooth"*)          blueman-manager ;;
   "Audio"*)              pavucontrol ;;
   "Red"*)                nm-connection-editor ;;
