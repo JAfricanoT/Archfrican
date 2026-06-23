@@ -139,7 +139,7 @@ jobs:
           export ARCHFRICAN_ROOT="$PWD"
           mkdir -p "$HOME/.config/niri"
           cp home/dot_config/niri/config.kdl.tmpl "$HOME/.config/niri/config.kdl"
-          files=(ghostty/colors waybar/colors.css fuzzel/colors.ini mako/colors niri/config.kdl)
+          files=(ghostty/colors waybar/colors.css fuzzel/colors.ini swaync/colors.css niri/config.kdl)
           snap() { for f in "${files[@]}"; do cat "$HOME/.config/$f"; done | sha256sum; }
           for t in macos-dark macos-light catppuccin-mocha tokyo-night; do
             bin/theme-switch "$t" >/dev/null; a="$(snap)"
@@ -147,7 +147,7 @@ jobs:
             [ "$a" = "$b" ] || { echo "::error::theme-switch not idempotent for $t"; exit 1; }
             if grep -RnoE '\$\{[A-Z_]+\}' \
                  "$HOME/.config/ghostty/colors" "$HOME/.config/waybar/colors.css" \
-                 "$HOME/.config/fuzzel/colors.ini" "$HOME/.config/mako/colors"; then
+                 "$HOME/.config/fuzzel/colors.ini" "$HOME/.config/swaync/colors.css"; then
               echo "::error::unrendered \${VAR} token left by $t"; exit 1
             fi
           done

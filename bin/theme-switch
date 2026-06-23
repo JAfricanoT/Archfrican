@@ -31,12 +31,12 @@ render() {                      # render <template-name> <out-file>
 }
 
 CFG="$HOME/.config"
-mkdir -p "$CFG"/{ghostty,waybar,fuzzel,mako,niri}
+mkdir -p "$CFG"/{ghostty,waybar,fuzzel,swaync,niri}
 
 render ghostty.colors      "$CFG/ghostty/colors"
 render waybar.colors.css   "$CFG/waybar/colors.css"
 render fuzzel.colors.ini   "$CFG/fuzzel/colors.ini"
-render mako.colors         "$CFG/mako/colors"
+render swaync.colors.css   "$CFG/swaync/colors.css"
 sed -i 's/=#/=/g' "$CFG/fuzzel/colors.ini"   # fuzzel wants hex without #
 
 # niri: splice the themed border block between markers; niri live-reloads on save
@@ -67,6 +67,6 @@ gsettings set org.gnome.desktop.interface icon-theme   "$ICON_THEME" 2>/dev/null
 
 # live reloads (no logout)
 pkill -SIGUSR2 waybar 2>/dev/null || true
-makoctl reload         2>/dev/null || true
+swaync-client --reload-css 2>/dev/null || true
 echo "$THEME" > "$CFG/.archfrican-theme"
 echo "switched to $THEME"

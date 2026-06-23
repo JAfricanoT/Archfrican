@@ -27,6 +27,12 @@ sel="$(printf '%s\n' \
   "Permisos de apps (Flatseal)" \
   "Crear web-app…" \
   "Nube / SMB…" \
+  "Centro de control (notificaciones)" \
+  "No molestar (alternar)" \
+  "Luz nocturna (alternar)" \
+  "VPN (Tailscale/WireGuard)…" \
+  "Audio: efectos / EQ (EasyEffects)" \
+  "Audio: patchbay (qpwgraph)" \
   "Bluetooth" \
   "Audio (mezclador)" \
   "Red / VPN" \
@@ -53,6 +59,12 @@ case "$sel" in
   "Permisos"*)           flatpak run com.github.tchx84.Flatseal ;;
   "Crear web-app"*)      "$B/archfrican-webapp" ;;
   "Nube"*)               "$B/archfrican-cloud" ;;
+  "Centro de control"*)  swaync-client -t -sw ;;
+  "No molestar"*)        swaync-client -d -sw ;;
+  "Luz nocturna"*)       "$B/archfrican-nightlight" toggle ;;
+  "VPN"*)                "$B/archfrican-vpn" ;;
+  "Audio: efectos"*)     easyeffects ;;
+  "Audio: patchbay"*)    qpwgraph ;;
   "Bluetooth"*)          blueman-manager ;;
   "Audio"*)              pavucontrol ;;
   "Red"*)                nm-connection-editor ;;

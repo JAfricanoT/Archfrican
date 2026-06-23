@@ -1,0 +1,42 @@
+{
+  "positionX": "right",
+  "positionY": "top",
+  "control-center-width": 380,
+  "control-center-height": 860,
+  "control-center-margin-top": 8,
+  "control-center-margin-right": 8,
+  "control-center-margin-bottom": 8,
+  "notification-window-width": 380,
+  "timeout": 6,
+  "timeout-low": 4,
+  "timeout-critical": 0,
+  "fit-to-screen": true,
+  "keyboard-shortcuts": true,
+  "image-visibility": "when-available",
+  "transition-time": 200,
+  "hide-on-clear": true,
+  "hide-on-action": true,
+  "widgets": ["title", "dnd", "buttons-grid", "mpris", "volume", "notifications"],
+  "widget-config": {
+    "title": { "text": "Centro de control", "clear-all-button": true, "button-text": "Limpiar" },
+    "dnd": { "text": "No molestar" },
+    "volume": { "label": "Vol" },
+    "buttons-grid": {
+      "buttons-per-row": 3,
+      "actions": [
+        { "label": "Wi-Fi", "type": "toggle",
+          "command": "sh -c 'nmcli radio wifi | grep -qw enabled && nmcli radio wifi off || nmcli radio wifi on'",
+          "update-command": "sh -c 'nmcli radio wifi | grep -qw enabled && echo true || echo false'" },
+        { "label": "Bluetooth", "type": "toggle",
+          "command": "sh -c \"bluetoothctl show | grep -q 'Powered: yes' && bluetoothctl power off || bluetoothctl power on\"",
+          "update-command": "sh -c \"bluetoothctl show | grep -q 'Powered: yes' && echo true || echo false\"" },
+        { "label": "Luz nocturna", "type": "toggle",
+          "command": "archfrican-nightlight toggle",
+          "update-command": "sh -c 'archfrican-nightlight status | grep -q on && echo true || echo false'" },
+        { "label": "Tema oscuro", "type": "normal", "command": "theme-switch macos-dark" },
+        { "label": "Tema claro", "type": "normal", "command": "theme-switch macos-light" },
+        { "label": "Pantallas", "type": "normal", "command": "nwg-displays" }
+      ]
+    }
+  }
+}

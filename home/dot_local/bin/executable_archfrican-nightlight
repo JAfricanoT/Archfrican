@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# Night light (warm screen) toggle via wlsunset, held at a constant warm temperature.
+# Fixed sunrise/sunset times (no geolocation needed) + equal high/low temp = constant 4000K.
+set -euo pipefail
+state="${XDG_RUNTIME_DIR:-/tmp}/archfrican-nightlight"
+start() {
+  pkill -x wlsunset 2>/dev/null || true
+  setsid wlsunset -T 4000 -t 4000 -S 06:00 -s 18:00 >/dev/null 2>&1 &
+  : > "$state"
+}
+stop() { pkill -x wlsunset 2>/dev/null || true; rm -f "$state"; }
+case "${1:-toggle}" in
+  on)     start; echo on ;;
+  off)    stop;  echo off ;;
+  status) [ -e "$state" ] && echo on || echo off ;;
+  toggle) if [ -e "$state" ]; then stop; echo off; else start; echo on; fi ;;
+  *) echo "usage: archfrican-nightlight on|off|toggle|status" >&2; exit 1 ;;
+esac

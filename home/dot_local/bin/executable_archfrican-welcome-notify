@@ -8,7 +8,7 @@ stamp="$state/welcome-shown"
 [ -e "$stamp" ] && exit 0
 command -v notify-send >/dev/null 2>&1 || exit 0
 mkdir -p "$state"
-sleep 4   # let the notification daemon (mako) and the bar come up first
+sleep 4   # let the notification daemon (swaync) and the bar come up first
 
 act="$(notify-send --app-name="Archfrican" -t 25000 \
   --action="keys=Ver atajos" --action="update=Buscar actualizaciones" \

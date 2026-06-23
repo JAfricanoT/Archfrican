@@ -116,6 +116,11 @@ Pick a browser with `archfrican-browser` (**Brave** or **Vivaldi** — opt-in, n
 turn a URL into a dockable app with `archfrican-webapp`, and connect cloud/SMB storage with
 `archfrican-cloud`. **Printing & scanning** work driverless (CUPS + SANE, auto-discovered on the network).
 
+**Control center** (`⌘ + Shift + D`, or click the bar bell): swaync notifications + Quick-Settings
+toggles (Wi-Fi, Bluetooth, dark/light, night light, displays) with a real Do-Not-Disturb. VPN via
+`archfrican-vpn` (Tailscale or WireGuard/OpenVPN); pro-audio with EasyEffects (mic noise suppression
++ EQ) and a qpwgraph patchbay.
+
 Desktop niceties: **Quick Look** — select a file in Files and press <kbd>Space</kbd> for a preview.
 Handy commands: `archfrican-auto-appearance on` (auto light/dark by sun position) ·
 `archfrican-blur on` (frosted-glass blur, `niri validate`-guarded so it can't break your config) ·

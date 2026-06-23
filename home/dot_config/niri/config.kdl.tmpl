@@ -77,7 +77,7 @@ environment {
 // }
 
 spawn-at-startup "waybar"
-spawn-at-startup "mako"
+spawn-at-startup "swaync"
 spawn-at-startup "awww-daemon"
 spawn-at-startup "{{ .chezmoi.homeDir }}/.local/bin/archfrican-idle"   // idle + suspend screen lock
 spawn-at-startup "/usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1"
@@ -158,4 +158,7 @@ binds {
     Mod+Shift+W { spawn "{{ .chezmoi.homeDir }}/.local/bin/archfrican-window"; }    // window switcher
     Mod+Shift+C { spawn "{{ .chezmoi.homeDir }}/.local/bin/archfrican-calc"; }      // calculator
     Mod+Shift+G { spawn "{{ .chezmoi.homeDir }}/.local/bin/archfrican-find"; }      // search files
+
+    // control center / notifications (swaync)
+    Mod+Shift+D { spawn "swaync-client" "-t" "-sw"; }   // toggle control center
 }

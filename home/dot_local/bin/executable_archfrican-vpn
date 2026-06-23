@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# VPN — Tailscale (account-based mesh) or NetworkManager (WireGuard/OpenVPN/OpenConnect).
+# tailscaled is enabled on first connect (opt-in), never at install. Tailscale connect opens a
+# terminal so you can see/authorize the login URL.
+set -euo pipefail
+have() { command -v "$1" >/dev/null 2>&1; }
+note() { have notify-send && notify-send "Archfrican" "$1" || echo "$1"; }
+
+sel="$(printf '%s\n' \
+  "Tailscale: conectar" \
+  "Tailscale: desconectar" \
+  "WireGuard / OpenVPN (NetworkManager)" \
+  | fuzzel --dmenu --prompt '  VPN  ')" || exit 0
+case "$sel" in
+  "Tailscale: conectar")
+    have tailscale || { note "instala tailscale"; exit 1; }
+    ghostty -e sh -c 'sudo systemctl enable --now tailscaled.service && sudo tailscale up; echo; printf "(enter para cerrar) "; read -r _' ;;
+  "Tailscale: desconectar")
+    { sudo tailscale down 2>/dev/null && note "Tailscale desconectado"; } || true ;;
+  "WireGuard"*)
+    nm-connection-editor >/dev/null 2>&1 & ;;
+esac
