@@ -1,0 +1,19 @@
+# Curated, DECLARATIVE Flatpak catalog — "the system = the repo, applied" extended to GUI apps.
+# modules/35-apps.sh installs each app-id below from Flathub on install/converge (idempotent and
+# non-fatal). Add the apps YOU want here; apps you install yourself in the store (they live in /var)
+# are user state and are never pruned. This file is NOT a pacman list (it lives outside packages/),
+# so the package-resolution CI gate and preflight never try to resolve these IDs against pacman.
+#
+# Flatseal ships by default — it's the GUI to inspect/revoke each app's permissions (the App-Store
+# "this app wants camera/mic/files access" control a Mac user expects).
+com.github.tchx84.Flatseal      # manage per-app Flatpak permissions
+
+# --- popular picks (uncomment what you want) ---
+# com.bitwarden.desktop          # Bitwarden password manager
+# md.obsidian.Obsidian           # Obsidian notes
+# com.spotify.Client             # Spotify
+# org.signal.Signal              # Signal
+# com.discordapp.Discord         # Discord
+# org.libreoffice.LibreOffice    # LibreOffice
+# org.gimp.GIMP                  # GIMP
+# org.videolan.VLC               # VLC media player

@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+# archfrican-webapp — turn a URL into a frameless, launcher-searchable, dockable "native" app (the
+# macOS "Add to Dock" / Omarchy webapp trick). Uses whatever Chromium-class browser you installed
+# (browser-agnostic — see archfrican-browser).
+#   archfrican-webapp "Gmail" https://mail.google.com      (or run with no args for prompts)
+set -euo pipefail
+have() { command -v "$1" >/dev/null 2>&1; }
+note() { have notify-send && notify-send "Archfrican" "$1" || echo "$1"; }
+
+BROWSER=""
+for b in vivaldi-stable vivaldi brave brave-browser chromium google-chrome-stable; do
+  have "$b" && { BROWSER="$b"; break; }
+done
+[ -n "$BROWSER" ] || { note "instala un navegador Chromium primero:  archfrican-browser"; exit 1; }
+
+name="${1:-}"; url="${2:-}"
+[ -n "$name" ] || name="$(fuzzel --dmenu --prompt 'Nombre de la app:  ' </dev/null)" || exit 0
+[ -n "$url" ]  || url="$(fuzzel --dmenu --prompt 'URL (https://…):  ' </dev/null)" || exit 0
+[ -n "$name" ] && [ -n "$url" ] || exit 0
+case "$url" in http://*|https://*) ;; *) url="https://$url" ;; esac
+
+slug="$(printf '%s' "$name" | tr '[:upper:] ' '[:lower:]-' | tr -cd 'a-z0-9-')"
+[ -n "$slug" ] || slug="webapp"
+appdir="$HOME/.local/share/applications"; icondir="$HOME/.local/share/icons/archfrican-webapps"
+mkdir -p "$appdir" "$icondir"
+
+icon="web-browser"
+if have curl; then
+  domain="$(printf '%s' "$url" | sed -E 's#^https?://([^/]+).*#\1#')"
+  if curl -fsSL --max-time 8 "https://www.google.com/s2/favicons?domain=${domain}&sz=128" -o "$icondir/$slug.png" 2>/dev/null \
+     && [ -s "$icondir/$slug.png" ]; then
+    icon="$icondir/$slug.png"
+  fi
+fi
+
+desktop="$appdir/archfrican-webapp-$slug.desktop"
+{
+  printf '[Desktop Entry]\n'
+  printf 'Type=Application\n'
+  printf 'Name=%s\n' "$name"
+  printf 'Exec=%s --app=%s --class=webapp-%s --name=webapp-%s\n' "$BROWSER" "$url" "$slug" "$slug"
+  printf 'Icon=%s\n' "$icon"
+  printf 'Terminal=false\n'
+  printf 'Categories=Network;X-WebApp;\n'
+  printf 'StartupWMClass=webapp-%s\n' "$slug"
+} > "$desktop"
+have update-desktop-database && { update-desktop-database "$appdir" >/dev/null 2>&1 || true; }
+note "Web-app creada: $name — búscala en el launcher (⌘+Space) o el dock."

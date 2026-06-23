@@ -1,0 +1,8 @@
+# App ecosystem (the "App Store" mental model) + cloud/SMB connectivity. pacman/AUR stays the
+# SYSTEM layer; Flatpak is the sandboxed layer that can never break the base. No browser here —
+# the browser is an opt-in choice (run `archfrican-browser` to install Brave or Vivaldi).
+flatpak                    # Flatpak runtime + Flathub backend (sandboxed GUI apps)
+gnome-software             # GUI software center (shows Flatpaks/firmware on Arch — never manages pacman)
+gvfs-smb                   # browse Windows/SMB shares in Files (nautilus "Connect to Server")
+rclone                     # mount cloud storage (Drive/Dropbox/OneDrive…) — see archfrican-cloud
+fuse3                      # FUSE — needed for rclone mounts

@@ -102,6 +102,25 @@ and **Shift** combos, so there's no collision:
 - `⌘ + Space` → launcher (Spotlight)   ·   `⌘ + Tab` → overview (Mission Control)
 - `⌘ + ←/→` → focus across the strip (`⌘ + Shift + ←/→` moves the column)   ·   3-finger swipe too
 - `⌘ + C/V/X/Z/A/S/F/W/T/N/Q/L/R` → native Ctrl shortcuts   ·   `Caps` → Esc(tap)/Ctrl(hold)
+- `⌘ + Shift + V` → clipboard history   ·   `⌘ + Shift + K` → searchable shortcut cheatsheet
+- `⌘ + Shift + A` → **command surface** (actions hub)   ·   `⌘ + Shift + W` → window switcher   ·   `⌘ + Shift + C` → calculator   ·   `⌘ + Shift + G` → file search
+
+The **command surface** (`⌘ + Shift + A`, the launcher pushed toward Spotlight/Raycast) reaches every
+setting and mode as a named verb: switch theme, check updates, set default apps, toggle blur/auto-dark,
+**emoji** picker, **web search** with bang prefixes (`g`, `yt`, `w`, `aw`, `aur`, `gh`), calculator, and
+local file search — all over the same fuzzel.
+
+**Apps:** Flatpak + Flathub are set up out of the box (sandboxed GUI apps, browsable in `gnome-software`;
+manage per-app permissions with **Flatseal**); a curated, declarative catalog lives in `flatpak/apps.txt`.
+Pick a browser with `archfrican-browser` (**Brave** or **Vivaldi** — opt-in, none installed by default),
+turn a URL into a dockable app with `archfrican-webapp`, and connect cloud/SMB storage with
+`archfrican-cloud`. **Printing & scanning** work driverless (CUPS + SANE, auto-discovered on the network).
+
+Desktop niceties: **Quick Look** — select a file in Files and press <kbd>Space</kbd> for a preview.
+Handy commands: `archfrican-auto-appearance on` (auto light/dark by sun position) ·
+`archfrican-blur on` (frosted-glass blur, `niri validate`-guarded so it can't break your config) ·
+`archfrican-defaults` (set the default browser/mail the no-nag way). A privacy dot appears in the bar
+whenever the mic or camera is in use.
 
 ## Layout
 

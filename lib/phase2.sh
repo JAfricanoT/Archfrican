@@ -18,7 +18,8 @@ on_err() {
 
 module_label() { case "$1" in
   00-base) echo "Base system";; 10-gpu) echo "GPU drivers";; 20-niri-desktop) echo "Desktop (niri)";;
-  30-dev) echo "Dev toolchains";; 40-theming) echo "Theming";; 50-snapshots) echo "Snapshots";;
+  30-dev) echo "Dev toolchains";; 35-apps) echo "Apps & Flatpak";; 40-theming) echo "Theming";;
+  45-print) echo "Printing & scanning";; 50-snapshots) echo "Snapshots";;
   55-multiboot) echo "Multi-boot";; 60-security) echo "Security";; 70-hygiene) echo "Hygiene";;
   *) echo "$1";; esac; }
 module_desc() { case "$1" in
@@ -26,7 +27,9 @@ module_desc() { case "$1" in
   10-gpu) echo "vendor-agnostic drivers for the detected GPU";;
   20-niri-desktop) echo "compositor, greetd login, keyd, audio";;
   30-dev) echo "editors, language servers, version managers, docker";;
+  35-apps) echo "Flatpak + Flathub, software center, cloud/SMB";;
   40-theming) echo "fonts, macOS GTK theme, hot-swap switcher";;
+  45-print) echo "CUPS + SANE, driverless printer/scanner discovery";;
   50-snapshots) echo "snapper + grub-btrfs rollback";;
   55-multiboot) echo "os-prober: detect another installed OS (GRUB)";;
   60-security) echo "firewall, dev-safe hardening, screen lock, FIDO2";;
@@ -134,7 +137,7 @@ run_phase2() {                # run_phase2 [single-module]
   log "GPU profile: $GPU"
 
   if [ "$UPDATE" = 1 ]; then ui_header "Converging Archfrican (update)"; else ui_header "Installing Archfrican"; fi
-  step_total 12
+  step_total 14
 
   # ---- apply host/user BEFORE the modules (idempotent) ----------------------
   # Update/converge skips identity: hostname/user/tz/locale/theme are set ONCE at install, and
@@ -160,7 +163,9 @@ run_phase2() {                # run_phase2 [single-module]
   run_module 10-gpu "$GPU"
   run_module 20-niri-desktop
   run_module 30-dev
+  run_module 35-apps
   run_module 40-theming
+  run_module 45-print
   run_module 50-snapshots
   run_module 55-multiboot "$MULTIBOOT"
   run_module 60-security "$SSH_ENABLE"

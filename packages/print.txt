@@ -1,0 +1,12 @@
+# Printing & scanning — the "just works" expectation. Driverless: IPP Everywhere (printers) and
+# eSCL/WSD (scanners) need no vendor drivers; CUPS + SANE discover devices via Avahi/DNS-SD.
+# mDNS (5353/udp) is already allowed by the firewall (modules/60-security.sh).
+cups                       # the print server
+cups-pdf                   # a "Print to PDF" virtual printer
+cups-filters               # OpenPrinting CUPS filters (PDF/PostScript/raster)
+system-config-printer      # GUI to add/manage printers (polkit-elevated; no group needed)
+avahi                      # DNS-SD/mDNS — auto-discovers network printers & scanners
+ipp-usb                    # driverless IPP-over-USB for modern USB printers/MFPs
+sane                       # SANE scanner backends
+sane-airscan               # driverless eSCL/WSD network scanning
+simple-scan                # GUI scanning app

@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# archfrican-browser — OPT-IN: pick & install your default browser (Brave or Vivaldi), then make it
+# the system default for http/https/html. Re-runnable. NEITHER browser is installed unless you choose
+# one here, so Archfrican depends on no specific browser.
+#   archfrican-browser            # menu
+#   archfrican-browser brave      # or: vivaldi
+set -euo pipefail
+have() { command -v "$1" >/dev/null 2>&1; }
+note() { have notify-send && notify-send "Archfrican" "$1" || echo "$1"; }
+
+sel="${1:-}"
+[ -n "$sel" ] || sel="$(printf '%s\n' \
+  "Brave   — liviano, bloqueo de anuncios integrado (Shields)" \
+  "Vivaldi — mejor con muchas pestañas (hibernación + tab stacks)" \
+  | fuzzel --dmenu --prompt '  navegador  ')" || exit 0
+
+extra=""
+case "$sel" in
+  [Bb]rave*)   pkg="brave-bin"; bin="brave";          desktop="brave-browser.desktop" ;;
+  [Vv]ivaldi*) pkg="vivaldi";   bin="vivaldi-stable";  desktop="vivaldi-stable.desktop"; extra="vivaldi-ffmpeg-codecs" ;;
+  *) echo "uso: archfrican-browser [brave|vivaldi]" >&2; exit 1 ;;
+esac
+
+if ! have "$bin"; then
+  have paru || { note "paru (capa AUR) no disponible"; exit 1; }
+  note "instalando $pkg desde AUR (puede tardar)…"
+  paru -S --needed --noconfirm "$pkg" || { note "falló la build AUR de $pkg — reintenta: paru -S $pkg"; exit 1; }
+  [ -n "$extra" ] && { paru -S --needed --noconfirm "$extra" || true; }
+fi
+
+have xdg-settings && { xdg-settings set default-web-browser "$desktop" 2>/dev/null || true; }
+for m in x-scheme-handler/http x-scheme-handler/https text/html; do
+  have xdg-mime && { xdg-mime default "$desktop" "$m" 2>/dev/null || true; }
+done
+note "navegador por defecto: ${desktop%.desktop}"

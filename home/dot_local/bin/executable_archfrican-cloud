@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+# archfrican-cloud — connect cloud storage (Google Drive/Dropbox/OneDrive…) via rclone, or browse a
+# Windows/SMB share in Files. Credentials stay in YOUR config (~/.config/rclone), never the repo.
+set -euo pipefail
+have() { command -v "$1" >/dev/null 2>&1; }
+note() { have notify-send && notify-send "Archfrican" "$1" || echo "$1"; }
+
+choice="$(printf '%s\n' \
+  "Configurar un remoto de nube (rclone config)" \
+  "Montar / desmontar un remoto" \
+  "Conectar a un recurso SMB / Windows" \
+  | fuzzel --dmenu --prompt '  nube  ')" || exit 0
+
+case "$choice" in
+  "Configurar"*)
+    have rclone || { note "instala rclone"; exit 1; }
+    ghostty -e rclone config ;;
+  "Montar"*)
+    have rclone || { note "instala rclone"; exit 1; }
+    remote="$(rclone listremotes 2>/dev/null | sed 's/:$//' | fuzzel --dmenu --prompt '  remoto  ')" || exit 0
+    [ -n "$remote" ] || exit 0
+    mnt="$HOME/Cloud/$remote"; mkdir -p "$mnt"
+    if mountpoint -q "$mnt" 2>/dev/null; then
+      fusermount3 -u "$mnt" 2>/dev/null || fusermount -u "$mnt" 2>/dev/null || true
+      note "desmontado: ~/Cloud/$remote"
+    else
+      setsid rclone mount "$remote:" "$mnt" --vfs-cache-mode writes >/dev/null 2>&1 &
+      note "montado: ~/Cloud/$remote"
+    fi ;;
+  "Conectar"*)
+    nautilus "smb://" >/dev/null 2>&1 & ;;
+esac
