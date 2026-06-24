@@ -27,7 +27,8 @@ jobs:
       - name: bash -n (syntax)
         run: |
           for f in install.sh lib/*.sh modules/*.sh bin/* home/dot_local/bin/executable_* \
-                   themes/*/colors.sh tests/e2e/*.sh migrations/*.sh; do bash -n "$f"; done
+                   themes/tokens.defaults.sh themes/*/colors.sh themes/*/tokens.sh \
+                   tests/e2e/*.sh migrations/*.sh; do bash -n "$f"; done
 
   firewall-ruleset:
     runs-on: ubuntu-latest        # the firewall must never `flush ruleset` (kills Docker)

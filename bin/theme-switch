@@ -22,6 +22,20 @@ fi
 # shellcheck disable=SC1090
 source "$PAL"
 
+# ADL design tokens (fonts, type scale, radius, spacing, motion, elevation) — the NON-colour half of
+# the identity. Palette sourced first (above) so a token may derive from a colour; then shared defaults,
+# then the theme's optional override (later wins). They share the ${TOKEN} namespace substituted below,
+# so shape/type/motion flow through the same render path as colour. Absent files are a no-op — every
+# existing theme, and the matugen 'dynamic' palette, inherits the ADL defaults for free.
+if [ -r "$ROOT/themes/tokens.defaults.sh" ]; then
+  # shellcheck disable=SC1090
+  source "$ROOT/themes/tokens.defaults.sh"
+fi
+if [ -r "$ROOT/themes/$THEME/tokens.sh" ]; then
+  # shellcheck disable=SC1090
+  source "$ROOT/themes/$THEME/tokens.sh"
+fi
+
 # Variables to substitute = exactly the ${TOKEN}s the templates use (single source
 # of truth — derived, so the list can't drift or carry dead entries).
 # word-split is intentional and safe: every token is a bare ${VAR} name (no spaces),
