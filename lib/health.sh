@@ -79,6 +79,24 @@ check_boot() {
   fi
 }
 
+check_multiboot() {
+  [ -d /sys/firmware/efi ] || { _h_skip "dual-boot" "not UEFI"; return; }
+  declare -F detect_other_os >/dev/null 2>&1 || { _h_skip "dual-boot" "detector n/a"; return; }
+  # detector mounts foreign ESPs read-only — needs root; never prompt.
+  [ "$(id -u)" -eq 0 ] || sudo -n true 2>/dev/null || { _h_skip "dual-boot" "needs sudo"; return; }
+  local other; other="$(detect_other_os 2>/dev/null)"
+  [ -n "$other" ] || { _h_ok "dual-boot" "no other OS detected"; return; }
+  local label; label="$(printf '%s' "$other" | head -1)"
+  # os-prober tags foreign entries "... (on /dev/sdXN)"; that suffix is the in-menu signal.
+  if grep -qsE "menuentry .*\(on /dev/" /boot/grub/grub.cfg; then
+    _h_ok "dual-boot" "other OS present and in the GRUB menu"
+  elif grep -qsxF 'GRUB_DISABLE_OS_PROBER=false' /etc/default/grub; then
+    _h_amber "dual-boot" "$label present, os-prober ON but unnamed (BitLocker/hibernated? shut it down, then: ./install.sh 55-multiboot yes)"
+  else
+    _h_amber "dual-boot" "$label present but not in GRUB — run: ./install.sh 55-multiboot yes"
+  fi
+}
+
 check_orphans() {
   _h_have pacman || { _h_skip "orphan packages"; return; }
   local n; n="$(pacman -Qtdq 2>/dev/null | grep -c . || true)"

@@ -93,9 +93,14 @@ run_phase2() {                # run_phase2 [single-module]
     THEME="$(ui_choose 'Initial theme' macos-dark macos-light catppuccin-mocha tokyo-night)"
     GPU="${ARCHFRICAN_GPU:-$DETECTED_GPU}"   # auto-detected; the installer picks the driver (no mis-pick)
     ui_note "GPU: $GPU (auto-detectada — el instalador elige el driver. Override: ARCHFRICAN_GPU=vm|nvidia|amd|intel)"
-    # Multi-boot (opt-in, default NO): enable os-prober so an already-installed OS shows up
-    # in the GRUB menu. Keeps the snapshot rollback submenu. Detects, never repartitions.
-    if ui_confirm_default_no "Share this machine with another OS already installed (multi-boot)?"; then
+    # Multi-boot: enable os-prober so an already-installed OS shows up in the GRUB menu (keeps the
+    # snapshot rollback submenu; detects, never repartitions). Pre-detect another OS on a different
+    # disk: if found, name it and default the prompt to YES; otherwise keep the old default-NO prompt.
+    local _other; _other="$(other_os_summary || true)"
+    if [ -n "$_other" ]; then
+      ui_note "Detected another OS ($_other) on a different disk."
+      ui_confirm "Show $_other in the GRUB boot menu (multi-boot)?" && MULTIBOOT=yes
+    elif ui_confirm_default_no "Share this machine with another OS already installed (multi-boot)?"; then
       MULTIBOOT=yes
     fi
     # SSH server (opt-in, default NO): a hardened sshd + an nftables allow for 22/tcp (remote access).
@@ -193,6 +198,14 @@ run_phase2() {                # run_phase2 [single-module]
   current_module=""
 
   ok "Done. Kernel linux-cachyos (fallback linux-lts in GRUB) · compositor niri · GPU $GPU · theme $THEME."
+
+  # Discoverability net: if multi-boot ended up OFF but another OS IS installed (user declined, or a
+  # headless override), say so on-screen with the exact one-liner to add it — so dual-boot is never a
+  # silent miss. Detector is read-only/best-effort; skip the scan entirely when multi-boot is already on.
+  if [ "$MULTIBOOT" != yes ]; then
+    local _other; _other="$(other_os_summary || true)"
+    [ -n "$_other" ] && warn "Another OS ($_other) is installed but NOT in your GRUB menu. Add it:  ./install.sh 55-multiboot yes"
+  fi
 
   # Record the desired-state manifest (drives drift detection + safe `--prune`). Done on every run so
   # a fresh install also has a baseline; opt-ins (multiboot) are reflected so prune respects them.

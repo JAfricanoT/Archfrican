@@ -62,6 +62,7 @@ source lib/host-config.sh     # apply hostname/user/timezone/locale
 source lib/security.sh       # fw_allow + faillock recovery (shared with 60-security)
 source lib/fido2.sh          # FIDO2 enroll/PAM helpers (wizard enroll step)
 source lib/disk.sh            # pick_disk + confirm_wipe (read-only, ISO path)
+source lib/multiboot.sh       # detect_other_os/other_os_summary — read-only dual-boot detector
 source lib/base-install.sh   # run_base_install (bedrock installer) + the ARCHFRICAN_ISO_ARMED gate
 source lib/phase2.sh          # run_phase2 (the booted experience)
 source lib/phase1.sh          # run_phase1 (the ISO full install; ships dry-run gated)

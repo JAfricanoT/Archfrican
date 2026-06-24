@@ -13,6 +13,8 @@ source "$ROOT/lib/converge.sh"   # drift_modules — for the config-drift check
 # shellcheck source=/dev/null
 source "$ROOT/lib/migrate.sh"    # pending_migrations — for the config-drift check
 # shellcheck source=/dev/null
+source "$ROOT/lib/multiboot.sh"  # detect_other_os — for the dual-boot health check
+# shellcheck source=/dev/null
 source "$ROOT/lib/health.sh"
 set +e +u +o pipefail
 
@@ -34,7 +36,7 @@ fi
 
 # ---- run every check ONCE (counts persist; redirect keeps H_* in this shell) ----
 run_all_checks() {
-  check_failed_units; check_journal; check_disk; check_snapshots; check_scrub; check_smart; check_boot
+  check_failed_units; check_journal; check_disk; check_snapshots; check_scrub; check_smart; check_boot; check_multiboot
   check_orphans; check_pacnew; check_updates; check_cve; check_firmware; check_reboot
   check_foreign; check_timers; check_drift
 }
