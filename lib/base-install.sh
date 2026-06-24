@@ -165,9 +165,23 @@ grub-mkconfig -o /boot/grub/grub.cfg
 # Guard (same style as the cryptdevice FATAL above): abort if neither EFI binary actually landed.
 [ -f /boot/EFI/Archfrican/grubx64.efi ] || { echo 'FATAL: GRUB missing in ESP (EFI/Archfrican/grubx64.efi)'; exit 1; }
 [ -f /boot/EFI/BOOT/BOOTX64.EFI ]       || { echo 'FATAL: removable-fallback GRUB missing (EFI/BOOT/BOOTX64.EFI)'; exit 1; }
-# NVRAM entry is best-effort: the removable fallback above already guarantees boot if it is missing.
-efibootmgr 2>/dev/null | grep -qi 'Archfrican' \
-  || echo 'WARN: no "Archfrican" UEFI boot entry registered — relying on the EFI/BOOT/BOOTX64.EFI fallback'
+# Make the firmware boot Archfrican FIRST. On a MULTI-DISK install with an existing OS, the firmware
+# BootOrder may still lead with that OS's entry, so the machine would boot the OLD OS on the first
+# reboot even though Arch is fully installed. Move our entry to the front of BootOrder (keeping every
+# other entry). Best-effort + safe: any uncertainty just warns and leaves BootOrder untouched, and the
+# EFI/BOOT/BOOTX64.EFI removable fallback still guarantees the disk itself is bootable.
+af_num="$(efibootmgr 2>/dev/null | sed -nE 's/^Boot([0-9A-Fa-f]{4})\*?[[:space:]]+Archfrican$/\1/p' | head -1)"
+cur="$(efibootmgr 2>/dev/null | sed -nE 's/^BootOrder:[[:space:]]*//p' | head -1)"
+if [ -n "$af_num" ] && [ -n "$cur" ]; then
+  rest="$(printf '%s' "$cur" | tr ',' '\n' | grep -vix "$af_num" | paste -sd, -)"
+  if efibootmgr --bootorder "${af_num}${rest:+,$rest}" >/dev/null 2>&1; then
+    echo "UEFI BootOrder set: Archfrican (Boot$af_num) boots first"
+  else
+    echo 'WARN: could not set BootOrder — if it boots another OS first, pick "Archfrican" in the firmware boot menu'
+  fi
+else
+  echo 'WARN: no "Archfrican" UEFI boot entry / BootOrder to reorder — relying on the EFI/BOOT/BOOTX64.EFI fallback'
+fi
 
 systemctl enable NetworkManager.service               # the first-boot resume needs the network
 systemctl enable NetworkManager-wait-online.service   # so network-online.target actually waits for connectivity
