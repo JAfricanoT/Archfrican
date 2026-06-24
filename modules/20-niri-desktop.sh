@@ -16,7 +16,7 @@ sudo install -d -m 0755 /usr/share/sddm/themes/archfrican
 sudo cp -a "$REPO_ROOT/assets/sddm/archfrican/." /usr/share/sddm/themes/archfrican/
 # Paint the theme from the user's current palette (themes/<name>/colors.sh via the token template).
 substep "theming the login from the active palette"
-THEME_NOW="$(cat "$HOME/.config/.archfrican-theme" 2>/dev/null || echo macos-dark)"
+THEME_NOW="$(cat "$HOME/.config/.archfrican-theme" 2>/dev/null || echo adl-dark)"
 render_sddm_theme "$THEME_NOW"     # lib/common.sh helper: token-render -> /usr/share/sddm/themes/archfrican/theme.conf
 
 substep "configuring SDDM (Wayland greeter, remember last user/session)"

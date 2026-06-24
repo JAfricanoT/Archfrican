@@ -33,8 +33,8 @@
         { "label": "Luz nocturna", "type": "toggle",
           "command": "archfrican-nightlight toggle",
           "update-command": "sh -c 'archfrican-nightlight status | grep -q on && echo true || echo false'" },
-        { "label": "Tema oscuro", "type": "normal", "command": "theme-switch macos-dark" },
-        { "label": "Tema claro", "type": "normal", "command": "theme-switch macos-light" },
+        { "label": "Tema oscuro", "type": "normal", "command": "theme-switch adl-dark" },
+        { "label": "Tema claro", "type": "normal", "command": "theme-switch adl-light" },
         { "label": "Pantallas", "type": "normal", "command": "nwg-displays" }
       ]
     }

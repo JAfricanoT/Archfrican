@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Toggle automatic light/dark by sun position (darkman). OFF by default — the one
 # consequential default we keep opt-in, because it changes your theme by time of
-# day. It only flips macos-light ⇄ macos-dark; a manual catppuccin/tokyo-night
-# pick is left untouched (see ~/.local/share/{light,dark}-mode.d hooks).
+# day. It flips light ⇄ dark WITHIN your identity family (ADL or macOS); a manual
+# catppuccin/tokyo-night/high-contrast pick is left untouched (see the
+# ~/.local/share/{light,dark}-mode.d hooks).
 #
 # darkman needs a location for sunrise/sunset. By default it tries geoclue; if you
 # pass coordinates they're pinned so it works even without a geoclue agent (a
@@ -19,7 +20,7 @@ case "${1:-status}" in
       printf 'usegeoclue: true\ndbusserver: true\n' > "$conf"
     fi
     systemctl --user enable --now darkman.service
-    echo "auto light/dark: ON — macos-light ⇄ macos-dark by sun position."
+    echo "auto light/dark: ON — light ⇄ dark (ADL or macOS) by sun position."
     echo "if the theme doesn't follow the sun (no geoclue agent), pin it: archfrican-auto-appearance on <lat> <lng>"
     ;;
   off)

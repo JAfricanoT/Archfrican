@@ -20,7 +20,7 @@ attempt "color-scheme"  gsettings set org.gnome.desktop.interface color-scheme  
 # Apply the user's chosen theme — read the staged pick (phase 2 / inject_resume wrote it; chezmoi
 # run_after re-applies it after dotfiles), NOT a hardcoded macos-dark. Hardcoding here silently
 # overrode the wizard choice on install and reset a long-standing theme on every converge.
-substep "applying the saved theme (the wizard pick, or macos-dark if none)"
-theme="$(cat "$HOME/.config/.archfrican-theme" 2>/dev/null || echo macos-dark)"
+substep "applying the saved theme (the wizard pick, or adl-dark if none)"
+theme="$(cat "$HOME/.config/.archfrican-theme" 2>/dev/null || echo adl-dark)"
 attempt "default theme" env ARCHFRICAN_ROOT="$REPO_ROOT" "$REPO_ROOT/bin/theme-switch" "$theme"
 ok "theming module done"

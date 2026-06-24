@@ -1,7 +1,9 @@
 #!/bin/sh
-# darkman light-mode hook → Archfrican: switch to the light macOS palette, but ONLY
-# when the user is already on a macOS theme (never override a manual pick).
-cur="$(cat "$HOME/.config/.archfrican-theme" 2>/dev/null || echo macos-dark)"
+# darkman light-mode hook → Archfrican: switch to the LIGHT palette of the user's identity family
+# (ADL or macOS), but ONLY when already on one of those pairs — never override a manual
+# catppuccin/tokyo-night/high-contrast pick.
+cur="$(cat "$HOME/.config/.archfrican-theme" 2>/dev/null || echo adl-dark)"
 case "$cur" in
+  adl-dark|adl-light)     exec "$HOME/.local/bin/theme-switch" adl-light ;;
   macos-dark|macos-light) exec "$HOME/.local/bin/theme-switch" macos-light ;;
 esac
