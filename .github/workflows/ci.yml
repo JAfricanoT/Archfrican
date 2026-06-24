@@ -141,7 +141,7 @@ jobs:
           mkdir -p "$HOME/.config/niri"
           cp home/dot_config/niri/config.kdl.tmpl "$HOME/.config/niri/config.kdl"
           files=(ghostty/colors waybar/colors.css fuzzel/colors.ini swaync/colors.css niri/config.kdl \
-                 gtk-3.0/gtk.css gtk-4.0/gtk.css fontconfig/fonts.conf)
+                 gtk-3.0/gtk.css gtk-4.0/gtk.css fontconfig/fonts.conf qt6ct/qt6ct.conf qt5ct/qt5ct.conf)
           snap() { for f in "${files[@]}"; do cat "$HOME/.config/$f"; done | sha256sum; }
           for t in adl-dark adl-light macos-dark macos-light catppuccin-mocha tokyo-night high-contrast; do
             bin/theme-switch "$t" >/dev/null; a="$(snap)"
@@ -151,7 +151,8 @@ jobs:
                  "$HOME/.config/ghostty/colors" "$HOME/.config/waybar/colors.css" \
                  "$HOME/.config/fuzzel/colors.ini" "$HOME/.config/swaync/colors.css" \
                  "$HOME/.config/gtk-3.0/gtk.css" "$HOME/.config/gtk-4.0/gtk.css" \
-                 "$HOME/.config/fontconfig/fonts.conf" "$HOME/.icons/default/index.theme"; then
+                 "$HOME/.config/fontconfig/fonts.conf" "$HOME/.icons/default/index.theme" \
+                 "$HOME/.config/qt6ct/qt6ct.conf" "$HOME/.config/qt5ct/qt5ct.conf"; then
               echo "::error::unrendered \${VAR} token left by $t"; exit 1
             fi
             # homogeneity invariant: the theme's accent reaches GTK from the SAME source of truth

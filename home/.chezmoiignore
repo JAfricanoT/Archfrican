@@ -11,4 +11,6 @@ README.md
 .config/fontconfig/fonts.conf
 .config/gtk-3.0/gtk.css
 .config/gtk-4.0/gtk.css
+.config/qt6ct/qt6ct.conf
+.config/qt5ct/qt5ct.conf
 .icons/default/index.theme

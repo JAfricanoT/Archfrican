@@ -63,11 +63,16 @@ sed -i 's/=#/=/g' "$CFG/fuzzel/colors.ini"   # fuzzel wants hex without #
 # GTK/libadwaita apps — and even apps that read neither GTK nor Qt settings — wear the identity too.
 # These write Archfrican-owned generated files only (chezmoi-ignored), never user content, so there is
 # nothing to back up and nothing to break.
-mkdir -p "$CFG/fontconfig" "$CFG/gtk-3.0" "$CFG/gtk-4.0" "$HOME/.icons/default"
+mkdir -p "$CFG/fontconfig" "$CFG/gtk-3.0" "$CFG/gtk-4.0" "$CFG/qt5ct" "$CFG/qt6ct" "$HOME/.icons/default"
 render fonts.conf                "$CFG/fontconfig/fonts.conf"
 render gtk.css                   "$CFG/gtk-3.0/gtk.css"
 render gtk.css                   "$CFG/gtk-4.0/gtk.css"
 render icons-default-index.theme "$HOME/.icons/default/index.theme"
+# Qt (qt6ct/qt5ct): Fusion + the ADL icon theme. Qt6 follows the portal's dark/light on its own and
+# Qt fonts come from fonts.conf above. The teal *accent* in the Qt palette (a qt6ct colorscheme or a
+# Kvantum theme) is deferred to hardware validation — its colour-role order can't be checked statically.
+render qt.conf                   "$CFG/qt6ct/qt6ct.conf"
+render qt.conf                   "$CFG/qt5ct/qt5ct.conf"
 
 # niri: splice the themed border block between markers; niri live-reloads on save.
 # GUARD (audit SEC-07): only splice when the config has BOTH markers. A config with THEME-START

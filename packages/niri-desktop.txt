@@ -64,6 +64,7 @@ nwg-displays               # GUI multi-monitor layout (niri-native; in 'extra', 
 qt5-wayland
 qt6-wayland
 qt6ct
+qt5ct                      # Qt5 platform theme (qpwgraph/VLC) — paired with qt6ct for one Qt look
 
 # --- Fase 0: quick-win UX (clipboard picker, Quick Look, privacy dot, auto light/dark, defaults) ---
 sushi                      # Quick Look: select a file in nautilus + press Space for a live preview
