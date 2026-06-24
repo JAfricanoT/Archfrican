@@ -33,12 +33,18 @@ if have curl; then
   fi
 fi
 
+# Archfrican cohesion: load the neutral web-app skin extension (scrollbar/selection/accent) when it
+# exists. Best-effort — Chromium still launches the web-app if the extension is absent or ignored.
+ext="$HOME/.local/share/archfrican-webapps-ext"
+loadext=""
+if [ -f "$ext/manifest.json" ]; then loadext="--load-extension=$ext "; fi
+
 desktop="$appdir/archfrican-webapp-$slug.desktop"
 {
   printf '[Desktop Entry]\n'
   printf 'Type=Application\n'
   printf 'Name=%s\n' "$name"
-  printf 'Exec=%s --app=%s --class=webapp-%s --name=webapp-%s\n' "$BROWSER" "$url" "$slug" "$slug"
+  printf 'Exec=%s %s--app=%s --class=webapp-%s --name=webapp-%s\n' "$BROWSER" "$loadext" "$url" "$slug" "$slug"
   printf 'Icon=%s\n' "$icon"
   printf 'Terminal=false\n'
   printf 'Categories=Network;X-WebApp;\n'

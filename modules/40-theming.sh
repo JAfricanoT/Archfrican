@@ -22,5 +22,13 @@ attempt "color-scheme"  gsettings set org.gnome.desktop.interface color-scheme  
 # overrode the wizard choice on install and reset a long-standing theme on every converge.
 substep "applying the saved theme (the wizard pick, or adl-dark if none)"
 theme="$(cat "$HOME/.config/.archfrican-theme" 2>/dev/null || echo adl-dark)"
+
+# Tier-B app cohesion (VS Code + web-apps) is ON by default — the homogeneity is the point;
+# `archfrican-cohesion off` disables it and is remembered across converge re-runs. Seed the flag only
+# on a first install (neither marker present), BEFORE theme-switch so its best-effort apply hook fires.
+if [ ! -e "$HOME/.config/archfrican/cohesion-on" ] && [ ! -e "$HOME/.config/archfrican/cohesion-off-chosen" ]; then
+  mkdir -p "$HOME/.config/archfrican"; : > "$HOME/.config/archfrican/cohesion-on"
+fi
+
 attempt "default theme" env ARCHFRICAN_ROOT="$REPO_ROOT" "$REPO_ROOT/bin/theme-switch" "$theme"
 ok "theming module done"

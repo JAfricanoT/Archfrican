@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+# archfrican-cohesion — opt-in Tier-B app cohesion: make third-party apps that IGNORE GTK/Qt settings
+# (VS Code, Chromium web-apps) wear the Archfrican identity too. ON by default — the homogeneity is the
+# point — but VS Code's settings are backed up before the first write and `off` restores that backup.
+# Tier A (GTK/Qt/fonts/cursor) is always-on in theme-switch and is NOT governed here.
+#   archfrican-cohesion on | off | status | apply
+set -euo pipefail
+have() { command -v "$1" >/dev/null 2>&1; }
+note() { if have notify-send; then notify-send "Archfrican" "$1"; else echo "$1"; fi; }
+
+CFG="$HOME/.config"
+ADIR="$CFG/archfrican"
+FLAG="$ADIR/cohesion-on"
+OFFCHOSEN="$ADIR/cohesion-off-chosen"   # persists a manual 'off' so converge re-runs don't re-enable
+STAGE="$ADIR/cohesion/vscode.colors.json"
+CODE_DIR="$CFG/Code/User"
+CODE_SETTINGS="$CODE_DIR/settings.json"
+CODE_BAK="$CODE_SETTINGS.archfrican.bak"
+
+apply_vscode() {                         # deep-merge the staged colour customisations into VS Code
+  [ -d "$CODE_DIR" ] || return 0         # VS Code absent / never launched -> nothing to do
+  have jq || return 0
+  [ -r "$STAGE" ] || return 0
+  if [ ! -f "$CODE_SETTINGS" ]; then echo '{}' > "$CODE_SETTINGS"; fi
+  local tmp; tmp="$(mktemp)"
+  if jq -s '.[0] * .[1]' "$CODE_SETTINGS" "$STAGE" > "$tmp" 2>/dev/null; then
+    if [ ! -f "$CODE_BAK" ]; then cp "$CODE_SETTINGS" "$CODE_BAK"; fi   # one-time backup before first change
+    mv "$tmp" "$CODE_SETTINGS"
+  else
+    rm -f "$tmp"                         # jq couldn't parse settings (JSONC comments?) -> leave it be
+  fi
+}
+
+restore_vscode() {                       # `off` -> put VS Code back exactly as it was pre-cohesion
+  if [ -f "$CODE_BAK" ]; then mv "$CODE_BAK" "$CODE_SETTINGS"; fi
+}
+
+case "${1:-status}" in
+  on)
+    mkdir -p "$ADIR"
+    rm -f "$OFFCHOSEN"
+    : > "$FLAG"
+    apply_vscode
+    note "Cohesión de apps: ON — VS Code y las web-apps siguen la identidad." ;;
+  off)
+    mkdir -p "$ADIR"
+    rm -f "$FLAG"
+    : > "$OFFCHOSEN"
+    restore_vscode
+    note "Cohesión de apps: OFF — VS Code restaurado a su backup." ;;
+  status)
+    if [ -e "$FLAG" ]; then echo on; else echo off; fi ;;
+  apply)
+    [ -e "$FLAG" ] || exit 0             # only act when enabled (theme-switch calls this best-effort)
+    apply_vscode ;;
+  *)
+    echo "usage: archfrican-cohesion on | off | status | apply" >&2; exit 1 ;;
+esac

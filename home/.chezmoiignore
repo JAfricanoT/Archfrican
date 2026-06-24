@@ -14,3 +14,5 @@ README.md
 .config/qt6ct/qt6ct.conf
 .config/qt5ct/qt5ct.conf
 .icons/default/index.theme
+.config/archfrican/cohesion/vscode.colors.json
+.local/share/archfrican-webapps-ext/theme.css

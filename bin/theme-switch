@@ -74,6 +74,17 @@ render icons-default-index.theme "$HOME/.icons/default/index.theme"
 render qt.conf                   "$CFG/qt6ct/qt6ct.conf"
 render qt.conf                   "$CFG/qt5ct/qt5ct.conf"
 
+# Cohesion Tier B (opt-in app injection): render the VS Code colour fragment to staging and the
+# web-app extension's stylesheet (cheap, harmless even when off), then best-effort hand off to the
+# opt-in applier so a theme switch propagates into VS Code / web-apps live. archfrican-cohesion owns
+# the backup-guarded mutation of user-owned files; theme-switch itself stays pure-render.
+mkdir -p "$CFG/archfrican/cohesion" "$HOME/.local/share/archfrican-webapps-ext"
+render vscode.colors.json "$CFG/archfrican/cohesion/vscode.colors.json"
+render webapp.css         "$HOME/.local/share/archfrican-webapps-ext/theme.css"
+if [ -e "$CFG/archfrican/cohesion-on" ] && command -v archfrican-cohesion >/dev/null 2>&1; then
+  archfrican-cohesion apply >/dev/null 2>&1 || true
+fi
+
 # niri: splice the themed border block between markers; niri live-reloads on save.
 # GUARD (audit SEC-07): only splice when the config has BOTH markers. A config with THEME-START
 # but no THEME-END would otherwise drop everything after START — silently truncating a

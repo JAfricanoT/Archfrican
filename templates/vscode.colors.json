@@ -1,0 +1,17 @@
+{
+  "workbench.colorCustomizations": {
+    "focusBorder": "${ACCENT}",
+    "progressBar.background": "${ACCENT}",
+    "activityBar.activeBorder": "${ACCENT}",
+    "activityBarBadge.background": "${ACCENT}",
+    "activityBarBadge.foreground": "${ACCENT_FG}",
+    "tab.activeBorderTop": "${ACCENT}",
+    "statusBarItem.remoteBackground": "${ACCENT}",
+    "textLink.foreground": "${ACCENT}",
+    "button.background": "${ACCENT}",
+    "button.foreground": "${ACCENT_FG}",
+    "list.highlightForeground": "${ACCENT}"
+  },
+  "editor.fontFamily": "${FONT_MONO}, monospace",
+  "terminal.integrated.fontFamily": "${FONT_MONO}"
+}

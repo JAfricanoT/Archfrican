@@ -47,6 +47,7 @@ sel="$(printf '%s\n' \
   "Respaldo de ~ (Time Machine)…" \
   "Revertir actualización (rollback)…" \
   "Wallpaper / theming dinámico…" \
+  "Cohesión de apps (alternar)" \
   "Huella digital para sudo…" \
   "Splash de arranque (Plymouth)…" \
   "Cámara (ajustes)" \
@@ -67,6 +68,7 @@ case "$sel" in
   "Apps por defecto"*)   "$B/archfrican-defaults" ;;
   "Auto claro/oscuro"*)  "$B/archfrican-auto-appearance" "$(toggle "$B/archfrican-auto-appearance")" ;;
   "Blur"*)               "$B/archfrican-blur" "$(toggle "$B/archfrican-blur")" ;;
+  "Cohesión de apps"*)   "$B/archfrican-cohesion" "$(toggle "$B/archfrican-cohesion")" ;;
   "Pantallas"*)          nwg-displays ;;
   "Atajos"*)             "$B/archfrican-keys" ;;
   "Bienvenida"*)         "$B/archfrican-welcome" --tour ;;
