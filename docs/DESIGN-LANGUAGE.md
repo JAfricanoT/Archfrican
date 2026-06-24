@@ -113,7 +113,7 @@ The recipe that scales cohesion to any app:
 5. Extend the `theme-switch-smoke` CI job: add the new file to the snapshot + the stray-`${TOKEN}`
    grep so every theme is proven to render it cleanly.
 
-For apps that ignore GTP/Qt settings entirely (Electron, Chromium web-apps) see
+For apps that ignore GTK/Qt settings entirely (Electron, Chromium web-apps) see
 [COHESION.md](COHESION.md) — they go through the opt-in `archfrican-cohesion` layer.
 
 ## Honest limits
