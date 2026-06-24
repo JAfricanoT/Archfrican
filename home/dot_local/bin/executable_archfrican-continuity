@@ -8,13 +8,18 @@ have() { command -v "$1" >/dev/null 2>&1; }
 note() { have notify-send && notify-send "Archfrican" "$1" || echo "$1"; }
 FW=/etc/nftables.d/archfrican-allows.nft
 
-# Range-capable allow (fw_allow only takes a single port). Mirrors its persisted nftables format so the
-# firewall reload reads it, and is idempotent on the same spec.
+# LAN-scoped allow. Continuity services (KDE Connect / LocalSend) are LAN-only, so restrict inbound to
+# PRIVATE sources — RFC1918 IPv4 + link-local/ULA IPv6 — instead of exposing the ports to ANY source
+# (a public-network risk). fw_allow only takes a single global port, so we write the scoped rules
+# directly in the persisted nftables format the firewall reload reads; idempotent on the same spec.
 allow() {  # allow <tcp|udp> <dport-spec>
-  local proto="$1" dport="$2"
-  if sudo grep -qF "$proto dport $dport accept" "$FW" 2>/dev/null; then return 0; fi
-  printf 'add rule inet filter input %s dport %s accept\n' "$proto" "$dport" | sudo tee -a "$FW" >/dev/null
-  sudo nft add rule inet filter input "$proto" dport "$dport" accept 2>/dev/null || true
+  local proto="$1" dport="$2" fam r
+  for fam in 'ip saddr { 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16 }' 'ip6 saddr { fe80::/10, fc00::/7 }'; do
+    r="$fam $proto dport $dport accept"
+    sudo grep -qF "$r" "$FW" 2>/dev/null && continue
+    printf 'add rule inet filter input %s\n' "$r" | sudo tee -a "$FW" >/dev/null
+    printf 'add rule inet filter input %s\n' "$r" | sudo nft -f - 2>/dev/null || true
+  done
 }
 
 note "abriendo puertos de continuidad (KDE Connect 1714-1764, LocalSend 53317)…"

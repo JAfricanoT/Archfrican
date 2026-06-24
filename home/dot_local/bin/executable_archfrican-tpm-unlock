@@ -19,6 +19,12 @@ uuid="$(sudo blkid -s UUID -o value "$dev" 2>/dev/null || true)"
 mapname="$(lsblk -rno NAME,TYPE | awk '$2=="crypt"{print $1; exit}')"; mapname="${mapname:-root}"
 sudo cryptsetup luksDump "$dev" 2>/dev/null | grep -qiE 'version:[[:space:]]*2' || { note "$dev no es LUKS2 — abortando"; exit 1; }
 
+# TPM auto-unlock is only strong WITH Secure Boot — without it, PCR 7 alone is weak (an attacker with
+# physical access could coax the TPM to release the key). Warn, don't block (the passphrase keyslot is
+# untouched either way).
+if ! bootctl status 2>/dev/null | grep -qiE 'secure boot:[[:space:]]*enabled'; then
+  note "Aviso: Secure Boot NO está activo — el auto-unlock por TPM es DÉBIL sin él. Corre 'archfrican-secureboot' y actívalo antes (tu passphrase sigue funcionando igual)."
+fi
 confirm="$(printf 'Sí, enrolar TPM2 (mi passphrase seguirá funcionando)\nCancelar\n' | fuzzel --dmenu --prompt "  TPM2 en $dev  ")" || exit 0
 case "$confirm" in "Sí,"*) ;; *) exit 0 ;; esac
 
@@ -28,8 +34,8 @@ echo '== Respaldo del header LUKS (cópialo luego a un USB) =='
 sudo cryptsetup luksHeaderBackup '$target' --header-backup-file \"\$HOME/luks-header-backup.img\" 2>/dev/null && echo 'guardado en ~/luks-header-backup.img' || true
 echo; echo '== Clave de recuperación offline (recomendado — guárdala en papel/USB) =='
 printf '¿Enrolar una clave de recuperación primero? [Y/n] '; read -r a; [ \"\$a\" = n ] || sudo systemd-cryptenroll '$target' --recovery-key || true
-echo; echo '== Enrolando el TPM2 — tu passphrase NO se modifica =='
-sudo systemd-cryptenroll --tpm2-device=auto '$target'
+echo; echo '== Enrolando el TPM2 (binding a PCR 7) — tu passphrase NO se modifica =='
+sudo systemd-cryptenroll --tpm2-device=auto --tpm2-pcrs=7 '$target'
 echo; echo '== Verificación (debe aparecer un token systemd-tpm2) =='; sudo cryptsetup luksDump '$target' | grep -i tpm2 || true
 echo; printf '(enter para cerrar) '; read -r _"
 

@@ -15,8 +15,12 @@ pamf=/etc/pam.d/sudo
 if sudo grep -q pam_fprintd.so "$pamf" 2>/dev/null; then note "la huella ya estaba activada para sudo"; exit 0; fi
 sudo cp "$pamf" "$pamf.archfrican.bak"
 sudo sed -i '1i auth      sufficient   pam_fprintd.so' "$pamf"
-if sudo grep -qE '^auth[[:space:]]+(include|substack)[[:space:]]' "$pamf"; then
+# Self-check mirrors lib/fido2.sh::fido2_pam_selfcheck (no-lockout): pam_fprintd must be 'sufficient'
+# AND an untouched password include must remain — else restore the backup and leave PAM unchanged.
+if sudo grep -qE '^auth[[:space:]]+sufficient[[:space:]]+pam_fprintd\.so' "$pamf" \
+   && sudo grep -qE '^auth[[:space:]]+(include|substack)[[:space:]]+(system-|common-)' "$pamf"; then
   note "huella activada para sudo (tu contraseña sigue funcionando)."
 else
-  sudo mv -f "$pamf.archfrican.bak" "$pamf"; note "self-check PAM falló — restaurado, sin cambios."
+  sudo mv -f "$pamf.archfrican.bak" "$pamf"
+  note "self-check PAM falló (huella no quedó 'sufficient' o falta el include de contraseña) — restaurado, sin cambios."
 fi
