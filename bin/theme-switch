@@ -19,18 +19,18 @@ else
   PAL="$ROOT/themes/$THEME/colors.sh"
 fi
 [ -f "$PAL" ] || { echo "no such theme: $THEME"; echo "available:"; ls "$ROOT/themes"; exit 1; }
-# shellcheck disable=SC1090
-source "$PAL"
-
-# ADL design tokens (fonts, type scale, radius, spacing, motion, elevation) — the NON-colour half of
-# the identity. Palette sourced first (above) so a token may derive from a colour; then shared defaults,
-# then the theme's optional override (later wins). They share the ${TOKEN} namespace substituted below,
-# so shape/type/motion flow through the same render path as colour. Absent files are a no-op — every
-# existing theme, and the matugen 'dynamic' palette, inherits the ADL defaults for free.
+# ADL design tokens (fonts, radius, spacing, motion, elevation, cursor + accent-contrast fallbacks):
+# the NON-colour half of the identity. Layered as a cascade — shared DEFAULTS first (base), then the
+# palette (overrides defaults, e.g. each theme's own ACCENT_FG), then the theme's optional shape
+# override (wins last). All share the ${TOKEN} namespace substituted below. Because the defaults are
+# the base layer, the matugen 'dynamic' palette (colours only) inherits every token for free, so no
+# template ${TOKEN} is ever left unrendered.
 if [ -r "$ROOT/themes/tokens.defaults.sh" ]; then
   # shellcheck disable=SC1090
   source "$ROOT/themes/tokens.defaults.sh"
 fi
+# shellcheck disable=SC1090
+source "$PAL"
 if [ -r "$ROOT/themes/$THEME/tokens.sh" ]; then
   # shellcheck disable=SC1090
   source "$ROOT/themes/$THEME/tokens.sh"
@@ -58,6 +58,16 @@ render waybar.colors.css   "$CFG/waybar/colors.css"
 render fuzzel.colors.ini   "$CFG/fuzzel/colors.ini"
 render swaync.colors.css   "$CFG/swaync/colors.css"
 sed -i 's/=#/=/g' "$CFG/fuzzel/colors.ini"   # fuzzel wants hex without #
+
+# Cohesion base (always on): drive the GTK accent, system fonts and the cursor from the SAME tokens, so
+# GTK/libadwaita apps — and even apps that read neither GTK nor Qt settings — wear the identity too.
+# These write Archfrican-owned generated files only (chezmoi-ignored), never user content, so there is
+# nothing to back up and nothing to break.
+mkdir -p "$CFG/fontconfig" "$CFG/gtk-3.0" "$CFG/gtk-4.0" "$HOME/.icons/default"
+render fonts.conf                "$CFG/fontconfig/fonts.conf"
+render gtk.css                   "$CFG/gtk-3.0/gtk.css"
+render gtk.css                   "$CFG/gtk-4.0/gtk.css"
+render icons-default-index.theme "$HOME/.icons/default/index.theme"
 
 # niri: splice the themed border block between markers; niri live-reloads on save.
 # GUARD (audit SEC-07): only splice when the config has BOTH markers. A config with THEME-START
@@ -98,6 +108,10 @@ fi
 gsettings set org.gnome.desktop.interface color-scheme "$GTK_SCHEME" 2>/dev/null || true
 gsettings set org.gnome.desktop.interface gtk-theme    "$GTK_THEME"  2>/dev/null || true
 gsettings set org.gnome.desktop.interface icon-theme   "$ICON_THEME" 2>/dev/null || true
+gsettings set org.gnome.desktop.interface font-name           "$FONT_UI $FONT_GTK_SIZE"   2>/dev/null || true
+gsettings set org.gnome.desktop.interface monospace-font-name "$FONT_MONO $FONT_GTK_SIZE" 2>/dev/null || true
+gsettings set org.gnome.desktop.interface cursor-theme        "$CURSOR_THEME" 2>/dev/null || true
+gsettings set org.gnome.desktop.interface cursor-size         "$CURSOR_SIZE"  2>/dev/null || true
 
 # live reloads (no logout)
 pkill -SIGUSR2 waybar 2>/dev/null || true

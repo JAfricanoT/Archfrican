@@ -62,6 +62,16 @@ export ELEV_BORDER="0.22"       # alpha for 1px hairline borders
 export BLUR_PASSES="3"
 export BLUR_RADIUS="8"
 
+# ── Cursor identity (one pointer across GTK / Qt / Wayland) ─────────────────────────────────────────
+export CURSOR_THEME="McMojave-cursors"
+export CURSOR_SIZE="24"
+
+# ── Accent-contrast fallback ────────────────────────────────────────────────────────────────────────
+# Readable text/icon colour shown ON the accent fill. Each theme overrides this in its colors.sh (it
+# depends on the accent's luminance); this white default only catches palettes that don't set it — i.e.
+# the matugen 'dynamic' palette. (Lives here, not in a template, so it is always defined.)
+export ACCENT_FG="#ffffff"
+
 # ── Focus-presence — the soft shadow on the focused window (the "Archfrican window") ────────────────
 export SHADOW_SOFTNESS="30"
 export SHADOW_SPREAD="5"

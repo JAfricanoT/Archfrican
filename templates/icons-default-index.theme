@@ -1,0 +1,4 @@
+[Icon Theme]
+Name=Default
+Comment=Archfrican default pointer — one cursor across GTK, Qt and Wayland
+Inherits=${CURSOR_THEME}

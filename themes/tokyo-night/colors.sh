@@ -1,6 +1,6 @@
 export GTK_SCHEME="prefer-dark"; export GTK_THEME="WhiteSur-Dark"; export ICON_THEME="WhiteSur-dark"
 export BG="#1a1b26"  BG_ALT="#24283b"  BG_DIM="#414868"
 export FG="#c0caf5"  FG_DIM="#565f89"
-export ACCENT="#7aa2f7"
+export ACCENT="#7aa2f7"  ACCENT_FG="#1a1b26"
 export RED="#f7768e" GREEN="#9ece6a" YELLOW="#e0af68" BLUE="#7aa2f7" MAGENTA="#bb9af7" CYAN="#7dcfff"
 export BORDER_ACTIVE="$ACCENT" BORDER_INACTIVE="#414868"
