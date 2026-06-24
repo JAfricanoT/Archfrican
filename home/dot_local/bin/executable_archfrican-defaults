@@ -25,7 +25,7 @@ cat="$(printf 'Navegador web\nCorreo\n' | fuzzel --dmenu --prompt '  por defecto
 case "$cat" in
   "Navegador web")
     app="$(pick_app 'navegador:')"; [ -n "$app" ] || exit 0
-    command -v xdg-settings >/dev/null 2>&1 && xdg-settings set default-web-browser "$app" || true
+    if command -v xdg-settings >/dev/null 2>&1; then xdg-settings set default-web-browser "$app" || true; fi
     for m in x-scheme-handler/http x-scheme-handler/https text/html; do xdg-mime default "$app" "$m"; done
     note "Navegador por defecto: $app" ;;
   "Correo")

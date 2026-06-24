@@ -39,4 +39,4 @@ sel="$(printf '%s\n' "$list" | fuzzel --dmenu --prompt '😀  ')" || exit 0
 emoji="${sel%% *}"
 [ -n "$emoji" ] || exit 0
 printf '%s' "$emoji" | wl-copy
-command -v notify-send >/dev/null 2>&1 && notify-send "Copiado" "$emoji" || true
+if command -v notify-send >/dev/null 2>&1; then notify-send "Copiado" "$emoji" || true; fi

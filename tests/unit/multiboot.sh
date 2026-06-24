@@ -39,9 +39,13 @@ assert_os "Linux (GRUB)" "systemd-bootx64.efi -> Linux (GRUB)"        "$(mkesp E
 assert_os ""             "our own EFI/Archfrican loader is SKIPPED"   "$(mkesp EFI/Archfrican grubx64.efi)"
 assert_os ""             "empty ESP -> none"                          "$(mktemp -d)"
 
-# case-insensitive (FAT): lowercase Microsoft path + uppercased loader still matches.
-d="$(mktemp -d)"; mkdir -p "$d/efi/microsoft/boot"; : > "$d/efi/microsoft/boot/BOOTMGFW.EFI"
-assert_os "Windows" "case-insensitive Microsoft path -> Windows" "$d"
+# Case-insensitivity is the function's own job ONLY for the loader GLOB (shopt nocaseglob in
+# _af_esp_os) — so a lowercase efi/ dir + an uppercase loader still resolves, on ANY filesystem
+# (nocaseglob is a bash feature, independent of the host FS). The Windows branch, by contrast, is a
+# literal `[ -e ]` check whose case-insensitivity comes from the real FAT mount, not the function, so
+# it can't be faithfully simulated on a case-sensitive CI filesystem. Test the glob branch:
+d="$(mktemp -d)"; mkdir -p "$d/efi/fedora"; : > "$d/efi/fedora/GRUBX64.EFI"
+assert_os "Linux (GRUB)" "case-insensitive loader glob (lowercase efi/ + uppercase loader)" "$d"
 
 printf '\nmultiboot unit test: %d passed, %d failed\n' "$P" "$F"
 [ "$F" -eq 0 ]

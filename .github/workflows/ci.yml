@@ -222,6 +222,9 @@ jobs:
       - name: every pacman-list package resolves in a binary repo
         run: |
           set -euo pipefail
+          # gaming/packages.txt pulls 32-bit libs (steam, lib32-*) from [multilib]; the installer
+          # enables it (modules/65-gaming.sh), so enable it here too or those packages won't resolve.
+          grep -q '^\[multilib\]' /etc/pacman.conf || printf '\n[multilib]\nInclude = /etc/pacman.d/mirrorlist\n' >> /etc/pacman.conf
           pacman -Sy --noconfirm
           rc=0
           # Glob every pacman list (skip aur.txt, as the runtime preflight_pkgs does) so new

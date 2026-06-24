@@ -3,7 +3,7 @@
 # UI via AccessKit + the keyboard-grab interface Orca needs, so the screen reader actually works here —
 # best-in-class FOSS tiling accessibility that Hyprland setups cannot offer.
 set -euo pipefail
-note() { command -v notify-send >/dev/null 2>&1 && notify-send "Archfrican" "$1" || true; }
+note() { if command -v notify-send >/dev/null 2>&1; then notify-send "Archfrican" "$1" || true; fi; }
 if pgrep -x orca >/dev/null 2>&1; then
   pkill -x orca 2>/dev/null || true
   note "Lector de pantalla: OFF"
