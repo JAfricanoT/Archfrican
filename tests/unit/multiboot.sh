@@ -39,13 +39,14 @@ assert_os "Linux (GRUB)" "systemd-bootx64.efi -> Linux (GRUB)"        "$(mkesp E
 assert_os ""             "our own EFI/Archfrican loader is SKIPPED"   "$(mkesp EFI/Archfrican grubx64.efi)"
 assert_os ""             "empty ESP -> none"                          "$(mktemp -d)"
 
-# Case-insensitivity is the function's own job ONLY for the loader GLOB (shopt nocaseglob in
-# _af_esp_os) — so a lowercase efi/ dir + an uppercase loader still resolves, on ANY filesystem
-# (nocaseglob is a bash feature, independent of the host FS). The Windows branch, by contrast, is a
-# literal `[ -e ]` check whose case-insensitivity comes from the real FAT mount, not the function, so
-# it can't be faithfully simulated on a case-sensitive CI filesystem. Test the glob branch:
-d="$(mktemp -d)"; mkdir -p "$d/efi/fedora"; : > "$d/efi/fedora/GRUBX64.EFI"
-assert_os "Linux (GRUB)" "case-insensitive loader glob (lowercase efi/ + uppercase loader)" "$d"
+# nocaseglob (set in _af_esp_os) makes the loader-FILENAME glob case-insensitive, FS-independently:
+# `grub*.efi` matches an uppercase GRUBX64.EFI because bash pattern-matches directory entries, not the
+# filesystem. (It does NOT help the literal directory components — `$d/EFI` is a plain lookup, so the
+# EFI dir must exist in that case; on a real ESP the FAT mount is case-insensitive, so it always does.
+# Hence we keep EFI/ exact-case here and only vary the loader filename's case — the part the function
+# actually normalises. A lowercase efi/ dir would only resolve on a case-insensitive mount/FS.)
+d="$(mktemp -d)"; mkdir -p "$d/EFI/fedora"; : > "$d/EFI/fedora/GRUBX64.EFI"
+assert_os "Linux (GRUB)" "case-insensitive loader filename (uppercase GRUBX64.EFI via nocaseglob)" "$d"
 
 printf '\nmultiboot unit test: %d passed, %d failed\n' "$P" "$F"
 [ "$F" -eq 0 ]
