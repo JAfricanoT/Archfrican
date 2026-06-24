@@ -106,6 +106,7 @@ p1_autopilot() {
   THEME="${AF_AP_THEME:-macos-dark}"
   GPU="${AF_AP_GPU:-$(detect_gpu)}"
   SSH_ENABLE="${AF_AP_SSH:-no}"
+  MULTIBOOT="${AF_AP_MULTIBOOT:-no}"   # tests stay single-boot; the detector never runs in autopilot
   [ -n "${AF_AP_USER_PASSWORD:-}" ] || die "autopilot: AF_AP_USER_PASSWORD is required"
   USER_ENC="$(printf '%s' "$AF_AP_USER_PASSWORD" | openssl passwd -6 -stdin)"
   [ "$ENCRYPT" != yes ] || DISK_PW="${AF_AP_LUKS_PASSPHRASE:?autopilot: AF_AP_LUKS_PASSPHRASE required when AF_AP_ENCRYPT=yes}"
@@ -121,7 +122,7 @@ run_phase1() {
 
   # ---- wizard (or autopilot for automated VM testing) -----------------------
   step "Setup wizard" "disk · encryption · hostname · user · locale · keyboard · theme · GPU"
-  local DISK ENCRYPT HOST USER_NAME TZ LOCALE XKB THEME GPU SSH_ENABLE=no
+  local DISK ENCRYPT HOST USER_NAME TZ LOCALE XKB THEME GPU SSH_ENABLE=no MULTIBOOT=no
   # Passwords never echoed. The user password is HASHED ($6$ SHA-512, via stdin so it never hits argv)
   # and handed to the installer on fd 4; the LUKS passphrase on fd 3.
   local USER_PW DISK_PW="" USER_ENC
@@ -140,6 +141,18 @@ run_phase1() {
     THEME="$(ui_choose 'Initial theme' macos-dark macos-light catppuccin-mocha tokyo-night)"
     GPU="${ARCHFRICAN_GPU:-$DETECTED_GPU}"   # auto-detected; the installer picks the driver (no mis-pick)
     ui_note "GPU: $GPU (auto-detectada — el instalador elige el driver. Override: ARCHFRICAN_GPU=vm|nvidia|amd|intel)"
+    # Multi-boot: detect another OS on a DIFFERENT disk and offer to add it to the GRUB menu (os-prober,
+    # module 55). Default YES when found (and auto-yes on a headless tty-less run). The detector excludes
+    # $DISK + the live USB. Override for scripted installs: ARCHFRICAN_MULTIBOOT=1|yes / 0|no.
+    case "${ARCHFRICAN_MULTIBOOT:-auto}" in
+      1|yes) MULTIBOOT=yes ;;
+      0|no)  MULTIBOOT=no ;;
+      *)     local _other; _other="$(other_os_summary "$DISK" || true)"
+             if [ -n "$_other" ]; then
+               ui_note "Detectado otro sistema operativo ($_other) en otro disco."
+               ui_confirm "¿Mostrar $_other en el menú de arranque (multi-boot)?" && MULTIBOOT=yes
+             fi ;;
+    esac
     if ui_confirm "¿Habilitar el servidor SSH (acceso remoto, endurecido)?" no; then SSH_ENABLE=yes; fi
     USER_PW="$(ui_password "Password for $USER_NAME")"
     [ "$ENCRYPT" = yes ] && DISK_PW="$(ui_password 'Disk passphrase')"
@@ -178,8 +191,9 @@ run_phase1() {
 
   # ---- wire the post-reboot finish + reboot ---------------------------------
   step "Wiring the post-reboot finish" "first-boot service that adds the niri desktop + dev layer"
-  # Multi-boot is NOT offered on the ISO path (it wipes $DISK); use the booted-path toggle after.
-  inject_resume "$USER_NAME" "$HOST" "$TZ" "$LOCALE" "$XKB" "$THEME" "$GPU" no "$SSH_ENABLE"
+  # Multi-boot is auto-enabled when another OS is detected on a DIFFERENT disk (only $DISK is wiped;
+  # other disks are untouched). os-prober runs at first boot via module 55 with this staged answer.
+  inject_resume "$USER_NAME" "$HOST" "$TZ" "$LOCALE" "$XKB" "$THEME" "$GPU" "$MULTIBOOT" "$SSH_ENABLE"
 
   step "Reboot" "into your new system; the rest installs automatically on first boot"
   ok "Base install complete. Hostname $HOST · user $USER_NAME (sudo) · GPU $GPU · theme $THEME."
@@ -187,6 +201,10 @@ run_phase1() {
     ok "autopilot: install complete — NOT rebooting (the harness asserts first). /mnt left mounted."
     return 0
   fi
+  local _usb; _usb="$(live_disk)"
+  warn "IMPORTANT: remove the installer USB NOW, before rebooting${_usb:+ (detected: /dev/$_usb)}."
+  warn "  If you leave it in, the firmware may boot it again or reshuffle the boot order, and the"
+  warn "  internal disk will look 'not bootable' even though the install is fine."
   if ui_confirm 'Reboot now?'; then
     ok "rebooting"; systemctl reboot
   else

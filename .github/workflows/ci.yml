@@ -213,8 +213,11 @@ jobs:
           pacman -Sy --noconfirm
           rc=0
           # Glob every pacman list (skip aur.txt, as the runtime preflight_pkgs does) so new
-          # lists — security.txt, multiboot.txt — are covered automatically.
-          for f in packages/*.txt; do
+          # lists — security.txt, multiboot.txt — are covered automatically. gaming/packages.txt
+          # lives outside packages/ (used by 65-gaming) so include it explicitly; flatpak/apps.txt
+          # is NOT a pacman list (Flathub app-ids) and stays excluded.
+          for f in packages/*.txt gaming/packages.txt; do
+            [ -e "$f" ] || continue
             [ "$(basename "$f")" = aur.txt ] && continue
             # strip inline/whole-line comments, trim surrounding whitespace, drop blanks — else the
             # padding before aligned `# comments` rides along as a trailing-space pkg name (-> "target not found").

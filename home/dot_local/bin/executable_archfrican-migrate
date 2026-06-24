@@ -12,7 +12,9 @@ do_dotfiles() {
   have chezmoi || { note "instala chezmoi"; return; }
   local url; url="$(ask 'repo chezmoi (git URL):  ')" || return
   [ -n "$url" ] || return
-  ghostty -e sh -c "chezmoi init --apply '$url'; echo; printf '(enter para cerrar) '; read -r _"
+  # pass $url as an arg (not interpolated) so a quote/metachar in the URL can't break out of sh -c
+  # shellcheck disable=SC2016  # $1 is expanded by the INNER sh -c, single quotes are intentional
+  ghostty -e sh -c 'chezmoi init --apply "$1"; echo; printf "(enter para cerrar) "; read -r _' _ "$url"
 }
 do_keys() {
   local src; src="$(ask 'carpeta de respaldo (ej: /run/media/USB):  ')" || return

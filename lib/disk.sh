@@ -14,10 +14,23 @@ _hsize() {                          # _hsize <bytes>
   }'
 }
 
-# List candidate install disks (type=disk; skips ROM/loop/partitions). Emits one
-# line per disk:  <name>\t<size-bytes>\t<model>
+# live_disk -> bare name of the disk we booted the installer from (empty when not on the ISO
+# or undetectable). The install USB is NEVER a valid target while we're running from it, so it's
+# dropped from the picker. confirm_wipe stays as the backstop. is_iso() comes from lib/env.sh.
+live_disk() {
+  is_iso || return 0
+  local src parent
+  src="$(findmnt -fno SOURCE /run/archiso/bootmnt 2>/dev/null)"
+  [ -n "$src" ] || return 0
+  parent="$(lsblk -no PKNAME "$src" 2>/dev/null | head -1)"
+  printf '%s' "${parent:-${src#/dev/}}"
+}
+
+# List candidate install disks (type=disk; skips ROM/loop/partitions AND the live install medium).
+# Emits one line per disk:  <name>\t<size-bytes>\t<model>
 list_disks() {
-  lsblk -dn -b -o NAME,SIZE,TYPE,MODEL 2>/dev/null | awk '$3=="disk"{
+  local live; live="$(live_disk)"
+  lsblk -dn -b -o NAME,SIZE,TYPE,MODEL 2>/dev/null | awk -v live="$live" '$3=="disk" && $1!=live{
     name=$1; size=$2; $1=$2=$3=""; sub(/^[ \t]+/,""); model=$0;
     print name "\t" size "\t" (model=="" ? "(unknown model)" : model)
   }'
@@ -26,9 +39,11 @@ list_disks() {
 # pick_disk -> echoes the chosen /dev/NAME to stdout (all prompts go to stderr,
 # so `d="$(pick_disk)"` stays clean). Dies if no installable disk exists.
 pick_disk() {
-  local name size model labels=()
+  local name size model tran labels=()
   while IFS=$'\t' read -r name size model; do
-    labels+=("$(printf '/dev/%s  (%s, %s)' "$name" "$(_hsize "$size")" "$model")")
+    # transport (nvme/sata/usb) disambiguates similarly-sized disks on multi-disk machines.
+    tran="$(lsblk -dno TRAN "/dev/$name" 2>/dev/null | tr -d '[:space:]')"
+    labels+=("$(printf '/dev/%s  (%s, %s%s)' "$name" "$(_hsize "$size")" "${tran:+$tran · }" "$model")")
   done < <(list_disks)
   [ "${#labels[@]}" -gt 0 ] || die "no installable disk found (lsblk saw no type=disk device)"
 
