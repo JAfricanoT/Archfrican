@@ -125,6 +125,7 @@ assert_install() {            # pre-reboot: against /mnt + the LUKS container
   assert "linux-lts kernel + initramfs in /boot"             test -e /mnt/boot/vmlinuz-linux-lts -a -e /mnt/boot/initramfs-linux-lts.img
   assert "GRUB config generated"                             test -f /mnt/boot/grub/grub.cfg
   assert "EFI bootloader entry (Archfrican) written"         test -d /mnt/boot/EFI/Archfrican
+  assert "removable EFI fallback (EFI/BOOT/BOOTX64.EFI)"      test -f /mnt/boot/EFI/BOOT/BOOTX64.EFI
   if [ "$enc" = yes ]; then
     assert "cryptdevice=UUID=<nonempty>:root in default/grub" p_cryptdev_set
     assert "that UUID matches the LUKS container"             p_cryptdev_uuid "$rootp"

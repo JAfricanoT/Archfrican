@@ -66,6 +66,19 @@ check_smart() {
   else _h_skip "disk SMART" "needs sudo / unsupported"; fi
 }
 
+check_boot() {
+  [ -d /sys/firmware/efi ] || { _h_skip "boot fallback" "not UEFI"; return; }
+  local main=/boot/EFI/Archfrican/grubx64.efi fb=/boot/EFI/BOOT/BOOTX64.EFI
+  if [ ! -f "$main" ]; then _h_red "boot fallback" "GRUB missing in ESP ($main) — boot may fail"; return; fi
+  if [ ! -f "$fb" ]; then
+    _h_amber "boot fallback" "no EFI/BOOT/BOOTX64.EFI — add it: sudo grub-install --efi-directory=/boot --bootloader-id=Archfrican --removable"
+  elif _h_have efibootmgr && ! efibootmgr 2>/dev/null | grep -qi 'Archfrican'; then
+    _h_amber "boot fallback" "fallback present but no NVRAM 'Archfrican' entry — booting via the fallback path"
+  else
+    _h_ok "boot fallback" "EFI/Archfrican + EFI/BOOT fallback present"
+  fi
+}
+
 check_orphans() {
   _h_have pacman || { _h_skip "orphan packages"; return; }
   local n; n="$(pacman -Qtdq 2>/dev/null | grep -c . || true)"

@@ -155,8 +155,19 @@ sed -i "s|^GRUB_CMDLINE_LINUX=.*|GRUB_CMDLINE_LINUX=\"$CMDLINE\"|" /etc/default/
 if [ "$ENC" = yes ]; then
   grep -q 'cryptdevice=UUID=' /etc/default/grub || { echo 'FATAL: cryptdevice did not land in /etc/default/grub'; exit 1; }
 fi
-grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=Archfrican
+# GRUB: install to the ESP, then ALSO write the firmware-default removable path so the disk stays
+# bootable even if the NVRAM "Archfrican" entry is dropped (firmware reset, install USB left in,
+# BootOrder reshuffle, …). Without this fallback the firmware has nothing to auto-discover on the
+# disk and it "disappears" from the boot menu though the system is fully installed.
+grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=Archfrican --recheck
+grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=Archfrican --removable --recheck
 grub-mkconfig -o /boot/grub/grub.cfg
+# Guard (same style as the cryptdevice FATAL above): abort if neither EFI binary actually landed.
+[ -f /boot/EFI/Archfrican/grubx64.efi ] || { echo 'FATAL: GRUB missing in ESP (EFI/Archfrican/grubx64.efi)'; exit 1; }
+[ -f /boot/EFI/BOOT/BOOTX64.EFI ]       || { echo 'FATAL: removable-fallback GRUB missing (EFI/BOOT/BOOTX64.EFI)'; exit 1; }
+# NVRAM entry is best-effort: the removable fallback above already guarantees boot if it is missing.
+efibootmgr 2>/dev/null | grep -qi 'Archfrican' \
+  || echo 'WARN: no "Archfrican" UEFI boot entry registered — relying on the EFI/BOOT/BOOTX64.EFI fallback'
 
 systemctl enable NetworkManager.service               # the first-boot resume needs the network
 systemctl enable NetworkManager-wait-online.service   # so network-online.target actually waits for connectivity

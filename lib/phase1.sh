@@ -187,6 +187,10 @@ run_phase1() {
     ok "autopilot: install complete — NOT rebooting (the harness asserts first). /mnt left mounted."
     return 0
   fi
+  local _usb; _usb="$(live_disk)"
+  warn "IMPORTANT: remove the installer USB NOW, before rebooting${_usb:+ (detected: /dev/$_usb)}."
+  warn "  If you leave it in, the firmware may boot it again or reshuffle the boot order, and the"
+  warn "  internal disk will look 'not bootable' even though the install is fine."
   if ui_confirm 'Reboot now?'; then
     ok "rebooting"; systemctl reboot
   else

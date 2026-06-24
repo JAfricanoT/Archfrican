@@ -28,6 +28,12 @@ pf_disk_target() { local need="$1" max
   max="$(lsblk -dnb -o SIZE,TYPE 2>/dev/null | awk '$2=="disk"{ if ($1+0 > m) m=$1 } END{ print m+0 }')"
   [ "${max:-0}" -ge "$need" ]; }
 pf_btrfs_snap() { [ "$(findmnt -no FSTYPE /)" = btrfs ] && [ -d /.snapshots ]; }
+# Secure Boot state — the installer ships an UNSIGNED GRUB, so SB must be OFF at install time or the
+# firmware silently refuses it. The SecureBoot efivar's last byte is 1 when enabled. Re-enable later
+# with `archfrican-secureboot` (signs GRUB via sbctl). Returns 0 when SB is off / not enforced.
+pf_sb_off()     { local f; f="$(echo /sys/firmware/efi/efivars/SecureBoot-* 2>/dev/null)"
+  [ -e "$f" ] || return 0
+  [ "$(od -An -t u1 "$f" 2>/dev/null | awk '{print $NF}')" != 1 ]; }
 
 preflight() {                      # preflight base|iso
   local mode="$1"; mkdir -p "$PF_STATE"
@@ -37,6 +43,12 @@ preflight() {                      # preflight base|iso
 
   if [ "$mode" = iso ]; then
     pf_fatal "UEFI firmware (Must use OVMF/UEFI, not BIOS)" pf_uefi
+    if pf_sb_off; then ok "Secure Boot off (GRUB ships unsigned)"
+    else
+      warn "PREFLIGHT WARN: Secure Boot is ENABLED — the installed GRUB is unsigned, so the firmware will refuse it."
+      warn "  Disable Secure Boot in firmware before installing; re-enable later with 'archfrican-secureboot' (signs GRUB via sbctl)."
+      PF_WARNINGS+=("Secure Boot enabled — unsigned GRUB won't boot until you disable it (or run archfrican-secureboot)")
+    fi
   else
     pf_warn "UEFI firmware (BIOS layout/rollback may differ)" pf_uefi
     [ "$EUID" -ne 0 ] || die "PREFLIGHT FAIL: run phase 2 as your user, not root"

@@ -34,7 +34,7 @@ fi
 
 # ---- run every check ONCE (counts persist; redirect keeps H_* in this shell) ----
 run_all_checks() {
-  check_failed_units; check_journal; check_disk; check_snapshots; check_scrub; check_smart
+  check_failed_units; check_journal; check_disk; check_snapshots; check_scrub; check_smart; check_boot
   check_orphans; check_pacnew; check_updates; check_cve; check_firmware; check_reboot
   check_foreign; check_timers; check_drift
 }
