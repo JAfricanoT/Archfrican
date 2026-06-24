@@ -2,7 +2,8 @@
 # Security helpers shared by modules/60-security.sh + bin/fw-allow. Sourced after
 # lib/common.sh. No side effects on source.
 
-ARCHFRICAN_FW_ALLOWS=/etc/nftables.d/archfrican-allows.nft
+# Overridable for unit tests (mirrors lib/fido2.sh::FIDO2_PAM_DIR). Production value is fixed.
+ARCHFRICAN_FW_ALLOWS="${ARCHFRICAN_FW_ALLOWS:-/etc/nftables.d/archfrican-allows.nft}"
 
 # Add an inbound allow rule (live + persistent) WITHOUT ever flushing other tables.
 # Persisted in an include file the firewall re-reads on every reload.
