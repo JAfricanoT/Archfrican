@@ -294,3 +294,5 @@ jobs:
         run: bash tests/unit/fw_allow.sh
       - name: multiboot — ESP OS classifier (Windows/Linux, skips our own loader)
         run: bash tests/unit/multiboot.sh
+      - name: disk picker — live_disk no-abort + list_disks excludes USB
+        run: bash tests/unit/disk.sh

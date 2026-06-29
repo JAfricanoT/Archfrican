@@ -20,20 +20,31 @@ _hsize() {                          # _hsize <bytes>
 live_disk() {
   is_iso || return 0
   local src parent
-  src="$(findmnt -fno SOURCE /run/archiso/bootmnt 2>/dev/null)"
-  [ -n "$src" ] || return 0
-  parent="$(lsblk -no PKNAME "$src" 2>/dev/null | head -1)"
-  printf '%s' "${parent:-${src#/dev/}}"
+  # Guard EVERY substitution with `|| true`: on a copytoram / odd-layout boot `/run/archiso/bootmnt`
+  # is not a mountpoint, so `findmnt` exits non-zero. Without the guard that failure can abort the
+  # caller — and the whole disk list — under `set -e`, surfacing as a false "no installable disk found".
+  src="$(findmnt -fno SOURCE /run/archiso/bootmnt 2>/dev/null || true)"
+  if [ -n "$src" ]; then
+    parent="$(lsblk -no PKNAME "$src" 2>/dev/null | head -1 || true)"
+    printf '%s' "${parent:-${src#/dev/}}"
+    return 0
+  fi
+  # Fallback when bootmnt is not mounted: the disk that carries the iso9660 archiso filesystem.
+  lsblk -rno PKNAME,FSTYPE 2>/dev/null | awk '$2=="iso9660"{print $1; exit}' || true
 }
 
 # List candidate install disks (type=disk; skips ROM/loop/partitions AND the live install medium).
 # Emits one line per disk:  <name>\t<size-bytes>\t<model>
+# `read -r NAME SIZE TYPE MODEL` keeps NAME/SIZE/TYPE as the first three tokens and lets a
+# space-containing MODEL ("SK hynix BC511 …") fall into the last field — no fragile column math.
 list_disks() {
   local live; live="$(live_disk)"
-  lsblk -dn -b -o NAME,SIZE,TYPE,MODEL 2>/dev/null | awk -v live="$live" '$3=="disk" && $1!=live{
-    name=$1; size=$2; $1=$2=$3=""; sub(/^[ \t]+/,""); model=$0;
-    print name "\t" size "\t" (model=="" ? "(unknown model)" : model)
-  }'
+  local NAME SIZE TYPE MODEL
+  while read -r NAME SIZE TYPE MODEL; do
+    [ "$TYPE" = disk ] || continue
+    { [ -n "$NAME" ] && [ "$NAME" != "$live" ]; } || continue
+    printf '%s\t%s\t%s\n' "$NAME" "$SIZE" "${MODEL:-(unknown model)}"
+  done < <(lsblk -dbno NAME,SIZE,TYPE,MODEL 2>/dev/null)
 }
 
 # pick_disk -> echoes the chosen /dev/NAME to stdout (all prompts go to stderr,
@@ -45,7 +56,16 @@ pick_disk() {
     tran="$(lsblk -dno TRAN "/dev/$name" 2>/dev/null | tr -d '[:space:]')"
     labels+=("$(printf '/dev/%s  (%s, %s%s)' "$name" "$(_hsize "$size")" "${tran:+$tran · }" "$model")")
   done < <(list_disks)
-  [ "${#labels[@]}" -gt 0 ] || die "no installable disk found (lsblk saw no type=disk device)"
+  if [ "${#labels[@]}" -eq 0 ]; then
+    # Instrumented failure: dump exactly what lsblk reports, so an otherwise-unreproducible "no disk"
+    # can be diagnosed from the error alone — which block devices exist, their TYPE/SIZE, and what we
+    # excluded as the live USB. All to stderr (stdout must stay clean for `d="$(pick_disk)"`).
+    { echo "  [disk-detect] is_iso=$(is_iso && echo yes || echo no)  live_disk(excluded)=[$(live_disk)]"
+      echo "  [disk-detect] lsblk -dno NAME,TYPE,SIZE,TRAN,MODEL:"
+      lsblk -dno NAME,TYPE,SIZE,TRAN,MODEL 2>&1 | sed 's/^/    /' || true
+    } >&2
+    die "no installable disk found (lsblk saw no type=disk device) — diagnostics above"
+  fi
 
   ui_header "Select the install disk"
   ui_note "EVERYTHING on the chosen disk will be erased."
