@@ -5,7 +5,9 @@
 // ╰──────────────────────────────────────────────────────────────────────╯
 
 input {
-    keyboard { xkb { layout "{{ output "sh" "-c" "cat ~/.config/.archfrican-kbd 2>/dev/null || echo us" | trim }}"; } }
+    keyboard {
+        xkb { layout "{{ output "sh" "-c" "cat ~/.config/.archfrican-kbd 2>/dev/null || echo us" | trim }}"; }
+    }
     touchpad {
         tap
         natural-scroll          // macOS-style scrolling
@@ -44,7 +46,7 @@ window-rule {
     clip-to-geometry true
     // SHADOW-START — soft focus shadow (the "Archfrican window" look). Commented for the SAME
     // version-safety as blur (older niri lacks `shadow`); a fresh install's niri supports it.
-    // Enable: uncomment this block, run `niri validate ~/.config/niri/config.kdl`, then reload.
+    // Enable: uncomment this block, run `niri validate` to check it, then reload niri.
     // shadow {
     //     on
     //     softness 30
