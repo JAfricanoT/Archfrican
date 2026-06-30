@@ -11,6 +11,7 @@ APPDIRS=(/usr/share/applications "$HOME/.local/share/applications" \
          /var/lib/flatpak/exports/share/applications "$HOME/.local/share/flatpak/exports/share/applications")
 
 have_desktop() { local id="$1" d; for d in "${APPDIRS[@]}"; do [ -e "$d/$id" ] && return 0; done; return 1; }
+is_installed() { if [ "$1" = cli ]; then have "$2"; else have_desktop "$2"; fi; }   # CLI tool (cmd) vs GUI app (.desktop)
 
 list_apps() {   # "Name<TAB>id.desktop" for every visible app — the fallback ("Otra app instalada…")
   local d f name
@@ -54,9 +55,9 @@ category() {
   local tgt=(); [ -n "$targets" ] && read -r -a tgt <<<"$targets"
   for row in "${rows[@]}"; do
     IFS='|' read -r disp id spec <<<"$row"
-    if have_desktop "$id"; then entries+=("$disp"); else entries+=("⤓ Instalar $disp…"); fi
+    if is_installed "$how" "$id"; then entries+=("$disp"); else entries+=("⤓ Instalar $disp…"); fi
   done
-  entries+=("Otra app instalada…")
+  [ "$how" = cli ] || entries+=("Otra app instalada…")   # CLIs have no .desktop list to fall back to
   sel="$(printf '%s\n' "${entries[@]}" | fuzzel --dmenu --prompt "$prompt ")" || return 0
   [ -n "$sel" ] || return 0
   if [ "$sel" = "Otra app instalada…" ]; then
@@ -67,16 +68,18 @@ category() {
   for row in "${rows[@]}"; do
     IFS='|' read -r disp id spec <<<"$row"
     [ "$disp" = "$want" ] || continue
-    if ! have_desktop "$id"; then
+    if ! is_installed "$how" "$id"; then
       do_install "$spec" || return 0
-      have_desktop "$id" || { note "$disp no quedó instalado"; return 0; }
+      is_installed "$how" "$id" || { note "$disp no quedó instalado"; return 0; }
     fi
-    apply_default "$id" "$how" ${tgt[@]+"${tgt[@]}"}; note "Por defecto: $disp"; return 0
+    if [ "$how" = cli ]; then note "$disp listo ✓"
+    else apply_default "$id" "$how" ${tgt[@]+"${tgt[@]}"}; note "Por defecto: $disp"; fi
+    return 0
   done
 }
 
 cat="$(printf '%s\n' \
-  "Navegador web" "Editor / IDE" "Terminal" "Gestor de archivos" \
+  "Navegador web" "Editor / IDE" "IA / agentes (CLI)" "Terminal" "Gestor de archivos" \
   "Visor de PDF" "Visor de imágenes" "Correo" \
   | fuzzel --dmenu --prompt '  app por defecto  ')" || exit 0
 
@@ -94,7 +97,17 @@ case "$cat" in
       "Zed|dev.zed.Zed.desktop|repo:zed" \
       "Neovim (terminal)|nvim.desktop|repo:neovim" \
       "Gnome Text Editor|org.gnome.TextEditor.desktop|repo:gnome-text-editor" \
-      "Kate|org.kde.kate.desktop|repo:kate" ;;
+      "Kate|org.kde.kate.desktop|repo:kate" \
+      "Cursor|cursor.desktop|aur:cursor-bin" \
+      "Antigravity|antigravity.desktop|aur:antigravity-bin" \
+      "Windsurf|windsurf.desktop|aur:windsurf" ;;
+  "IA / agentes (CLI)")
+    category '  IA (CLI)  ' cli '' \
+      "Claude Code|claude|aur:claude-code" \
+      "OpenCode|opencode|aur:opencode-bin" \
+      "Gemini CLI|gemini|aur:gemini-cli" \
+      "Aider|aider|aur:aider-chat" \
+      "Codex CLI|codex|aur:openai-codex-bin" ;;
   "Terminal")
     category '  terminal  ' terminal '' \
       "Ghostty|com.mitchellh.ghostty.desktop|repo:ghostty" \
