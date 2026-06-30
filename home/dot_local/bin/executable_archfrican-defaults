@@ -92,10 +92,11 @@ category() {
 
 cat="$(printf '%s\n' \
   "Navegador web" "Editor / IDE" "IA / agentes (CLI)" "Terminal" "Gestor de archivos" \
-  "Visor de PDF" "Visor de imágenes" "Correo" \
+  "Visor de PDF" "Visor de imágenes" "Correo" "Control de versiones · Git…" \
   | fuzzel --dmenu --prompt '  app por defecto  ')" || exit 0
 
 case "$cat" in
+  "Control de versiones"*) exec "$HOME/.local/bin/archfrican-git" ;;   # asistente: identidad + SSH + GitHub/GitLab
   "Navegador web")
     category '  navegador  ' browser 'x-scheme-handler/http x-scheme-handler/https text/html' \
       "Firefox|firefox.desktop|repo:firefox" \

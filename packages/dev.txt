@@ -23,6 +23,7 @@ eza
 zoxide
 jq
 lazygit
+github-cli                 # gh — used by archfrican-git to log in + upload the SSH key to GitHub
 docker
 docker-compose
 direnv

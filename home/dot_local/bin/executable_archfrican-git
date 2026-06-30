@@ -1,0 +1,129 @@
+#!/usr/bin/env bash
+# archfrican-git — get this machine ready to clone & push. A guided assistant for:
+#   · Git identity (name + email + sane defaults)
+#   · an SSH key (ed25519, generated only if you don't have one)
+#   · per-host auth: GitHub via the gh CLI (installs it, logs in, uploads the key);
+#     GitLab / Bitbucket / any host via SSH key + their settings page
+#   · testing the connection so you KNOW it works before you clone
+# Safe + idempotent: never overwrites an existing key, only writes config you confirm, nothing destructive.
+set -uo pipefail            # NOT -e: this is interactive, and `ssh -T <git-host>` exits 1 even on success
+have() { command -v "$1" >/dev/null 2>&1; }
+
+# Launched from the GUI (no terminal attached)? Pop a terminal — this is an interactive wizard.
+if [ ! -t 0 ]; then
+  have ghostty && exec ghostty -e "$0" "$@"
+  have foot     && exec foot "$0" "$@"
+fi
+
+KEY="$HOME/.ssh/id_ed25519"
+pause() { printf '\n(enter para continuar) '; read -r _ || true; }
+hr() { printf '\e[2m────────────────────────────────────────────\e[0m\n'; }
+
+setup_identity() {
+  local n e in
+  n="$(git config --global user.name  2>/dev/null || true)"
+  e="$(git config --global user.email 2>/dev/null || true)"
+  echo "Identidad actual: ${n:-(sin nombre)} <${e:-sin correo}>"
+  read -rp "Nombre para Git [${n}]: " in; [ -n "$in" ] && n="$in"
+  read -rp "Correo para Git [${e}]: " in; [ -n "$in" ] && e="$in"
+  [ -n "$n" ] && git config --global user.name  "$n"
+  [ -n "$e" ] && git config --global user.email "$e"
+  # sensible defaults (set unconditionally — they're the modern, least-surprising choices)
+  git config --global init.defaultBranch main
+  git config --global push.autoSetupRemote true
+  git config --global pull.rebase false
+  echo "✓ Identidad y defaults guardados (~/.gitconfig)."
+}
+
+ensure_ssh_key() {
+  if [ -f "$KEY" ]; then
+    echo "✓ Ya tienes una llave SSH ed25519."
+  else
+    echo "No hay llave SSH ed25519 — genero una nueva."
+    local e; e="$(git config --global user.email 2>/dev/null || echo "$USER@$(hostname)")"
+    mkdir -p "$HOME/.ssh"; chmod 700 "$HOME/.ssh"
+    echo "Te pedirá una passphrase: pon una para más seguridad, o déjala vacía para comodidad."
+    ssh-keygen -t ed25519 -C "$e" -f "$KEY" || { echo "✗ ssh-keygen cancelado"; return 1; }
+  fi
+  # add to the running agent if there is one (so a passphrase is asked once, not every push)
+  ssh-add "$KEY" >/dev/null 2>&1 || true
+  echo; echo "Tu llave PÚBLICA (esto es lo que se pega en el host, nunca el archivo sin .pub):"; hr
+  cat "$KEY.pub"; hr
+  if have wl-copy; then wl-copy < "$KEY.pub" && echo "📋 copiada al portapapeles (⌘+V para pegarla)."; fi
+}
+
+test_host() {  # test_host <git@host>
+  echo "Probando: ssh -T $1  (es normal que diga 'does not provide shell access' y eso ES éxito)"; hr
+  ssh -o StrictHostKeyChecking=accept-new -T "$1" 2>&1 | head -4; hr
+}
+
+setup_github() {
+  if ! have gh; then
+    echo "Instalando github-cli (gh)…"
+    sudo pacman -S --needed --noconfirm github-cli || { echo "✗ no pude instalar gh"; return 1; }
+  fi
+  ensure_ssh_key || return 1
+  echo
+  echo "Ahora abro 'gh auth login'. Elige:  GitHub.com  →  SSH  →  (deja que SUBA tu llave)  →  Login with a web browser."
+  pause
+  gh auth login || { echo "✗ login cancelado/incompleto"; return 1; }
+  gh auth setup-git 2>/dev/null || true              # también habilita el helper para HTTPS
+  # si gh no subió la llave (p.ej. ya existía sesión), ofrécelo explícito
+  if ! gh ssh-key list 2>/dev/null | grep -q .; then
+    read -rp "¿Subir tu llave SSH a GitHub ahora? [Y/n] " a
+    [ "${a:-Y}" = n ] || gh ssh-key add "$KEY.pub" -t "archfrican-$(hostname)" 2>/dev/null || true
+  fi
+  test_host git@github.com
+  echo "✓ GitHub listo. Clona con:  git clone git@github.com:USUARIO/REPO.git"
+}
+
+setup_generic() {
+  ensure_ssh_key || return 1
+  echo; echo "¿Qué host?"
+  echo "  1) GitLab (gitlab.com)   2) Bitbucket (bitbucket.org)   3) Otro (self-hosted)"
+  read -rp "Opción: " h
+  local sshhost="" url=""
+  case "$h" in
+    1) sshhost="git@gitlab.com";    url="https://gitlab.com/-/user_settings/ssh_keys" ;;
+    2) sshhost="git@bitbucket.org"; url="https://bitbucket.org/account/settings/ssh-keys/" ;;
+    3) read -rp "Host SSH (ej: git@git.miempresa.com): " sshhost ;;
+    *) echo "cancelado"; return 0 ;;
+  esac
+  echo; echo "Pega tu llave PÚBLICA (la de arriba, ya copiada) en la página de 'SSH keys' del host."
+  [ -n "$url" ] && have xdg-open && { echo "Abriendo $url …"; xdg-open "$url" >/dev/null 2>&1 || true; }
+  read -rp "Pulsa Enter cuando la hayas añadido… " _ || true
+  [ -n "$sshhost" ] && test_host "$sshhost"
+  echo "✓ Listo. Clona con:  git clone ${sshhost:-git@HOST}:USUARIO/REPO.git"
+}
+
+show_status() {
+  hr
+  echo "git:     $(have git && git --version || echo 'NO instalado')"
+  echo "gh:      $(have gh && gh --version 2>/dev/null | head -1 || echo 'no instalado (opcional, para GitHub)')"
+  echo "nombre:  $(git config --global user.name  2>/dev/null || echo '— sin configurar')"
+  echo "correo:  $(git config --global user.email 2>/dev/null || echo '— sin configurar')"
+  echo "llave SSH: $([ -f "$KEY.pub" ] && echo 'sí (~/.ssh/id_ed25519.pub)' || echo 'NO — créala con la opción 4')"
+  have gh && { echo; gh auth status 2>&1 | head -4; }
+  hr
+}
+
+while true; do
+  echo; printf '\e[1m  Archfrican · Configurar Git y repositorios\e[0m\n'
+  echo "  1) Identidad de Git (nombre + correo)"
+  echo "  2) GitHub  — gh CLI + llave SSH  (recomendado)"
+  echo "  3) GitLab / Bitbucket / otro host  (SSH)"
+  echo "  4) Ver / copiar mi llave SSH pública"
+  echo "  5) Estado actual (qué falta)"
+  echo "  6) Salir"
+  read -rp "  Opción: " opt || break
+  case "${opt:-}" in
+    1) setup_identity ;;
+    2) setup_identity; setup_github ;;     # identidad primero: gh y los commits la necesitan
+    3) setup_identity; setup_generic ;;
+    4) ensure_ssh_key ;;
+    5) show_status ;;
+    6|q|Q|"") echo "Hecho. Tu PC está listo para clonar y trabajar."; break ;;
+    *) echo "Opción no válida." ;;
+  esac
+  [ "${opt:-}" = 5 ] || pause
+done

@@ -32,6 +32,7 @@ sel="$(printf '%s\n' \
   "Tienda de apps (Flatpak)" \
   "Permisos de apps (Flatseal)" \
   "Crear web-app…" \
+  "Git / repositorios (SSH + GitHub)…" \
   "Nube / SMB…" \
   "Centro de control (notificaciones)" \
   "No molestar (alternar)" \
@@ -95,6 +96,7 @@ case "$sel" in
   "Tienda"*)             gnome-software ;;
   "Permisos"*)           flatpak run com.github.tchx84.Flatseal ;;
   "Crear web-app"*)      "$B/archfrican-webapp" ;;
+  "Git /"*)              "$B/archfrican-git" ;;
   "Nube"*)               "$B/archfrican-cloud" ;;
   "Centro de control"*)  swaync-client -t -sw ;;
   "No molestar"*)        swaync-client -d -sw ;;
