@@ -40,8 +40,19 @@ hotkey-overlay { skip-at-startup; }
 // directive is version-specific — it ships COMMENTED so an older niri can't fail
 // to start. Uncomment after confirming support: `niri validate config.kdl`.
 window-rule {
-    geometry-corner-radius 10
+    geometry-corner-radius 12
     clip-to-geometry true
+    // SHADOW-START — soft focus shadow (the "Archfrican window" look). Commented for the SAME
+    // version-safety as blur (older niri lacks `shadow`); a fresh install's niri supports it.
+    // Enable: uncomment this block, run `niri validate ~/.config/niri/config.kdl`, then reload.
+    // shadow {
+    //     on
+    //     softness 30
+    //     spread 3
+    //     offset x=0 y=6
+    //     color "#00000055"
+    // }
+    // SHADOW-END
     // BLUR-START — frosted glass; OFF by default (older niri lacks it). Enable safely: `archfrican-blur on`
     // blur {
     //     on
