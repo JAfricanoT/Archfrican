@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# archfrican-defaults — set default apps the honest way (no nag, no dark pattern).
-# Picking a browser/mail app reassigns ALL its related url+mime handlers at once,
-# the way "Set default browser" works on macOS. Pure xdg-utils (always present).
+# archfrican-defaults — set default apps the honest way (no nag, no dark pattern). Picking an app
+# reassigns ALL its related url+mime handlers at once, the way "Set default…" works on macOS. Pure
+# xdg-utils (always present); the terminal default uses the freedesktop ~/.config/xdg-terminals.list.
 set -euo pipefail
 command -v fuzzel >/dev/null 2>&1 || { echo "fuzzel required" >&2; exit 1; }
 
@@ -20,16 +20,50 @@ list_apps() {   # print "Name<TAB>id.desktop" for every visible installed app
 }
 pick_app() { list_apps | fuzzel --dmenu --prompt "$1 " | cut -f2; }
 note() { command -v notify-send >/dev/null 2>&1 && notify-send "Archfrican" "$1" || echo "$1"; }
+set_mimes() {   # set_mimes <app.desktop> <mime...> — assign the app as default for each MIME type
+  local app="$1" m; shift
+  for m in "$@"; do xdg-mime default "$app" "$m"; done
+}
 
-cat="$(printf 'Navegador web\nCorreo\n' | fuzzel --dmenu --prompt '  por defecto  ')" || exit 0
+cat="$(printf '%s\n' \
+  "Navegador web" \
+  "Editor / IDE" \
+  "Terminal" \
+  "Gestor de archivos" \
+  "Visor de PDF" \
+  "Visor de imágenes" \
+  "Correo" \
+  | fuzzel --dmenu --prompt '  app por defecto  ')" || exit 0
+
 case "$cat" in
   "Navegador web")
     app="$(pick_app 'navegador:')"; [ -n "$app" ] || exit 0
     if command -v xdg-settings >/dev/null 2>&1; then xdg-settings set default-web-browser "$app" || true; fi
-    for m in x-scheme-handler/http x-scheme-handler/https text/html; do xdg-mime default "$app" "$m"; done
+    set_mimes "$app" x-scheme-handler/http x-scheme-handler/https text/html
     note "Navegador por defecto: $app" ;;
+  "Editor / IDE")
+    app="$(pick_app 'editor:')"; [ -n "$app" ] || exit 0
+    set_mimes "$app" text/plain text/markdown application/json text/x-csrc text/x-c++src \
+      text/x-python application/x-shellscript text/x-script.python text/x-java
+    note "Editor por defecto: $app (los editores de terminal necesitan Terminal=true en su .desktop)" ;;
+  "Terminal")
+    app="$(pick_app 'terminal:')"; [ -n "$app" ] || exit 0
+    mkdir -p "$HOME/.config"; printf '%s\n' "$app" > "$HOME/.config/xdg-terminals.list"
+    note "Terminal por defecto: $app" ;;
+  "Gestor de archivos")
+    app="$(pick_app 'archivos:')"; [ -n "$app" ] || exit 0
+    set_mimes "$app" inode/directory
+    note "Gestor de archivos por defecto: $app" ;;
+  "Visor de PDF")
+    app="$(pick_app 'PDF:')"; [ -n "$app" ] || exit 0
+    set_mimes "$app" application/pdf
+    note "Visor de PDF por defecto: $app" ;;
+  "Visor de imágenes")
+    app="$(pick_app 'imágenes:')"; [ -n "$app" ] || exit 0
+    set_mimes "$app" image/png image/jpeg image/gif image/webp image/svg+xml image/tiff image/bmp
+    note "Visor de imágenes por defecto: $app" ;;
   "Correo")
     app="$(pick_app 'correo:')"; [ -n "$app" ] || exit 0
-    xdg-mime default "$app" x-scheme-handler/mailto
+    set_mimes "$app" x-scheme-handler/mailto
     note "Correo por defecto: $app" ;;
 esac
