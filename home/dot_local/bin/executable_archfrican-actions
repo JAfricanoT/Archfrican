@@ -64,8 +64,8 @@ case "$sel" in
   "Cambiar tema"*)
     t="$(for d in "$HOME"/.archfrican/themes/*/; do [ -d "$d" ] && basename "$d"; done \
         | fuzzel --dmenu --prompt '  tema  ')" && [ -n "$t" ] && theme-switch "$t" ;;
-  *"actualizaciones"*)   ghostty -e archfrican-update ;;
-  *"Salud"*)             ghostty -e archfrican-doctor ;;
+  *"actualizaciones"*)   ghostty -e sh -c "archfrican-update; printf '\n(enter para cerrar) '; read -r _" ;;
+  *"Salud"*)             ghostty -e sh -c "archfrican-doctor; printf '\n(enter para cerrar) '; read -r _" ;;
   "Apps por defecto"*)   "$B/archfrican-defaults" ;;
   "Auto claro/oscuro"*)  "$B/archfrican-auto-appearance" "$(toggle "$B/archfrican-auto-appearance")" ;;
   "Blur"*)               "$B/archfrican-blur" "$(toggle "$B/archfrican-blur")" ;;

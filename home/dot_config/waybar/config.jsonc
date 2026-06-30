@@ -18,7 +18,7 @@
   "power-profiles-daemon": { "format": "{icon}", "tooltip-format": "{profile}", "format-icons": { "performance": "", "balanced": "", "power-saver": "" } },
   "network": { "format-wifi": "  {essid}", "format-ethernet": "  wired", "format-disconnected": "  off" },
   "bluetooth": { "format": "", "format-disabled": "", "format-connected": " {num_connections}", "tooltip-format": "{controller_alias}\t{status}", "on-click": "blueman-manager" },
-  "custom/health": { "format": "{}", "return-type": "json", "interval": 1800, "exec": "archfrican-doctor --json", "on-click": "ghostty -e archfrican-doctor", "tooltip": true },
+  "custom/health": { "format": "{}", "return-type": "json", "interval": 1800, "exec": "archfrican-doctor --json", "on-click": "ghostty -e sh -c 'archfrican-doctor; echo; echo \"(enter para cerrar)\"; read -r _'", "tooltip": true },
   "custom/privacy": { "format": "{}", "return-type": "json", "interval": 3, "exec": "$HOME/.local/bin/archfrican-privacy-indicator", "tooltip": true },
   "custom/notification": { "tooltip": false, "format": "{icon}", "format-icons": { "notification": "●", "none": "", "dnd-notification": "●", "dnd-none": "", "inhibited-notification": "●", "inhibited-none": "", "dnd-inhibited-notification": "●", "dnd-inhibited-none": "" }, "return-type": "json", "exec": "swaync-client -swb", "on-click": "swaync-client -t -sw", "on-click-right": "swaync-client -d -sw", "escape": true },
   "pulseaudio": { "format": "{icon} {volume}%", "format-icons": { "default": ["", "", ""] }, "on-click": "pavucontrol" },
