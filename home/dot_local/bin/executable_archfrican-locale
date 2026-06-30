@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+# archfrican-locale — change language (LANG), keyboard layout (xkb), timezone or hostname at runtime.
+# fuzzel picks the value; the apply (sudo + locale-gen) runs in a terminal — the same localectl/
+# timedatectl/hostnamectl logic the installer uses (lib/host-config.sh). Language + keyboard need a
+# re-login for full effect (niri and most apps read locale/xkb at session start).
+set -euo pipefail
+have() { command -v "$1" >/dev/null 2>&1; }
+note() { have notify-send && notify-send "Archfrican" "$1" || echo "$1"; }
+have fuzzel || { echo "fuzzel required" >&2; exit 1; }
+have ghostty || { note "ghostty no disponible"; exit 1; }
+kbdfile="$HOME/.config/.archfrican-kbd"
+
+cur_lang="${LANG:-?}"
+cur_kbd="$(cat "$kbdfile" 2>/dev/null || echo us)"
+cur_tz="$(timedatectl show -p Timezone --value 2>/dev/null || echo '?')"
+cur_host="$(hostnamectl --static 2>/dev/null || hostname 2>/dev/null || echo '?')"
+
+sel="$(printf '%s\n' \
+  "Idioma del sistema (LANG)  ·  $cur_lang" \
+  "Teclado (xkb)  ·  $cur_kbd" \
+  "Zona horaria  ·  $cur_tz" \
+  "Nombre del equipo (hostname)  ·  $cur_host" \
+  | fuzzel --dmenu --prompt '  idioma y región  ')" || exit 0
+
+case "$sel" in
+  "Idioma"*)
+    loc="$(sed -nE 's/^#?[[:space:]]*([A-Za-z0-9._@-]+)[[:space:]]+UTF-8[[:space:]]*$/\1/p' /etc/locale.gen \
+          | sort -u | fuzzel --dmenu --prompt '  idioma  ')" || exit 0
+    [ -n "$loc" ] || exit 0
+    # Mirrors apply_locale_keyboard: uncomment in locale.gen -> locale-gen -> set system LANG.
+    # shellcheck disable=SC2016
+    ghostty -e env AF_VAL="$loc" sh -c '
+      set -e
+      echo "── Aplicando idioma: $AF_VAL ──"
+      sudo sed -i "s/^#[[:space:]]*\(${AF_VAL}[[:space:]].*\)/\1/" /etc/locale.gen
+      sudo locale-gen
+      sudo localectl set-locale "LANG=$AF_VAL"
+      echo; echo "Idioma → $AF_VAL.  Re-inicia sesión para aplicarlo del todo."
+      printf "(enter para cerrar) "; read -r _'
+    note "Idioma → $loc (re-inicia sesión)" ;;
+  "Teclado"*)
+    xkb="$(localectl list-x11-keymap-layouts 2>/dev/null | fuzzel --dmenu --prompt '  teclado  ')" || exit 0
+    [ -n "$xkb" ] || exit 0
+    # shellcheck disable=SC2016
+    ghostty -e env AF_VAL="$xkb" sh -c '
+      set -e
+      echo "── Aplicando teclado: $AF_VAL ──"
+      sudo localectl set-x11-keymap "$AF_VAL"
+      sudo localectl set-keymap "$AF_VAL" 2>/dev/null || true
+      echo; echo "Teclado → $AF_VAL.  Re-inicia niri para aplicarlo en el escritorio."
+      printf "(enter para cerrar) "; read -r _'
+    printf '%s\n' "$xkb" > "$kbdfile"   # niri reads this at startup (config.kdl xkb layout)
+    note "Teclado → $xkb (re-inicia niri)" ;;
+  "Zona horaria"*)
+    tz="$(timedatectl list-timezones 2>/dev/null | fuzzel --dmenu --prompt '  zona horaria  ')" || exit 0
+    [ -n "$tz" ] || exit 0
+    # shellcheck disable=SC2016
+    ghostty -e env AF_VAL="$tz" sh -c '
+      set -e
+      sudo timedatectl set-timezone "$AF_VAL"
+      echo "Zona horaria → $AF_VAL."
+      printf "(enter para cerrar) "; read -r _'
+    note "Zona horaria → $tz" ;;
+  "Nombre"*)
+    # shellcheck disable=SC2016
+    ghostty -e sh -c '
+      set -e
+      printf "Nuevo nombre del equipo (hostname): "; read -r h
+      [ -n "$h" ] || { echo "sin cambios"; printf "(enter) "; read -r _; exit 0; }
+      sudo hostnamectl set-hostname "$h"
+      grep -qE "^127\.0\.1\.1[[:space:]]+$h\b" /etc/hosts 2>/dev/null \
+        || printf "127.0.1.1\t%s\n" "$h" | sudo tee -a /etc/hosts >/dev/null
+      echo "Hostname → $h."
+      printf "(enter para cerrar) "; read -r _' ;;
+esac
