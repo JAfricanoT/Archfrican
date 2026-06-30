@@ -18,7 +18,7 @@ jobs:
         run: |
           shellcheck -x -e SC1091 \
             install.sh lib/*.sh modules/*.sh bin/* home/dot_local/bin/executable_* tests/e2e/*.sh \
-            migrations/*.sh templates/firstboot-notice.sh
+            migrations/*.sh templates/firstboot-notice.sh build-iso.sh
 
   bashn:
     runs-on: ubuntu-latest
@@ -28,7 +28,7 @@ jobs:
         run: |
           for f in install.sh lib/*.sh modules/*.sh bin/* home/dot_local/bin/executable_* \
                    themes/tokens.defaults.sh themes/*/colors.sh themes/*/tokens.sh \
-                   tests/e2e/*.sh migrations/*.sh; do bash -n "$f"; done
+                   tests/e2e/*.sh migrations/*.sh build-iso.sh; do bash -n "$f"; done
 
   firewall-ruleset:
     runs-on: ubuntu-latest        # the firewall must never `flush ruleset` (kills Docker)
@@ -296,3 +296,5 @@ jobs:
         run: bash tests/unit/multiboot.sh
       - name: disk picker — live_disk no-abort + list_disks excludes USB
         run: bash tests/unit/disk.sh
+      - name: displays — niri layout splice + validate-or-revert
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq jq && bash tests/unit/displays.sh

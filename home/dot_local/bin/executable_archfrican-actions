@@ -70,7 +70,13 @@ case "$sel" in
   "Auto claro/oscuro"*)  "$B/archfrican-auto-appearance" "$(toggle "$B/archfrican-auto-appearance")" ;;
   "Blur"*)               "$B/archfrican-blur" "$(toggle "$B/archfrican-blur")" ;;
   "Cohesión de apps"*)   "$B/archfrican-cohesion" "$(toggle "$B/archfrican-cohesion")" ;;
-  "Pantallas"*)          nwg-displays ;;
+  "Pantallas"*)
+    d="$(printf 'Organizar pantallas (nwg-displays)\nGuardar el layout actual (persistir)\n' \
+        | fuzzel --dmenu --prompt '  pantallas  ')" || exit 0
+    case "$d" in
+      Organizar*) nwg-displays ;;
+      Guardar*)   "$B/archfrican-displays" save ;;
+    esac ;;
   "Atajos"*)             "$B/archfrican-keys" ;;
   "Bienvenida"*)         "$B/archfrican-welcome" --tour ;;
   "Migrar"*)             "$B/archfrican-migrate" ;;

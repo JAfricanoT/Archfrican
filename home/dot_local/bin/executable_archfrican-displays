@@ -1,0 +1,99 @@
+#!/usr/bin/env bash
+# archfrican-displays — make your niri monitor layout PERSIST across reboots and chezmoi updates.
+#
+# nwg-displays arranges your monitors LIVE (via `niri msg`) but does NOT write the layout into niri's
+# config, so a reboot loses it. This snapshots the CURRENT live layout into ~/.config/niri/config.kdl
+# (between managed markers) and saves a sidecar that run_after re-applies after every `chezmoi apply`.
+#
+# SAFE BY DESIGN: backs up config.kdl and rolls back if `niri validate` rejects the result — a
+# malformed nested KDL block would otherwise make niri silently ignore the whole config.
+#
+#   archfrican-displays save              snapshot the current live layout -> config.kdl + sidecar
+#   archfrican-displays restore           re-splice the saved sidecar into config.kdl (used by run_after)
+#   archfrican-displays save --debug      print the generated block (for reporting a validate failure)
+set -euo pipefail
+have() { command -v "$1" >/dev/null 2>&1; }
+note() { if have notify-send; then notify-send "Archfrican" "$1"; else echo "$1"; fi; }
+
+CFG="${XDG_CONFIG_HOME:-$HOME/.config}"
+KDL="$CFG/niri/config.kdl"
+SIDE="$CFG/.archfrican-displays.kdl"
+BAK="$KDL.archfrican-displays.bak"
+START="// ARCHFRICAN-DISPLAYS-START (managed by archfrican-displays — edit via nwg-displays + 'archfrican-displays save')"
+END="// ARCHFRICAN-DISPLAYS-END"
+
+# gen_blocks — turn the live `niri msg --json outputs` into niri `output { … }` blocks.
+# Only enabled outputs (logical != null). Captures mode/scale/position/VRR (rotation is left to niri's
+# default — uncommon, and omitting it keeps the generated KDL minimal and valid).
+gen_blocks() {
+  niri msg --json outputs | jq -r '
+    to_entries[] | .key as $n | .value as $o
+    | select($o.logical != null)
+    | ($o.modes[$o.current_mode]) as $m
+    | "output \"\($n)\" {",
+      (if $m then "    mode \"\($m.width)x\($m.height)@\($m.refresh_rate/1000)\"" else empty end),
+      "    scale \($o.logical.scale)",
+      "    position x=\($o.logical.x) y=\($o.logical.y)",
+      (if $o.vrr_enabled then "    variable-refresh-rate" else empty end),
+      "}"
+  '
+}
+
+# apply_to_config — splice $SIDE (which carries its own START/END markers) into config.kdl, then
+# validate-or-revert. Replaces the existing managed region, or appends one if the markers are absent.
+apply_to_config() {
+  [ -f "$KDL" ]  || { note "no existe $KDL — ¿niri instalado?"; return 1; }
+  [ -f "$SIDE" ] || return 0
+  cp -f "$KDL" "$BAK"
+  local tmp; tmp="$(mktemp)"
+  if grep -qF 'ARCHFRICAN-DISPLAYS-START' "$KDL" && grep -qF 'ARCHFRICAN-DISPLAYS-END' "$KDL"; then
+    # Replace between markers. Same balance-guard as theme-switch: if EOF is reached still inside the
+    # block (unbalanced/duplicate markers) awk exits 1 and we keep the original untouched.
+    if ! awk 'NR==FNR{blk=blk $0 ORS; next}
+              /ARCHFRICAN-DISPLAYS-START/{printf "%s", blk; skip=1; next}
+              /ARCHFRICAN-DISPLAYS-END/{skip=0; next}
+              !skip{print}
+              END{ exit (skip ? 1 : 0) }' "$SIDE" "$KDL" > "$tmp"; then
+      rm -f "$tmp"; note "marcadores DISPLAYS desbalanceados — dejé config.kdl sin tocar"; return 1
+    fi
+  else
+    { cat "$KDL"; printf '\n'; cat "$SIDE"; } > "$tmp"   # no markers yet: append a managed block
+  fi
+  mv -f "$tmp" "$KDL"
+  # Verify-or-revert: a block niri can't parse would silently disable the whole config.
+  if have niri && ! niri validate >/dev/null 2>&1; then
+    cp -f "$BAK" "$KDL"
+    note "niri rechazó el layout generado — REVERTÍ config.kdl (nada se rompió). Reporta: 'archfrican-displays save --debug'"
+    return 1
+  fi
+  return 0
+}
+
+cmd="${1:-save}"
+case "$cmd" in
+  save)
+    have niri || { note "niri no está corriendo — no puedo leer el layout"; exit 1; }
+    have jq   || { note "falta jq (pacman -S jq)"; exit 1; }
+    blocks="$(gen_blocks)" || { note "no pude leer 'niri msg --json outputs'"; exit 1; }
+    [ -n "$blocks" ] || { note "niri no reporta ninguna salida activa"; exit 1; }
+    if [ "${2:-}" = "--debug" ]; then printf '%s\n%s\n%s\n' "$START" "$blocks" "$END"; exit 0; fi
+    # Stash the previous sidecar so a validate failure rolls BOTH config.kdl AND the sidecar back —
+    # otherwise a later `restore` would re-apply a layout niri already rejected.
+    if [ -f "$SIDE" ]; then cp -f "$SIDE" "$SIDE.prev"; else rm -f "$SIDE.prev"; fi
+    printf '%s\n%s\n%s\n' "$START" "$blocks" "$END" > "$SIDE"
+    if apply_to_config; then
+      rm -f "$SIDE.prev"
+      note "Layout de pantallas guardado ✓ — sobrevive reinicios y updates."
+    else
+      if [ -f "$SIDE.prev" ]; then mv -f "$SIDE.prev" "$SIDE"; else rm -f "$SIDE"; fi
+      exit 1
+    fi
+    ;;
+  restore)
+    # used by chezmoi run_after: re-splice the saved layout after the template re-renders config.kdl
+    [ -f "$SIDE" ] || exit 0
+    apply_to_config || true
+    ;;
+  *)
+    echo "uso: archfrican-displays save | restore | save --debug" >&2; exit 1 ;;
+esac

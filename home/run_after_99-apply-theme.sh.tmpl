@@ -7,6 +7,13 @@
 # Reads ~/.config/.archfrican-theme (written by theme-switch); defaults to adl-dark.
 set -euo pipefail
 ARCHFRICAN_ROOT="{{ .chezmoi.homeDir }}/.archfrican"
+
+# Re-apply the saved monitor layout (archfrican-displays) so a nwg-displays arrangement survives
+# `chezmoi apply` too — same rationale as the theme. Self-contained (only ~/.config); no-op if the user
+# never ran `archfrican-displays save`, so it does nothing on a fresh install.
+disp="$HOME/.local/bin/archfrican-displays"
+if [ -x "$disp" ]; then "$disp" restore || true; fi
+
 theme="$(cat "$HOME/.config/.archfrican-theme" 2>/dev/null || echo adl-dark)"
 [ -x "$ARCHFRICAN_ROOT/bin/theme-switch" ] || exit 0   # repo clone absent: nothing to do
 env ARCHFRICAN_ROOT="$ARCHFRICAN_ROOT" "$ARCHFRICAN_ROOT/bin/theme-switch" "$theme" \

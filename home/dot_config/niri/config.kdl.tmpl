@@ -81,15 +81,13 @@ environment {
     __GL_GSYNC_ALLOWED "0"
 }
 
-// Multi-monitor: niri auto-detects + arranges outputs (hotplug included). To pin
-// scale/mode/position/VRR per monitor, uncomment + adjust (`niri msg outputs` for names);
-// GUI alternative: run `nwg-displays`. No kanshi — niri owns output config.
-// output "eDP-1" {
-//     scale 1.5
-//     // mode "2560x1600@60.000"
-//     // position x=0 y=0
-//     // variable-refresh-rate
-// }
+// Multi-monitor: niri auto-detects + arranges outputs (hotplug included). To make a manual layout
+// PERSIST: drag your monitors in `nwg-displays` (it applies live), then run `archfrican-displays save`
+// — it writes your live layout between the markers below and re-applies it after every update. You can
+// also hand-edit inside the markers (`niri msg outputs` for names; one block per monitor):
+//   output "eDP-1" { mode "2560x1600@60.000"; scale 1.5; position x=0 y=0; variable-refresh-rate }
+// ARCHFRICAN-DISPLAYS-START (managed by archfrican-displays — edit via nwg-displays + 'archfrican-displays save')
+// ARCHFRICAN-DISPLAYS-END
 
 spawn-at-startup "waybar"
 spawn-at-startup "swaync"
