@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+# Archfrican Spotlight — ⌘+Space. ONE surface to reach everything: launch any app, or dive into
+# file search, web search, calculator, open windows, clipboard history, or the system actions hub.
+# Pure fuzzel + niri IPC, no daemons. Type to filter across everything; pick a mode to go deeper.
+set -euo pipefail
+have() { command -v "$1" >/dev/null 2>&1; }
+have fuzzel || exit 1
+B="$HOME/.local/bin"
+TAB="$(printf '\t')"
+
+# Mode shortcuts (Nerd Font glyphs). Kept verbatim so the returned selection routes unambiguously.
+M_FIND="  Buscar archivos…"
+M_WEB="  Buscar en la web…"
+M_CALC="  Calculadora…"
+M_WIN="  Ventanas abiertas…"
+M_CLIP="  Portapapeles…"
+M_ACT="  Acciones y ajustes…"
+
+# App index: "Name<TAB>desktop-id<TAB>icon" for every visible .desktop. Used to (a) render the list
+# with icons and (b) map the chosen Name back to its launchable id. bash-3.2-safe: a temp file + awk,
+# never an associative array.
+idx="$(mktemp)"; trap 'rm -f "$idx"' EXIT
+for dir in /usr/share/applications \
+           "$HOME/.local/share/applications" \
+           /var/lib/flatpak/exports/share/applications \
+           "$HOME/.local/share/flatpak/exports/share/applications"; do
+  [ -d "$dir" ] || continue
+  for f in "$dir"/*.desktop; do
+    [ -e "$f" ] || continue
+    if grep -qiE '^(NoDisplay|Hidden)[[:space:]]*=[[:space:]]*true' "$f"; then continue; fi
+    name="$(sed -n 's/^Name=//p' "$f" | head -1)"
+    [ -n "$name" ] || continue
+    icon="$(sed -n 's/^Icon=//p' "$f" | head -1)"
+    printf '%s\t%s\t%s\n' "$name" "$(basename "$f" .desktop)" "$icon" >> "$idx"
+  done
+done
+
+# Feed fuzzel: the six modes first, then every app (alpha, de-duped by name) with its icon via the
+# dmenu icon protocol (label \0 "icon" \x1f icon-name).
+build_list() {
+  printf '%s\n' "$M_FIND" "$M_WEB" "$M_CALC" "$M_WIN" "$M_CLIP" "$M_ACT"
+  sort -t "$TAB" -k1,1 -u "$idx" | while IFS="$TAB" read -r name _id icon; do
+    if [ -n "$icon" ]; then printf '%s\0icon\x1f%s\n' "$name" "$icon"; else printf '%s\n' "$name"; fi
+  done
+}
+
+sel="$(build_list | fuzzel --dmenu --prompt '   ')" || exit 0
+[ -n "$sel" ] || exit 0
+
+launch_app() {
+  local name="$1" id
+  id="$(awk -F"$TAB" -v n="$name" '$1==n {print $2; exit}' "$idx")"
+  if [ -z "$id" ]; then
+    if have notify-send; then notify-send "Archfrican" "no encuentro la app: $name"; fi
+    return
+  fi
+  if have gtk-launch; then setsid -f gtk-launch "$id" >/dev/null 2>&1
+  else setsid -f xdg-open "$id" >/dev/null 2>&1; fi
+}
+
+case "$sel" in
+  "$M_FIND") "$B/archfrican-find" ;;
+  "$M_WEB")  "$B/archfrican-websearch" ;;
+  "$M_CALC") "$B/archfrican-calc" ;;
+  "$M_WIN")  "$B/archfrican-window" ;;
+  "$M_CLIP") sh -c 'cliphist list | fuzzel --dmenu --prompt "   " | cliphist decode | wl-copy' ;;
+  "$M_ACT")  "$B/archfrican-actions" ;;
+  *)         launch_app "$sel" ;;
+esac

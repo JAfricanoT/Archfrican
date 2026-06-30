@@ -93,7 +93,7 @@ spawn-at-startup "{{ .chezmoi.homeDir }}/.local/bin/archfrican-welcome-notify"  
 binds {
     // launchers / core
     Mod+Return        { spawn "ghostty"; }
-    Mod+Space         { spawn "fuzzel"; }          // ⌘+Space = Spotlight
+    Mod+Space         { spawn "{{ .chezmoi.homeDir }}/.local/bin/archfrican-spotlight"; }   // ⌘+Space = Spotlight (apps + buscar todo)
     Mod+Tab           { toggle-overview; }         // Mission-Control-like
     Mod+Shift+Q       { close-window; }            // ⌘+W closes app tabs via keyd
     Mod+Shift+E       { quit; }
