@@ -23,10 +23,13 @@ env ARCHFRICAN_ROOT="$ARCHFRICAN_ROOT" "$ARCHFRICAN_ROOT/bin/theme-switch" "$the
 # config.kdl now exists (theme-switch just spliced it), so archfrican-blur can validate with `niri validate`
 # and auto-revert if niri is too old — this can never brick the config. Stamped so a later
 # `archfrican-blur off` is respected: converge never forces it back on.
-blur_stamp="${XDG_STATE_HOME:-$HOME/.local/state}/archfrican/blur-default-done"
+# Stamp name bumped from blur-default-done: the first cut shipped a wrong blur directive that always
+# reverted, so existing installs must re-attempt once with the corrected syntax. Only stamp it 'done'
+# when blur actually took (an older niri reverts) — otherwise retry on the next converge.
+blur_stamp="${XDG_STATE_HOME:-$HOME/.local/state}/archfrican/glass-default-applied"
 blur="$HOME/.local/bin/archfrican-blur"
 if [ ! -e "$blur_stamp" ] && [ -x "$blur" ]; then
   mkdir -p "$(dirname "$blur_stamp")"
   "$blur" on >/dev/null 2>&1 || true
-  : > "$blur_stamp"
+  if [ "$("$blur" status 2>/dev/null)" = on ]; then : > "$blur_stamp"; fi
 fi
