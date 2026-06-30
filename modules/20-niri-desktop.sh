@@ -103,17 +103,17 @@ AutoEnable=true
 BT
 resilient_enable bluetooth.service
 
-# Power profiles (battery vs performance) — laptops only, and ppd NOT tlp.
-if compgen -G '/sys/class/power_supply/BAT*' >/dev/null; then
-  substep "enabling power-profiles-daemon (laptop power management)"
-  if pacman -Q tlp &>/dev/null; then
-    best_effort sudo systemctl disable --now tlp.service
-    warn "disabled tlp (conflicts with power-profiles-daemon)"
-  fi
-  resilient_enable power-profiles-daemon.service
-else
-  ok "desktop (no battery) — skipping power-profiles-daemon"
+# Power profiles (balanced/performance/power-saver) — power-profiles-daemon, NOT tlp. Enable it on
+# laptops AND desktops: PPD exposes whatever profiles the platform supports (CPU EPP / ACPI
+# platform_profile), and the waybar switch needs the daemon RUNNING to load at all (it was silently
+# absent on desktops). On hardware with no profile backend the daemon still runs harmlessly — the
+# switch just shows the single available profile instead of failing to load.
+substep "enabling power-profiles-daemon (balanced/performance switch)"
+if pacman -Q tlp &>/dev/null; then
+  best_effort sudo systemctl disable --now tlp.service
+  warn "disabled tlp (conflicts with power-profiles-daemon)"
 fi
+resilient_enable power-profiles-daemon.service
 
 substep "creating XDG user dirs + default file manager"
 best_effort xdg-user-dirs-update
