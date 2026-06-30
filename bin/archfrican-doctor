@@ -36,6 +36,9 @@ fi
 
 # ---- run every check ONCE (counts persist; redirect keeps H_* in this shell) ----
 run_all_checks() {
+  # Archfrican surfaces FIRST — a broken config/tool here disables the whole desktop, so it should
+  # be the first thing the report (and the waybar red dot) screams about.
+  check_niri_config; check_desktop_stack; check_archfrican_cli; check_theme_render; check_keyd
   check_failed_units; check_journal; check_disk; check_snapshots; check_scrub; check_smart; check_boot; check_multiboot
   check_orphans; check_pacnew; check_updates; check_cve; check_firmware; check_reboot
   check_foreign; check_timers; check_drift

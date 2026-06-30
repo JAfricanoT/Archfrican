@@ -173,3 +173,62 @@ check_drift() {
   if [ "${d:-0}" -eq 0 ] && [ "${pm:-0}" -eq 0 ]; then _h_ok "config drift" "matches the repo"
   else _h_amber "config drift" "${d} module(s) + ${pm} migration(s) behind — run: archfrican-update"; fi
 }
+
+# ── Archfrican SURFACE health — the configs + tools WE ship. The generic system checks above can't
+# see these, yet a single broken config takes down the WHOLE desktop silently: an invalid niri config
+# makes niri fall back to its defaults — no Archfrican keybinds, no bar, no dock, no wallpaper. These
+# checks turn that class of failure from an hours-long mystery into one red line. ───────────────────
+
+# The single most important check: if the niri config does not parse, niri silently runs its built-in
+# defaults and nothing of Archfrican is active. RED.
+check_niri_config() {
+  _h_have niri || { _h_skip "niri config"; return; }
+  local cfg="${XDG_CONFIG_HOME:-$HOME/.config}/niri/config.kdl"
+  [ -r "$cfg" ] || { _h_red "niri config" "missing ($cfg) — niri is running its defaults"; return; }
+  local out first
+  if out="$(niri validate 2>&1)"; then
+    _h_ok "niri config" "valid"
+  else
+    first="$(printf '%s\n' "$out" | grep -m1 -iE 'error|expected|unexpected|found' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+    _h_red "niri config" "INVALID — niri fell back to defaults (no binds/bar/dock). Run: niri validate${first:+ — $first}"
+  fi
+}
+
+# The core desktop components must be installed; a missing one explains "nothing happens" (e.g. no
+# ghostty -> the terminal bind does nothing). RED.
+check_desktop_stack() {
+  local need="niri waybar swaync fuzzel ghostty nwg-dock keyd awww-daemon" b missing=""
+  for b in $need; do _h_have "$b" || missing="$missing $b"; done
+  if [ -z "$missing" ]; then _h_ok "desktop stack" "all core components installed"
+  else _h_red "desktop stack" "missing:$missing — complete the install: archfrican-update --run"; fi
+}
+
+# Archfrican's own CLI must resolve by name (it's documented that way). Catches the PATH gap that made
+# 'archfrican-update' a command-not-found in a fresh shell. AMBER (workaround: ~/.archfrican/bin/<tool>).
+check_archfrican_cli() {
+  local need="archfrican-update archfrican-doctor theme-switch archfrican-spotlight archfrican-wallpaper" t missing=""
+  for t in $need; do _h_have "$t" || missing="$missing $t"; done
+  if [ -z "$missing" ]; then _h_ok "archfrican CLI" "all tools on PATH"
+  else _h_amber "archfrican CLI" "not on PATH:$missing — open a new shell, or add ~/.archfrican/bin to PATH"; fi
+}
+
+# theme-switch is the single writer of every generated colour/CSS file; an unrendered ${TOKEN} means a
+# broken render (and an ugly/odd surface). AMBER — re-render fixes it.
+check_theme_render() {
+  local cfg="${XDG_CONFIG_HOME:-$HOME/.config}" f stray=""
+  for f in waybar/colors.css swaync/colors.css fuzzel/colors.ini ghostty/colors \
+           gtk-3.0/gtk.css gtk-4.0/gtk.css nwg-dock/style.css qt6ct/qt6ct.conf; do
+    [ -r "$cfg/$f" ] || continue
+    grep -qE '\$\{[A-Za-z_]+\}' "$cfg/$f" 2>/dev/null && stray="$stray $f"
+  done
+  if [ -z "$stray" ]; then _h_ok "theme render" "no unrendered tokens"
+  else _h_amber "theme render" "unrendered \${...} in:$stray — run: theme-switch \"\$(cat ~/.config/.archfrican-theme 2>/dev/null || echo adl-dark)\""; fi
+}
+
+# keyd is the ⌘→Ctrl macOS-shortcut layer; installed-but-inactive means copy/paste muscle memory is
+# dead. AMBER. (Note: keyd never touches plain Super+<non-letter>, so it can't break niri's Mod binds.)
+check_keyd() {
+  _h_have keyd || { _h_skip "keyd"; return; }
+  if systemctl is-active --quiet keyd 2>/dev/null; then _h_ok "keyd" "active (⌘→Ctrl layer)"
+  else _h_amber "keyd" "installed but not active — sudo systemctl enable --now keyd"; fi
+}
