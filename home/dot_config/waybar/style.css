@@ -1,12 +1,63 @@
 @import "colors.css";
-* { font-family: "SF Pro Display","Inter","JetBrainsMono Nerd Font"; font-size: 13px; border: none; }
-window#waybar {
-  background: alpha(@bg, 0.85);
-  color: @fg;
-  border-radius: 0 0 0 0;
+
+/* Archfrican waybar — floating frosted islands, matching the login's premium feel.
+   Colours come from colors.css (theme-switch); shapes/spacing follow the ADL identity. */
+
+* {
+  font-family: "Inter", "JetBrainsMono Nerd Font", sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  border: none;
+  min-height: 0;
 }
-#workspaces button { padding: 0 8px; color: @fg_dim; background: transparent; }
-#workspaces button.focused { color: @accent; }
-#clock, #cpu, #memory, #battery, #network, #pulseaudio, #tray { padding: 0 8px; }
-#clock { font-weight: 600; }
-#custom-privacy { color: #ff5f56; padding: 0 8px; }   /* mic/camera in use — fixed warm color, stands out by design */
+
+window#waybar {
+  background: transparent;          /* the bar floats; the islands carry the surface */
+  color: @fg;
+}
+
+/* three floating frosted islands (left · center · right) */
+.modules-left,
+.modules-center,
+.modules-right {
+  background: alpha(@bg, 0.80);
+  border: 1px solid alpha(@fg_dim, 0.16);
+  border-radius: 15px;
+  padding: 0 4px;
+}
+
+/* every module sits flush inside its island */
+#workspaces button,
+#window, #clock,
+#custom-privacy, #pulseaudio, #bluetooth, #network, #temperature,
+#cpu, #memory, #power-profiles-daemon, #battery,
+#custom-health, #custom-notification, #tray {
+  padding: 2px 9px;
+  margin: 3px 1px;
+  color: @fg;
+  background: transparent;
+  border-radius: 11px;
+}
+
+/* workspaces — teal pill on the focused one */
+#workspaces button { color: @fg_dim; padding: 2px 10px; }
+#workspaces button.focused,
+#workspaces button.active { color: @bg; background: @accent; }
+#workspaces button:hover { background: alpha(@accent, 0.18); color: @fg; }
+
+/* center clock is the anchor */
+#clock { font-weight: 700; }
+#window { color: @fg_dim; font-weight: 500; }
+
+/* right-side controls get a subtle hover affordance */
+#custom-privacy:hover, #pulseaudio:hover, #bluetooth:hover, #network:hover,
+#temperature:hover, #cpu:hover, #memory:hover, #power-profiles-daemon:hover,
+#battery:hover, #custom-health:hover, #custom-notification:hover {
+  background: alpha(@fg_dim, 0.12);
+}
+
+#custom-notification { color: @accent; }
+#custom-privacy { color: #ff5f56; }        /* mic/camera in use — fixed warm colour, stands out by design */
+#battery.warning { color: #f5c451; }
+#battery.critical, #temperature.critical { color: #ff5f56; }
+#tray { padding: 2px 6px; }

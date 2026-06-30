@@ -1,8 +1,11 @@
 {
   "layer": "top",
   "position": "top",
-  "height": 30,
-  "spacing": 6,
+  "height": 34,
+  "spacing": 4,
+  "margin-top": 6,
+  "margin-left": 10,
+  "margin-right": 10,
   "modules-left": ["niri/workspaces", "niri/window"],
   "modules-center": ["clock"],
   "modules-right": ["custom/privacy", "pulseaudio", "bluetooth", "network", "temperature", "cpu", "memory", "power-profiles-daemon", "battery", "custom/health", "custom/notification", "tray"],
