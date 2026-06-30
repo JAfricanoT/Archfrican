@@ -30,10 +30,10 @@ while :; do
     "Apps por defecto"*)  "$B/archfrican-defaults" ;;
     "Idioma"*)            "$B/archfrican-locale" ;;
     "Pantallas"*)
-      d="$(printf '%s\n' "Organizar pantallas (nwg-displays)" "Guardar el layout actual (persistir)" \
+      d="$(printf '%s\n' "Organizar pantallas (se guarda al cerrar)" "Guardar el layout actual ahora" \
           | fuzzel --dmenu --prompt '  pantallas  ')" || continue
       case "$d" in
-        Organizar*) launch nwg-displays ;;
+        Organizar*) "$B/archfrican-displays" edit ;;
         Guardar*)   "$B/archfrican-displays" save ;;
       esac ;;
     "Apariencia"*)
