@@ -1,5 +1,7 @@
 # Archfrican · .zshrc — fast Zsh (no oh-my-zsh). Startup target: <50ms.
-export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
+# ~/.archfrican/bin puts the repo's CLI tools (archfrican-update, archfrican-doctor, theme-switch,
+# fw-allow) on PATH by name — they're documented as bare commands, so they must resolve in any shell/TTY.
+export PATH="$HOME/.local/bin:$HOME/.archfrican/bin:$HOME/.cargo/bin:$PATH"
 export EDITOR=nvim
 
 # ---- zinit (lightweight plugin manager) ----------------------------------
