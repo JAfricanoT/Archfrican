@@ -11,13 +11,14 @@ mkdir -p "$state"
 sleep 4   # let the notification daemon (swaync) and the bar come up first
 
 act="$(notify-send --app-name="Archfrican" -t 25000 \
-  --action="tour=Ver el tour" --action="update=Buscar actualizaciones" \
+  --action="setup=Configurar el sistema" --action="tour=Ver el tour" --action="update=Buscar actualizaciones" \
   "Bienvenido a Archfrican" \
-  "⌘+Space abre el launcher · ⌘+Shift+V el historial del portapapeles · ⌘+Shift+K muestra todos los atajos · escribe 'theme-switch' para cambiar el tema." 2>/dev/null)" || true
+  "Empieza por «Configurar el sistema» (apps por defecto, idioma, pantallas…) · ⌘+Space abre el launcher · ⌘+Shift+K muestra todos los atajos." 2>/dev/null)" || true
 
 : > "$stamp"   # show only once, even if the daemon wasn't ready
 
 case "$act" in
+  setup)  exec "$HOME/.local/bin/archfrican-setup" ;;
   tour)   exec "$HOME/.local/bin/archfrican-welcome" --tour ;;
   update) exec ghostty -e archfrican-update ;;
 esac

@@ -9,6 +9,7 @@ B="$HOME/.local/bin"
 toggle() { [ "$("$1" status 2>/dev/null)" = on ] && echo off || echo on; }
 
 sel="$(printf '%s\n' \
+  "Asistente de configuración (todo)…" \
   "Cambiar tema…" \
   "Buscar actualizaciones (archfrican-update)" \
   "Salud del sistema (archfrican-doctor)" \
@@ -61,6 +62,7 @@ sel="$(printf '%s\n' \
   | fuzzel --dmenu --prompt '  acciones  ')" || exit 0
 
 case "$sel" in
+  "Asistente"*)          "$B/archfrican-setup" ;;
   "Cambiar tema"*)
     t="$(for d in "$HOME"/.archfrican/themes/*/; do [ -d "$d" ] && basename "$d"; done \
         | fuzzel --dmenu --prompt '  tema  ')" && [ -n "$t" ] && theme-switch "$t" ;;

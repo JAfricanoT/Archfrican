@@ -1,0 +1,80 @@
+#!/usr/bin/env bash
+# archfrican-setup — the settings assistant ("Asistente de configuración"). A categorized hub over the
+# existing Archfrican helpers + the runtime gaps (language, default IDE/PDF/image/file-manager…).
+# Offered once on first boot (archfrican-welcome-notify) and always from the actions hub (⌘+Shift+A).
+# Gentle + non-blocking like the welcome tour: Escape exits any menu; the top loop runs until "Terminar".
+set -euo pipefail
+B="$HOME/.local/bin"
+have() { command -v "$1" >/dev/null 2>&1; }
+have fuzzel || { echo "fuzzel required" >&2; exit 1; }
+flip() { if [ "$("$1" status 2>/dev/null)" = on ]; then echo off; else echo on; fi; }   # toggle helper
+launch() { if have "$1"; then "$@"; fi; }                                                # run an app if present
+theme_now() { cat "$HOME/.config/.archfrican-theme" 2>/dev/null || echo adl-dark; }
+kbd_now()   { cat "$HOME/.config/.archfrican-kbd" 2>/dev/null || echo us; }
+
+while :; do
+  sel="$(printf '%s\n' \
+    "Apps por defecto  ·  navegador, IDE, terminal, PDF, imágenes…" \
+    "Idioma y región  ·  ${LANG:-?} / teclado $(kbd_now)" \
+    "Pantallas / monitores" \
+    "Apariencia  ·  tema $(theme_now)" \
+    "Energía  ·  perfiles de batería/rendimiento" \
+    "Red / VPN" \
+    "Accesibilidad" \
+    "Sistema / hardware  ·  GPU, huella, Secure Boot" \
+    "Privacidad y respaldo" \
+    "── Terminar" \
+    | fuzzel --dmenu --prompt '  configuración  ')" || break
+
+  case "$sel" in
+    "Apps por defecto"*)  "$B/archfrican-defaults" ;;
+    "Idioma"*)            "$B/archfrican-locale" ;;
+    "Pantallas"*)
+      d="$(printf '%s\n' "Organizar pantallas (nwg-displays)" "Guardar el layout actual (persistir)" \
+          | fuzzel --dmenu --prompt '  pantallas  ')" || continue
+      case "$d" in
+        Organizar*) launch nwg-displays ;;
+        Guardar*)   "$B/archfrican-displays" save ;;
+      esac ;;
+    "Apariencia"*)
+      a="$(printf '%s\n' "Cambiar tema" "Wallpaper / theming dinámico" "Auto claro/oscuro (alternar)" "Blur (alternar)" \
+          | fuzzel --dmenu --prompt '  apariencia  ')" || continue
+      case "$a" in
+        "Cambiar tema")
+          t="$(for x in "$HOME"/.archfrican/themes/*/; do [ -d "$x" ] && basename "$x"; done \
+              | fuzzel --dmenu --prompt '  tema  ')" && [ -n "$t" ] && theme-switch "$t" ;;
+        "Wallpaper"*) "$B/archfrican-wallpaper" ;;
+        "Auto"*)      "$B/archfrican-auto-appearance" "$(flip "$B/archfrican-auto-appearance")" ;;
+        "Blur"*)      "$B/archfrican-blur" "$(flip "$B/archfrican-blur")" ;;
+      esac ;;
+    "Energía"*)           "$B/archfrican-power" ;;
+    "Red / VPN"*)
+      r="$(printf '%s\n' "VPN (Tailscale/WireGuard)" "Mullvad (VPN + Browser)" "Editor de red (NetworkManager)" \
+          | fuzzel --dmenu --prompt '  red  ')" || continue
+      case "$r" in
+        "VPN"*)     "$B/archfrican-vpn" ;;
+        "Mullvad"*) "$B/archfrican-mullvad" ;;
+        "Editor"*)  launch nm-connection-editor ;;
+      esac ;;
+    "Accesibilidad"*)     "$B/archfrican-a11y" ;;
+    "Sistema"*)
+      s="$(printf '%s\n' "GPU / driver (re-detectar)" "Huella digital para sudo" "Auto-unlock por TPM" "Secure Boot (sbctl)" \
+          | fuzzel --dmenu --prompt '  sistema  ')" || continue
+      case "$s" in
+        "GPU"*)
+          # shellcheck disable=SC2016
+          ghostty -e sh -c 'R="$HOME/.archfrican"; env ARCHFRICAN_ROOT="$R" "$R/install.sh" 10-gpu; echo; echo "Si cambió el driver, reinicia."; printf "(enter para cerrar) "; read -r _' ;;
+        "Huella"*)      "$B/archfrican-fingerprint" ;;
+        "Auto-unlock"*) "$B/archfrican-tpm-unlock" ;;
+        "Secure Boot"*) "$B/archfrican-secureboot" ;;
+      esac ;;
+    "Privacidad"*)
+      p="$(printf '%s\n' "Privacidad y telemetría" "Respaldo de ~ (restic)" \
+          | fuzzel --dmenu --prompt '  privacidad  ')" || continue
+      case "$p" in
+        "Privacidad"*) "$B/archfrican-privacy" ;;
+        "Respaldo"*)   "$B/archfrican-backup" ;;
+      esac ;;
+    *) break ;;
+  esac
+done
