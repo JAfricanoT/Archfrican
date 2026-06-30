@@ -26,7 +26,7 @@ list_apps() {   # "Name<TAB>id.desktop" for every visible app — the fallback (
   done | sort -u
 }
 
-do_install() {  # do_install <spec> ; spec = repo:pkgs | aur:pkgs | flatpak:appid (in a terminal)
+do_install() {  # do_install <spec> ; spec = repo:pkgs | aur:pkgs | flatpak:appid | script:url (in a terminal)
   local kind="${1%%:*}" pkg="${1#*:}"
   case "$kind" in
     repo)    ghostty -e sh -c "sudo pacman -S --needed -- $pkg; printf '\n(enter para cerrar) '; read -r _" ;;
@@ -34,6 +34,10 @@ do_install() {  # do_install <spec> ; spec = repo:pkgs | aur:pkgs | flatpak:appi
              else note "paru (AUR) no disponible"; return 1; fi ;;
     flatpak) if have flatpak; then ghostty -e sh -c "flatpak install -y flathub $pkg; printf '\n(enter para cerrar) '; read -r _"
              else note "flatpak no disponible"; return 1; fi ;;
+    # Vendors' official one-line installer (e.g. Claude Code) — more reliable than the flaky AUR
+    # wrappers for fast-moving AI CLIs. URL is hardcoded in the table, never user input.
+    script)  if have curl; then ghostty -e sh -c "curl -fsSL '$pkg' | bash; printf '\n(enter para cerrar) '; read -r _"
+             else note "curl no disponible"; return 1; fi ;;
     *) return 1 ;;
   esac
 }
@@ -102,7 +106,7 @@ case "$cat" in
       "Antigravity|antigravity.desktop|aur:antigravity-ide" ;;
   "IA / agentes (CLI)")
     category '  IA (CLI)  ' cli '' \
-      "Claude Code|claude|aur:claude-code" \
+      "Claude Code|claude|script:https://claude.ai/install.sh" \
       "OpenCode|opencode|aur:opencode-bin" \
       "Gemini CLI|gemini|aur:gemini-cli-git" \
       "Aider|aider|aur:aider-chat" \
