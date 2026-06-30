@@ -42,6 +42,14 @@ do_install() {  # do_install <spec> ; spec = repo:pkgs | aur:pkgs | flatpak:appi
   esac
 }
 
+pkg_installed() {  # did the package from this <spec> install? (repo/aur via pacman) — a robust fallback
+  local kind="${1%%:*}" pkg="${1#*:}"                                 # when a guessed .desktop id is wrong
+  case "$kind" in
+    repo|aur) have pacman && pacman -Qq "${pkg%% *}" >/dev/null 2>&1 ;;
+    *) return 1 ;;
+  esac
+}
+
 apply_default() {  # apply_default <desktop-id> <how> [mime...] ; how = browser | mime | terminal
   local id="$1" how="$2"; shift 2
   case "$how" in
@@ -74,7 +82,7 @@ category() {
     [ "$disp" = "$want" ] || continue
     if ! is_installed "$how" "$id"; then
       do_install "$spec" || return 0
-      is_installed "$how" "$id" || { note "$disp no quedó instalado"; return 0; }
+      if ! is_installed "$how" "$id" && ! pkg_installed "$spec"; then note "$disp no quedó instalado"; return 0; fi
     fi
     if [ "$how" = cli ]; then note "$disp listo ✓"
     else apply_default "$id" "$how" ${tgt[@]+"${tgt[@]}"}; note "Por defecto: $disp"; fi
@@ -103,7 +111,7 @@ case "$cat" in
       "Gnome Text Editor|org.gnome.TextEditor.desktop|repo:gnome-text-editor" \
       "Kate|org.kde.kate.desktop|repo:kate" \
       "Cursor|cursor.desktop|aur:cursor-bin" \
-      "Antigravity|antigravity.desktop|aur:antigravity-ide" ;;
+      "Antigravity|antigravity-ide.desktop|aur:antigravity-ide" ;;
   "IA / agentes (CLI)")
     category '  IA (CLI)  ' cli '' \
       "Claude Code|claude|script:https://claude.ai/install.sh" \
