@@ -73,10 +73,10 @@ case "$sel" in
   "Blur"*)               "$B/archfrican-blur" "$(toggle "$B/archfrican-blur")" ;;
   "Cohesión de apps"*)   "$B/archfrican-cohesion" "$(toggle "$B/archfrican-cohesion")" ;;
   "Pantallas"*)
-    d="$(printf 'Organizar pantallas (nwg-displays)\nGuardar el layout actual (persistir)\n' \
+    d="$(printf 'Organizar pantallas (se guarda al cerrar)\nGuardar el layout actual ahora\n' \
         | fuzzel --dmenu --prompt '  pantallas  ')" || exit 0
     case "$d" in
-      Organizar*) nwg-displays ;;
+      Organizar*) "$B/archfrican-displays" edit ;;
       Guardar*)   "$B/archfrican-displays" save ;;
     esac ;;
   "Atajos"*)             "$B/archfrican-keys" ;;

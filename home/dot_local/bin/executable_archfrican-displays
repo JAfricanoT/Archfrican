@@ -8,6 +8,7 @@
 # SAFE BY DESIGN: backs up config.kdl and rolls back if `niri validate` rejects the result — a
 # malformed nested KDL block would otherwise make niri silently ignore the whole config.
 #
+#   archfrican-displays edit              open nwg-displays, then auto-save the layout when it closes
 #   archfrican-displays save              snapshot the current live layout -> config.kdl + sidecar
 #   archfrican-displays restore           re-splice the saved sidecar into config.kdl (used by run_after)
 #   archfrican-displays save --debug      print the generated block (for reporting a validate failure)
@@ -94,6 +95,14 @@ case "$cmd" in
     [ -f "$SIDE" ] || exit 0
     apply_to_config || true
     ;;
+  edit)
+    # One-step GUI flow: arrange in nwg-displays (it applies live), then auto-persist whatever you
+    # ended on the moment the window closes — no separate "save" step to remember. The save still runs
+    # if nwg-displays is killed (it runs after nwg-displays exits, however it exits).
+    have nwg-displays || { note "instala nwg-displays (pacman -S nwg-displays)"; exit 1; }
+    nwg-displays || true                 # blocks until the window closes
+    "$0" save                            # persist the final live layout (safe: validate-or-revert)
+    ;;
   *)
-    echo "uso: archfrican-displays save | restore | save --debug" >&2; exit 1 ;;
+    echo "uso: archfrican-displays edit | save | restore | save --debug" >&2; exit 1 ;;
 esac
