@@ -56,7 +56,9 @@ mkdir -p "$CFG"/{ghostty,waybar,fuzzel,swaync,niri,nwg-dock}
 render ghostty.colors      "$CFG/ghostty/colors"
 render waybar.colors.css   "$CFG/waybar/colors.css"
 render fuzzel.colors.ini   "$CFG/fuzzel/colors.ini"
+render fuzzel.ini          "$CFG/fuzzel/fuzzel.ini"      # whole config (shape+spacing tokenised, not just colour)
 render swaync.colors.css   "$CFG/swaync/colors.css"
+render swaync.style.css    "$CFG/swaync/style.css"       # whole stylesheet (shape+elevation tokenised)
 render nwg-dock.css        "$CFG/nwg-dock/style.css"
 sed -i 's/=#/=/g' "$CFG/fuzzel/colors.ini"   # fuzzel wants hex without #
 

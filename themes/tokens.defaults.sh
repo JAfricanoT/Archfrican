@@ -61,6 +61,11 @@ export OPACITY_TERM="0.92"      # ghostty background-opacity
 export ELEV_BORDER="0.22"       # alpha for 1px hairline borders
 export BLUR_PASSES="3"
 export BLUR_RADIUS="8"
+# Frosted-glass fill: deliberately MORE translucent than OPACITY_PANEL so the niri layer-blur behind
+# the launcher / control center actually reads as glass (a 0.96 panel would hide the blur). Two forms
+# of the SAME ~0.80: a decimal for GTK alpha() (swaync) and a hex suffix for fuzzel's #rrggbbAA colours.
+export OPACITY_GLASS="0.80"
+export ALPHA_GLASS_HEX="cc"
 
 # ── Cursor identity (one pointer across GTK / Qt / Wayland) ─────────────────────────────────────────
 export CURSOR_THEME="McMojave-cursors"

@@ -7,5 +7,7 @@ export OPACITY_TERM="1.0"
 export ELEV_BORDER="1.0"
 export BLUR_PASSES="0"
 export BLUR_RADIUS="0"
+export OPACITY_GLASS="1.0"       # frosted surfaces go fully opaque for low-vision contrast
+export ALPHA_GLASS_HEX="ff"
 export BORDER_WIDTH="2"
 export FOCUS_RING_WIDTH="3"

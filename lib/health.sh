@@ -216,13 +216,13 @@ check_archfrican_cli() {
 # broken render (and an ugly/odd surface). AMBER — re-render fixes it.
 check_theme_render() {
   local cfg="${XDG_CONFIG_HOME:-$HOME/.config}" f stray=""
-  for f in waybar/colors.css swaync/colors.css fuzzel/colors.ini ghostty/colors \
-           gtk-3.0/gtk.css gtk-4.0/gtk.css nwg-dock/style.css qt6ct/qt6ct.conf; do
+  for f in waybar/colors.css swaync/colors.css swaync/style.css fuzzel/colors.ini fuzzel/fuzzel.ini \
+           ghostty/colors gtk-3.0/gtk.css gtk-4.0/gtk.css nwg-dock/style.css qt6ct/qt6ct.conf; do
     [ -r "$cfg/$f" ] || continue
     grep -qE '\$\{[A-Za-z_]+\}' "$cfg/$f" 2>/dev/null && stray="$stray $f"
   done
   if [ -z "$stray" ]; then _h_ok "theme render" "no unrendered tokens"
-  else _h_amber "theme render" "unrendered \${...} in:$stray — run: theme-switch \"\$(cat ~/.config/.archfrican-theme 2>/dev/null || echo adl-dark)\""; fi
+  else _h_amber "theme render" "unrendered \${...} in:$stray — run: theme-switch \"\$(cat ~/.config/.archfrican-theme 2>/dev/null || echo archfrican-dark)\""; fi
 }
 
 # keyd is the ⌘→Ctrl macOS-shortcut layer; installed-but-inactive means copy/paste muscle memory is
