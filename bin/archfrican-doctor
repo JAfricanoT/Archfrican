@@ -20,6 +20,17 @@ set +e +u +o pipefail
 
 MODE="${1:-report}"
 
+# Shared health snapshot. waybar instantiates custom/health PER bar (one per monitor), so without a
+# shared cache each monitor runs the time-varying checks on its own timer and they drift apart, showing
+# DIFFERENT counts. A short cache makes every bar read ONE snapshot until it expires — and skips the
+# 20+ checks running per-monitor. Only --json (the waybar path) uses it. Override TTL via env.
+HEALTH_CACHE="${XDG_RUNTIME_DIR:-/tmp}/archfrican-health.json"
+HEALTH_TTL="${ARCHFRICAN_HEALTH_TTL:-900}"      # seconds (15 min); 0 disables the cache
+if [ "$MODE" = "--json" ] && [ "$HEALTH_TTL" -gt 0 ] && [ -f "$HEALTH_CACHE" ]; then
+  age=$(( $(date +%s) - $(stat -c %Y "$HEALTH_CACHE" 2>/dev/null || echo 0) ))
+  if [ "$age" -ge 0 ] && [ "$age" -lt "$HEALTH_TTL" ]; then cat "$HEALTH_CACHE"; exit 0; fi
+fi
+
 # ---- --fix: safe allowlist only (no checks needed) --------------------------
 if [ "$MODE" = "--fix" ]; then
   echo "archfrican-doctor --fix — safe maintenance only (nothing destructive):"
@@ -56,7 +67,13 @@ case "$MODE" in
       amber) tip="$H_AMBER item(s) to review — click for details";;
       red)   tip="$H_RED critical, $H_AMBER to review — click for details";;
     esac
-    printf '{"text":"%s","class":"%s","tooltip":"%s"}\n' "$text" "$class" "$tip"
+    json="$(printf '{"text":"%s","class":"%s","tooltip":"%s"}' "$text" "$class" "$tip")"
+    # Cache atomically (temp + mv on the same tmpfs) so every monitor's bar reads THIS exact snapshot
+    # until it expires — no partial reads, no drift between screens.
+    if [ "$HEALTH_TTL" -gt 0 ] && printf '%s\n' "$json" > "$HEALTH_CACHE.$$" 2>/dev/null; then
+      mv -f "$HEALTH_CACHE.$$" "$HEALTH_CACHE" 2>/dev/null || rm -f "$HEALTH_CACHE.$$"
+    fi
+    printf '%s\n' "$json"
     ;;
   --notify)
     if [ "$issues" -gt 0 ]; then
