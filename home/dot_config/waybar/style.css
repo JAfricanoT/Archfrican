@@ -57,6 +57,12 @@ window#waybar {
 }
 
 #custom-notification { color: @accent; }
+
+/* internet reachability dot: green stable · amber unstable · red offline */
+#custom-connectivity { font-size: 11px; }
+#custom-connectivity.online   { color: #57d9a3; }
+#custom-connectivity.unstable { color: #f5c451; }
+#custom-connectivity.offline  { color: #ff5f56; }
 #custom-privacy { color: #ff5f56; }        /* mic/camera in use — fixed warm colour, stands out by design */
 #battery.warning { color: #f5c451; }
 #battery.critical, #temperature.critical { color: #ff5f56; }

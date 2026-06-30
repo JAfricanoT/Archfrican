@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# Internet reachability + stability dot for waybar. Pings Cloudflare's anycast (1.1.1.1) and reports
+# a coloured dot via JSON: online (stable) · unstable (packet loss or high latency) · offline.
+# The network module only knows if the interface is up; THIS knows if the internet actually works.
+set -uo pipefail
+host="1.1.1.1"
+out="$(ping -c 3 -w 3 "$host" 2>/dev/null)"
+loss="$(printf '%s\n' "$out" | sed -nE 's/.* ([0-9]+)% packet loss.*/\1/p' | head -1)"
+avg="$(printf '%s\n'  "$out" | sed -nE 's#.*= [0-9.]+/([0-9.]+)/.*#\1#p'   | head -1)"
+loss="${loss:-100}"
+
+if [ "$loss" -ge 100 ]; then
+  printf '{"text":"●","class":"offline","tooltip":"Sin conexión a Internet"}\n'
+elif [ "$loss" -gt 0 ]; then
+  printf '{"text":"●","class":"unstable","tooltip":"Conexión inestable — %s%% de pérdida%s"}\n' "$loss" "${avg:+, ${avg} ms}"
+elif [ -n "$avg" ] && awk -v a="$avg" 'BEGIN{exit !(a>150)}'; then
+  printf '{"text":"●","class":"unstable","tooltip":"Conexión lenta — %s ms"}\n' "$avg"
+else
+  printf '{"text":"●","class":"online","tooltip":"Internet estable%s"}\n' "${avg:+ — ${avg} ms}"
+fi
