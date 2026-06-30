@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+# Restore the wallpaper at login. awww/swww does NOT persist across reboots, so without this the
+# desktop comes up as an empty black void. Reposes the saved wallpaper, or falls back to a solid
+# backdrop in the active theme's background colour — the desktop is never blank. Spawned by niri.
+set -uo pipefail
+have() { command -v "$1" >/dev/null 2>&1; }
+have awww || exit 0
+
+# wait for the daemon (spawned alongside us) to be ready
+i=0
+while [ "$i" -lt 6 ]; do
+  if awww query >/dev/null 2>&1; then break; fi
+  i=$((i + 1)); sleep 0.4
+done
+
+saved="$HOME/.config/archfrican/wallpaper"
+if [ -r "$saved" ]; then
+  img="$(head -1 "$saved")"
+  if [ -n "$img" ] && [ -r "$img" ]; then
+    awww img "$img" >/dev/null 2>&1 && exit 0
+  fi
+fi
+
+# fallback: a solid backdrop in the current theme's BG (cohesive, never black)
+ROOT="${ARCHFRICAN_ROOT:-$HOME/.archfrican}"
+theme="$(cat "$HOME/.config/.archfrican-theme" 2>/dev/null || echo adl-dark)"
+bg="#17181b"
+pal="$ROOT/themes/$theme/colors.sh"
+if [ -r "$pal" ]; then
+  # shellcheck disable=SC1090
+  bg="$( . "$pal" >/dev/null 2>&1; printf '%s' "${BG:-#17181b}" )"
+fi
+awww clear "${bg#\#}" >/dev/null 2>&1 || true

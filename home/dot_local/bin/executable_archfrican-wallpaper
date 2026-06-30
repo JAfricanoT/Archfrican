@@ -14,6 +14,8 @@ img="${1:-}"
 [ -r "$img" ] || { note "no existe la imagen: $img"; exit 1; }
 
 if have awww; then awww img "$img" >/dev/null 2>&1 || true; fi
+# Persist the path so archfrican-wallpaper-restore can repose it at next login (awww doesn't).
+mkdir -p "$HOME/.config/archfrican"; printf '%s\n' "$img" > "$HOME/.config/archfrican/wallpaper"
 
 json="$(matugen image "$img" --json hex 2>/dev/null)" || { note "matugen falló"; exit 1; }
 # Defensive against matugen JSON format changes: try a few plausible paths, fall back to macOS-dark.
