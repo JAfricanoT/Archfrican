@@ -16,7 +16,7 @@ sudo install -d -m 0755 /usr/share/sddm/themes/archfrican
 sudo cp -a "$REPO_ROOT/assets/sddm/archfrican/." /usr/share/sddm/themes/archfrican/
 # Paint the theme from the user's current palette (themes/<name>/colors.sh via the token template).
 substep "theming the login from the active palette"
-THEME_NOW="$(cat "$HOME/.config/.archfrican-theme" 2>/dev/null || echo adl-dark)"
+THEME_NOW="$(cat "$HOME/.config/.archfrican-theme" 2>/dev/null || echo archfrican-dark)"
 render_sddm_theme "$THEME_NOW"     # lib/common.sh helper: token-render -> /usr/share/sddm/themes/archfrican/theme.conf
 
 substep "configuring SDDM (Wayland greeter, remember last user/session)"
@@ -75,23 +75,33 @@ write_system_file /etc/keyd/default.conf <<'KEYD'
 [main]
 capslock = overload(control, esc)   # bonus: tap=Esc, hold=Ctrl (great for vim)
 
-# ⌘+letter -> Ctrl+letter  (app-level macOS shortcuts)
-meta.c = C-c
-meta.v = C-v
-meta.x = C-x
-meta.z = C-z
-meta.a = C-a
-meta.s = C-s
-meta.f = C-f
-meta.w = C-w
-meta.t = C-t
-meta.n = C-n
-meta.q = C-q
-meta.l = C-l
-meta.r = C-r
+# ⌘+letter -> Ctrl+letter (app-level macOS shortcuts). These MUST live in the [meta] modifier-layer
+# section: keyd REJECTS the `meta.x = …` shorthand ("not a valid key or alias"). Inside [meta] the
+# meta modifier is consumed, so the app receives a clean Ctrl+letter — ⌘+C copies, ⌘+A selects all, etc.
+[meta]
+c = C-c
+v = C-v
+x = C-x
+z = C-z
+a = C-a
+s = C-s
+f = C-f
+w = C-w
+t = C-t
+n = C-n
+q = C-q
+l = C-l
+r = C-r
 KEYD
+# enable for boot + validate-then-(re)start so the map is live now AND on every converge (a re-render
+# of default.conf only takes effect after a restart; never restart onto a config keyd rejects).
 substep "enabling keyd"
 sudo systemctl enable keyd.service
+if sudo keyd check >/dev/null 2>&1; then
+  sudo systemctl restart keyd.service
+else
+  warn "keyd config failed 'keyd check' — left the running map as-is (inspect: sudo keyd check)"
+fi
 
 # --- ecosystem integration (P1) ------------------------------------------------
 # Bluetooth: enable the daemon + auto-power-on adapters (main.conf.d drop-in; on older

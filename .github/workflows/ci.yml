@@ -298,3 +298,19 @@ jobs:
         run: bash tests/unit/disk.sh
       - name: displays — niri layout splice + validate-or-revert
         run: sudo apt-get update -qq && sudo apt-get install -y -qq jq && bash tests/unit/displays.sh
+
+  keyd-config:
+    runs-on: ubuntu-latest        # keyd is AUR (not in CI repos); validate the ⌘→Ctrl map STRUCTURALLY
+    steps:
+      - uses: actions/checkout@v4
+      - name: keyd map uses the [meta] layer, never the rejected `meta.x =` shorthand
+        run: |
+          set -euo pipefail
+          f=modules/20-niri-desktop.sh
+          grep -qE '^\[meta\]' "$f" \
+            || { echo "::error::keyd map must populate the [meta] modifier layer (⌘+letter → Ctrl)"; exit 1; }
+          # keyd rejects `meta.c = …` as "not a valid key or alias" — it must be `c = C-c` under [meta].
+          # Anchored at line start so the explanatory comment mentioning meta.x can't false-trip it.
+          if grep -nE '^[[:space:]]*meta\.[a-z][[:space:]]*=' "$f"; then
+            echo "::error::keyd rejects the 'meta.x = ...' shorthand — put the mapping under the [meta] section"; exit 1; fi
+          echo "keyd-config: [meta] layer present, no invalid meta.x shorthand"
