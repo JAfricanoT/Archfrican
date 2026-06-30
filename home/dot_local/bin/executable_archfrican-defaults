@@ -1,14 +1,20 @@
 #!/usr/bin/env bash
-# archfrican-defaults — set default apps the honest way (no nag, no dark pattern). Picking an app
-# reassigns ALL its related url+mime handlers at once, the way "Set default…" works on macOS. Pure
-# xdg-utils (always present); the terminal default uses the freedesktop ~/.config/xdg-terminals.list.
+# archfrican-defaults — set default apps the macOS way, but USEFUL: per category it shows only the
+# RELEVANT apps — the ones you have installed, PLUS "⤓ Instalar X…" for the common ones you don't —
+# and reassigns all of that category's url/mime handlers at once. "Otra app instalada…" is the escape
+# hatch to the full list. xdg-utils + pacman/paru/flatpak; installs run in a ghostty terminal.
 set -euo pipefail
-command -v fuzzel >/dev/null 2>&1 || { echo "fuzzel required" >&2; exit 1; }
+have() { command -v "$1" >/dev/null 2>&1; }
+have fuzzel || { echo "fuzzel required" >&2; exit 1; }
+note() { have notify-send && notify-send "Archfrican" "$1" || echo "$1"; }
+APPDIRS=(/usr/share/applications "$HOME/.local/share/applications" \
+         /var/lib/flatpak/exports/share/applications "$HOME/.local/share/flatpak/exports/share/applications")
 
-list_apps() {   # print "Name<TAB>id.desktop" for every visible installed app
+have_desktop() { local id="$1" d; for d in "${APPDIRS[@]}"; do [ -e "$d/$id" ] && return 0; done; return 1; }
+
+list_apps() {   # "Name<TAB>id.desktop" for every visible app — the fallback ("Otra app instalada…")
   local d f name
-  for d in /usr/share/applications "$HOME/.local/share/applications" \
-           /var/lib/flatpak/exports/share/applications; do
+  for d in "${APPDIRS[@]}"; do
     [ -d "$d" ] || continue
     for f in "$d"/*.desktop; do
       [ -e "$f" ] || continue
@@ -18,52 +24,103 @@ list_apps() {   # print "Name<TAB>id.desktop" for every visible installed app
     done
   done | sort -u
 }
-pick_app() { list_apps | fuzzel --dmenu --prompt "$1 " | cut -f2; }
-note() { command -v notify-send >/dev/null 2>&1 && notify-send "Archfrican" "$1" || echo "$1"; }
-set_mimes() {   # set_mimes <app.desktop> <mime...> — assign the app as default for each MIME type
-  local app="$1" m; shift
-  for m in "$@"; do xdg-mime default "$app" "$m"; done
+
+do_install() {  # do_install <spec> ; spec = repo:pkgs | aur:pkgs | flatpak:appid (in a terminal)
+  local kind="${1%%:*}" pkg="${1#*:}"
+  case "$kind" in
+    repo)    ghostty -e sh -c "sudo pacman -S --needed -- $pkg; printf '\n(enter para cerrar) '; read -r _" ;;
+    aur)     if have paru; then ghostty -e sh -c "paru -S --needed -- $pkg; printf '\n(enter para cerrar) '; read -r _"
+             else note "paru (AUR) no disponible"; return 1; fi ;;
+    flatpak) if have flatpak; then ghostty -e sh -c "flatpak install -y flathub $pkg; printf '\n(enter para cerrar) '; read -r _"
+             else note "flatpak no disponible"; return 1; fi ;;
+    *) return 1 ;;
+  esac
+}
+
+apply_default() {  # apply_default <desktop-id> <how> [mime...] ; how = browser | mime | terminal
+  local id="$1" how="$2"; shift 2
+  case "$how" in
+    terminal) mkdir -p "$HOME/.config"; printf '%s\n' "$id" > "$HOME/.config/xdg-terminals.list" ;;
+    browser)  if have xdg-settings; then xdg-settings set default-web-browser "$id" 2>/dev/null || true; fi
+              for m in "$@"; do xdg-mime default "$id" "$m"; done ;;
+    mime)     for m in "$@"; do xdg-mime default "$id" "$m"; done ;;
+  esac
+}
+
+# category <prompt> <how> <mimes-space-separated> <"Display|desktop-id|install-spec"...>
+category() {
+  local prompt="$1" how="$2" targets="$3"; shift 3
+  local rows=("$@") entries=() row disp id spec sel want
+  local tgt=(); [ -n "$targets" ] && read -r -a tgt <<<"$targets"
+  for row in "${rows[@]}"; do
+    IFS='|' read -r disp id spec <<<"$row"
+    if have_desktop "$id"; then entries+=("$disp"); else entries+=("⤓ Instalar $disp…"); fi
+  done
+  entries+=("Otra app instalada…")
+  sel="$(printf '%s\n' "${entries[@]}" | fuzzel --dmenu --prompt "$prompt ")" || return 0
+  [ -n "$sel" ] || return 0
+  if [ "$sel" = "Otra app instalada…" ]; then
+    id="$(list_apps | fuzzel --dmenu --prompt "$prompt " | cut -f2)"; [ -n "$id" ] || return 0
+    apply_default "$id" "$how" ${tgt[@]+"${tgt[@]}"}; note "Por defecto: $id"; return 0
+  fi
+  want="${sel#⤓ Instalar }"; want="${want%…}"
+  for row in "${rows[@]}"; do
+    IFS='|' read -r disp id spec <<<"$row"
+    [ "$disp" = "$want" ] || continue
+    if ! have_desktop "$id"; then
+      do_install "$spec" || return 0
+      have_desktop "$id" || { note "$disp no quedó instalado"; return 0; }
+    fi
+    apply_default "$id" "$how" ${tgt[@]+"${tgt[@]}"}; note "Por defecto: $disp"; return 0
+  done
 }
 
 cat="$(printf '%s\n' \
-  "Navegador web" \
-  "Editor / IDE" \
-  "Terminal" \
-  "Gestor de archivos" \
-  "Visor de PDF" \
-  "Visor de imágenes" \
-  "Correo" \
+  "Navegador web" "Editor / IDE" "Terminal" "Gestor de archivos" \
+  "Visor de PDF" "Visor de imágenes" "Correo" \
   | fuzzel --dmenu --prompt '  app por defecto  ')" || exit 0
 
 case "$cat" in
   "Navegador web")
-    app="$(pick_app 'navegador:')"; [ -n "$app" ] || exit 0
-    if command -v xdg-settings >/dev/null 2>&1; then xdg-settings set default-web-browser "$app" || true; fi
-    set_mimes "$app" x-scheme-handler/http x-scheme-handler/https text/html
-    note "Navegador por defecto: $app" ;;
+    category '  navegador  ' browser 'x-scheme-handler/http x-scheme-handler/https text/html' \
+      "Firefox|firefox.desktop|repo:firefox" \
+      "Brave|brave-browser.desktop|aur:brave-bin" \
+      "Chromium|chromium.desktop|repo:chromium" \
+      "Vivaldi|vivaldi-stable.desktop|aur:vivaldi" \
+      "Mullvad Browser|mullvad-browser.desktop|aur:mullvad-browser-bin" ;;
   "Editor / IDE")
-    app="$(pick_app 'editor:')"; [ -n "$app" ] || exit 0
-    set_mimes "$app" text/plain text/markdown application/json text/x-csrc text/x-c++src \
-      text/x-python application/x-shellscript text/x-script.python text/x-java
-    note "Editor por defecto: $app (los editores de terminal necesitan Terminal=true en su .desktop)" ;;
+    category '  editor  ' mime 'text/plain text/markdown application/json text/x-csrc text/x-c++src text/x-python application/x-shellscript text/x-java' \
+      "VS Code (OSS)|code-oss.desktop|repo:code" \
+      "Zed|dev.zed.Zed.desktop|repo:zed" \
+      "Neovim (terminal)|nvim.desktop|repo:neovim" \
+      "Gnome Text Editor|org.gnome.TextEditor.desktop|repo:gnome-text-editor" \
+      "Kate|org.kde.kate.desktop|repo:kate" ;;
   "Terminal")
-    app="$(pick_app 'terminal:')"; [ -n "$app" ] || exit 0
-    mkdir -p "$HOME/.config"; printf '%s\n' "$app" > "$HOME/.config/xdg-terminals.list"
-    note "Terminal por defecto: $app" ;;
+    category '  terminal  ' terminal '' \
+      "Ghostty|com.mitchellh.ghostty.desktop|repo:ghostty" \
+      "Kitty|kitty.desktop|repo:kitty" \
+      "Alacritty|Alacritty.desktop|repo:alacritty" \
+      "foot|foot.desktop|repo:foot" ;;
   "Gestor de archivos")
-    app="$(pick_app 'archivos:')"; [ -n "$app" ] || exit 0
-    set_mimes "$app" inode/directory
-    note "Gestor de archivos por defecto: $app" ;;
+    category '  archivos  ' mime 'inode/directory' \
+      "Nautilus (Files)|org.gnome.Nautilus.desktop|repo:nautilus" \
+      "Dolphin|org.kde.dolphin.desktop|repo:dolphin" \
+      "Thunar|thunar.desktop|repo:thunar" \
+      "Nemo|nemo.desktop|repo:nemo" ;;
   "Visor de PDF")
-    app="$(pick_app 'PDF:')"; [ -n "$app" ] || exit 0
-    set_mimes "$app" application/pdf
-    note "Visor de PDF por defecto: $app" ;;
+    category '  PDF  ' mime 'application/pdf' \
+      "Papers / Evince|org.gnome.Evince.desktop|repo:evince" \
+      "Okular|org.kde.okular.desktop|repo:okular" \
+      "Zathura|org.pwmt.zathura.desktop|repo:zathura zathura-pdf-mupdf" ;;
   "Visor de imágenes")
-    app="$(pick_app 'imágenes:')"; [ -n "$app" ] || exit 0
-    set_mimes "$app" image/png image/jpeg image/gif image/webp image/svg+xml image/tiff image/bmp
-    note "Visor de imágenes por defecto: $app" ;;
+    category '  imágenes  ' mime 'image/png image/jpeg image/gif image/webp image/svg+xml image/tiff image/bmp' \
+      "Loupe|org.gnome.Loupe.desktop|repo:loupe" \
+      "Image Viewer (eog)|org.gnome.eog.desktop|repo:eog" \
+      "gThumb|org.gnome.gThumb.desktop|repo:gthumb" \
+      "imv|imv.desktop|repo:imv" ;;
   "Correo")
-    app="$(pick_app 'correo:')"; [ -n "$app" ] || exit 0
-    set_mimes "$app" x-scheme-handler/mailto
-    note "Correo por defecto: $app" ;;
+    category '  correo  ' mime 'x-scheme-handler/mailto' \
+      "Thunderbird|thunderbird.desktop|repo:thunderbird" \
+      "Geary|org.gnome.Geary.desktop|repo:geary" \
+      "Evolution|org.gnome.Evolution.desktop|repo:evolution" ;;
 esac
