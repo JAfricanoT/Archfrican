@@ -187,8 +187,16 @@ run_phase2() {                # run_phase2 [single-module]
   step "Dotfiles" "deploying your config (niri, zsh, waybar, …) with chezmoi"
   current_module="dotfiles (chezmoi)"
   have chezmoi || sudo pacman -S --needed --noconfirm chezmoi
-  chezmoi init --apply --source "$REPO_ROOT/home" \
-    || die "chezmoi failed — packages installed but dotfiles NOT deployed. Re-run: chezmoi init --apply --source $REPO_ROOT/home"
+  # An orphaned chezmoi from an interrupted earlier run holds the persistent-state lock, so the next
+  # apply hangs with "timeout obtaining persistent state lock". No legitimate chezmoi runs during the
+  # converge — clear any straggler first, and if a stale on-disk lock remains, drop it and retry once.
+  if pkill -x chezmoi 2>/dev/null; then warn "cleared an orphaned chezmoi that held the state lock"; sleep 1; fi
+  if ! chezmoi init --apply --source "$REPO_ROOT/home"; then
+    warn "chezmoi apply failed — clearing any stale persistent-state lock, retrying once"
+    rm -f "${XDG_CONFIG_HOME:-$HOME/.config}"/chezmoi/chezmoistate.boltdb* 2>/dev/null
+    chezmoi init --apply --source "$REPO_ROOT/home" \
+      || die "chezmoi failed — packages installed but dotfiles NOT deployed. Clear it (pkill -x chezmoi; rm -f ~/.config/chezmoi/chezmoistate.boltdb*) then re-run: chezmoi init --apply --source $REPO_ROOT/home"
+  fi
   current_module=""
 
   step "Final checks" "verifying every app launcher resolves to a package"
