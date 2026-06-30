@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+# archfrican-mullvad — OPT-IN: install Mullvad VPN (app + daemon) and/or the Mullvad Browser, both
+# from the AUR. Privacy-first WireGuard/OpenVPN VPN + the Tor-derived hardened browser. Runs the
+# install in a terminal so you can watch the AUR build and authorise sudo (the daemon enable + pacman
+# need a tty). Re-runnable; nothing is installed unless you pick it here.
+#   archfrican-mullvad            # menu
+#   archfrican-mullvad both       # or: vpn | browser
+set -euo pipefail
+have() { command -v "$1" >/dev/null 2>&1; }
+note() { have notify-send && notify-send "Archfrican" "$1" || echo "$1"; }
+have paru    || { note "paru (capa AUR) no disponible"; exit 1; }
+have ghostty || { note "ghostty no disponible"; exit 1; }
+
+sel="${1:-}"
+[ -n "$sel" ] || sel="$(printf '%s\n' \
+  "Ambos — Mullvad VPN + Mullvad Browser" \
+  "Solo Mullvad VPN (app + daemon)" \
+  "Solo Mullvad Browser" \
+  | fuzzel --dmenu --prompt '  mullvad  ')" || exit 0
+
+vpn=0
+case "$sel" in
+  [Aa]mbos*|both)  pkgs="mullvad-vpn-bin mullvad-browser-bin"; vpn=1 ;;
+  *VPN*|vpn)       pkgs="mullvad-vpn-bin";     vpn=1 ;;
+  *Browser*|browser) pkgs="mullvad-browser-bin" ;;
+  *) echo "uso: archfrican-mullvad [both|vpn|browser]" >&2; exit 1 ;;
+esac
+
+# Build the in-terminal command: AUR install, then (for the VPN) enable the daemon.
+cmd="paru -S --needed $pkgs"
+if [ "$vpn" = 1 ]; then
+  cmd="$cmd && sudo systemctl enable --now mullvad-daemon.service"
+fi
+
+ghostty -e sh -c "
+set -e
+echo '── Instalando: $pkgs ──'
+$cmd
+echo
+if command -v mullvad-vpn >/dev/null 2>&1; then
+  echo 'Mullvad VPN listo → ábrelo e inicia sesión con tu número de cuenta (mullvad.net/account).'
+fi
+if command -v mullvad-browser >/dev/null 2>&1; then
+  echo 'Mullvad Browser listo → ya aparece en el lanzador (⌘+Espacio).'
+fi
+printf '(enter para cerrar) '; read -r _
+" || note "instalación de Mullvad interrumpida (reintenta: paru -S $pkgs)"

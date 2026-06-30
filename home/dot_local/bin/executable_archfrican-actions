@@ -36,6 +36,7 @@ sel="$(printf '%s\n' \
   "No molestar (alternar)" \
   "Luz nocturna (alternar)" \
   "VPN (Tailscale/WireGuard)…" \
+  "Mullvad (VPN + Browser)…" \
   "Audio: efectos / EQ (EasyEffects)" \
   "Audio: patchbay (qpwgraph)" \
   "Accesibilidad (lector, contraste)…" \
@@ -82,6 +83,7 @@ case "$sel" in
   "Buscar archivos"*)    "$B/archfrican-find" ;;
   "Buscar en la web"*)   "$B/archfrican-websearch" ;;
   "Navegador"*)          "$B/archfrican-browser" ;;
+  "Mullvad"*)            "$B/archfrican-mullvad" ;;
   "Tienda"*)             gnome-software ;;
   "Permisos"*)           flatpak run com.github.tchx84.Flatseal ;;
   "Crear web-app"*)      "$B/archfrican-webapp" ;;
