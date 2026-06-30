@@ -26,10 +26,13 @@ case "$sel" in
   *) echo "uso: archfrican-mullvad [both|vpn|browser]" >&2; exit 1 ;;
 esac
 
-# Build the in-terminal command: AUR install, then (for the VPN) enable the daemon.
+# Build the in-terminal command: AUR install, then (for the VPN) enable the daemon and turn lockdown
+# OFF. Mullvad's kill switch blocks ALL traffic — even its own API — when lockdown is on and you're
+# disconnected, which network-locks a fresh install before you can even log in. Default it off (the
+# user can re-enable it in the app); best-effort so a hiccup never fails the install.
 cmd="paru -S --needed $pkgs"
 if [ "$vpn" = 1 ]; then
-  cmd="$cmd && sudo systemctl enable --now mullvad-daemon.service"
+  cmd="$cmd && sudo systemctl enable --now mullvad-daemon.service; sleep 2; mullvad lockdown-mode set off 2>/dev/null || true"
 fi
 
 ghostty -e sh -c "
