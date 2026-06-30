@@ -14,7 +14,19 @@ ARCHFRICAN_ROOT="{{ .chezmoi.homeDir }}/.archfrican"
 disp="$HOME/.local/bin/archfrican-displays"
 if [ -x "$disp" ]; then "$disp" restore || true; fi
 
-theme="$(cat "$HOME/.config/.archfrican-theme" 2>/dev/null || echo adl-dark)"
+theme="$(cat "$HOME/.config/.archfrican-theme" 2>/dev/null || echo archfrican-dark)"
 [ -x "$ARCHFRICAN_ROOT/bin/theme-switch" ] || exit 0   # repo clone absent: nothing to do
 env ARCHFRICAN_ROOT="$ARCHFRICAN_ROOT" "$ARCHFRICAN_ROOT/bin/theme-switch" "$theme" \
   || echo "archfrican: theme re-apply failed for '$theme' (run: theme-switch $theme)" >&2
+
+# Frosted glass: enable blur ONCE, the first time this runs (the default identity ships with it). The niri
+# config.kdl now exists (theme-switch just spliced it), so archfrican-blur can validate with `niri validate`
+# and auto-revert if niri is too old — this can never brick the config. Stamped so a later
+# `archfrican-blur off` is respected: converge never forces it back on.
+blur_stamp="${XDG_STATE_HOME:-$HOME/.local/state}/archfrican/blur-default-done"
+blur="$HOME/.local/bin/archfrican-blur"
+if [ ! -e "$blur_stamp" ] && [ -x "$blur" ]; then
+  mkdir -p "$(dirname "$blur_stamp")"
+  "$blur" on >/dev/null 2>&1 || true
+  : > "$blur_stamp"
+fi

@@ -75,7 +75,7 @@ run_phase2() {                # run_phase2 [single-module]
   USER_NAME="$USER"; USER_PW=""
   TZ="$(timedatectl show -p Timezone --value 2>/dev/null || echo America/New_York)"
   LOCALE="en_US.UTF-8"; XKB="us"
-  THEME="$(cat "$HOME/.config/.archfrican-theme" 2>/dev/null || echo macos-dark)"
+  THEME="$(cat "$HOME/.config/.archfrican-theme" 2>/dev/null || echo archfrican-dark)"
   GPU="$DETECTED_GPU"
 
   # ---- comfortable wizard (only with a real terminal) -----------------------
@@ -90,7 +90,7 @@ run_phase2() {                # run_phase2 [single-module]
     TZ="$(timedatectl list-timezones 2>/dev/null | ui_filter 'Timezone' "$TZ")"
     LOCALE="$(ui_input 'Locale (LANG)' "$LOCALE")"
     XKB="$(ui_input 'Keyboard layout (xkb: us, latam, es, ...)' "$XKB")"
-    THEME="$(ui_choose 'Initial theme' macos-dark macos-light catppuccin-mocha tokyo-night)"
+    THEME="$(ui_choose 'Initial theme' archfrican-dark archfrican-light macos-dark macos-light catppuccin-mocha tokyo-night)"
     GPU="${ARCHFRICAN_GPU:-$DETECTED_GPU}"   # auto-detected; the installer picks the driver (no mis-pick)
     ui_note "GPU: $GPU (auto-detectada — el instalador elige el driver. Override: ARCHFRICAN_GPU=vm|nvidia|amd|intel)"
     # Multi-boot: enable os-prober so an already-installed OS shows up in the GRUB menu (keeps the
