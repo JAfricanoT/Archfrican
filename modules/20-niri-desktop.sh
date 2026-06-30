@@ -65,10 +65,12 @@ resilient_enable_user wireplumber.service
 
 substep "configuring keyd (⌘+letter → Ctrl, macOS muscle memory)"
 write_system_file /etc/keyd/default.conf <<'KEYD'
-# Archfrican keyd map. The ⌘ (meta) key stays the niri WM modifier for non-letter and
-# Shift combos, but plain ⌘+<letter> editing shortcuts are translated to Ctrl so
-# copy/paste/save/etc. keep your macOS muscle memory. No collision with niri,
-# because niri never binds plain Mod+<letter>.
+# Archfrican keyd map. Two layers split ⌘ cleanly between app shortcuts and the WM:
+#   [meta]        ⌘+<letter>        -> Ctrl+<letter>          (copy/paste/save/… macOS muscle memory)
+#   [meta+shift]  ⌘+Shift+<letter>  -> Super+Shift+<letter>   (passed to niri for its WM/launcher binds)
+# Without the [meta+shift] layer, keyd's [meta] mapping ALSO fires on ⌘+Shift+<letter> and DROPS the
+# Shift (documented keyd behaviour), stealing ⌘+Shift+A/C/F/… from niri. A composite layer takes
+# precedence when all its modifiers are held, so the two stop colliding. niri binds no plain Mod+letter.
 [ids]
 *
 
@@ -92,6 +94,24 @@ n = C-n
 q = C-q
 l = C-l
 r = C-r
+
+# ⌘+Shift+<letter>: composite layer (MUST come after [meta]). The letters niri binds with Shift pass
+# through as Super+Shift+<letter> so niri receives its WM/launcher binds; the rest keep the app's
+# Ctrl+Shift shortcut (e.g. ⌘+Shift+Z = redo). M = meta/super, S = shift, C = control.
+[meta+shift]
+a = M-S-a
+c = M-S-c
+f = M-S-f
+l = M-S-l
+n = M-S-n
+q = M-S-q
+r = M-S-r
+s = M-S-s
+t = M-S-t
+v = M-S-v
+w = M-S-w
+x = C-S-x
+z = C-S-z
 KEYD
 # enable for boot + validate-then-(re)start so the map is live now AND on every converge (a re-render
 # of default.conf only takes effect after a restart; never restart onto a config keyd rejects).

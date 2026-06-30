@@ -313,4 +313,10 @@ jobs:
           # Anchored at line start so the explanatory comment mentioning meta.x can't false-trip it.
           if grep -nE '^[[:space:]]*meta\.[a-z][[:space:]]*=' "$f"; then
             echo "::error::keyd rejects the 'meta.x = ...' shorthand — put the mapping under the [meta] section"; exit 1; fi
-          echo "keyd-config: [meta] layer present, no invalid meta.x shorthand"
+          # [meta+shift] composite layer is required: without it keyd's [meta] map ALSO captures
+          # ⌘+Shift+<letter>, stealing niri's WM binds (⌘+Shift+A, etc.). Must come AFTER [meta].
+          grep -qE '^\[meta\+shift\]' "$f" \
+            || { echo "::error::keyd map must define [meta+shift] so ⌘+Shift+<letter> reaches niri (else it steals the WM binds)"; exit 1; }
+          if [ "$(grep -n '^\[meta\]' "$f" | head -1 | cut -d: -f1)" -ge "$(grep -n '^\[meta+shift\]' "$f" | head -1 | cut -d: -f1)" ]; then
+            echo "::error::[meta+shift] must be defined AFTER [meta] (keyd requires composite layers after their parts)"; exit 1; fi
+          echo "keyd-config: [meta] + [meta+shift] present (ordered), no invalid meta.x shorthand"

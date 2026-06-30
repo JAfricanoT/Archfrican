@@ -12,4 +12,12 @@ background-blur = true
 cursor-style = block
 mouse-hide-while-typing = true
 confirm-close-surface = false
+
+# macOS clipboard in the terminal. keyd rewrites ⌘+C/⌘+V to Ctrl+C/Ctrl+V BELOW the compositor, so
+# ghostty only ever sees Ctrl+C/Ctrl+V — bind those. `performable:` consumes the key only if the action
+# can run, so ⌘+C COPIES when text is selected and otherwise falls through as interrupt (SIGINT) — the
+# macOS-faithful behaviour on one key. ⌘+V pastes. The defaults (Ctrl+Shift+C/V) still work too.
+keybind = performable:ctrl+c=copy_to_clipboard
+keybind = ctrl+v=paste_from_clipboard
+
 config-file = colors

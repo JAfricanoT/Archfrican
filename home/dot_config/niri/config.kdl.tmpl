@@ -177,7 +177,8 @@ binds {
     XF86MonBrightnessUp   { spawn "swayosd-client" "--brightness" "raise"; }
     XF86MonBrightnessDown { spawn "swayosd-client" "--brightness" "lower"; }
 
-    // apps — Mod+Shift+<letter> never collides with keyd's plain ⌘+letter
+    // apps — Mod+Shift+<letter> reaches niri because keyd's [meta+shift] layer passes it through as
+    // Super+Shift+<letter> (the [meta] ⌘+letter map would otherwise capture these — see 20-niri-desktop.sh)
     Mod+Shift+N { spawn "nautilus"; }                 // GUI file manager
     Mod+Shift+Y { spawn "ghostty" "-e" "yazi"; }      // TUI file manager
     Mod+Shift+B { spawn "ghostty" "-e" "btop"; }      // system monitor
