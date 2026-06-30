@@ -43,9 +43,12 @@ The 17 palette vars: `GTK_SCHEME GTK_THEME ICON_THEME`, `BG BG_ALT BG_DIM`, `FG 
 `RED GREEN YELLOW BLUE MAGENTA CYAN`, `BORDER_ACTIVE BORDER_INACTIVE` — plus **`ACCENT_FG`** (readable
 text/icon colour ON the accent; the bright teal needs dark text, so it is per-theme).
 
-- **Default identity** = `adl-dark` (teal `#2dd4bf` on warm graphite `#17181b`) and its pair
-  `adl-light` (teal `#0d9488` on warm paper `#faf9f6`). Selectable alternatives: `macos-dark`,
-  `macos-light`, `catppuccin-mocha`, `tokyo-night`, `high-contrast`.
+- **Shipped default** = `archfrican-dark` / `archfrican-light` — the project's OWNED identity (graphite
+  `#1c1c1e` + system blue `#0a84ff`, macOS-grade): a base copied from the macOS look but evolved freely.
+  It keeps the 8/12/16 radius family (like the `macos-*` clones) yet inherits ADL's Inter / JetBrainsMono
+  type (no SF Pro dependency). `adl-dark` / `adl-light` (teal `#2dd4bf` on warm graphite `#17181b`) remain
+  the design-language root and a selectable identity. Other selectable themes: `macos-dark`, `macos-light`,
+  `catppuccin-mocha`, `tokyo-night`, `high-contrast`.
 - **Accent is used sparingly** — focus, selection, active/hover states. It is the teal *thread* that
   ties shell and apps together; do not flood surfaces with it.
 - **Light / dark / high-contrast** must all work. `darkman` auto-switches light↔dark *within* the
@@ -88,9 +91,13 @@ Signature easing `cubic-bezier(0.22,0.61,0.18,1.0)` (confident, soft settle); en
 
 ## Elevation / translucency / cursor
 
-`OPACITY_BAR .85 · PANEL .96 · CARD .94 · TERM .92`, `ELEV_BORDER .22` (hairline alpha),
-`BLUR_PASSES 3 / BLUR_RADIUS 8` (frosted glass, opt-in via `archfrican-blur`). Focus-presence shadow:
-`SHADOW_SOFTNESS/SPREAD/OFFSET_*/COLOR`. One pointer everywhere: `CURSOR_THEME`, `CURSOR_SIZE`.
+`OPACITY_BAR .85 · PANEL .96 · CARD .94 · TERM .92 · GLASS .80` (`ALPHA_GLASS_HEX cc` = the same .80 as a
+hex suffix for fuzzel's colours), `ELEV_BORDER .22` (hairline alpha), `BLUR_PASSES 3 / BLUR_RADIUS 8`.
+Frosted glass is opt-in via `archfrican-blur`, which now toggles BOTH window blur (window-rule) AND the
+launcher + control-center / notifications (niri `layer-rule`) together — validating with `niri validate`
+and reverting on an older niri. The control center (swaync) and launcher (fuzzel) render their *whole*
+config from tokens (shape + elevation, not only colour) and use `OPACITY_GLASS` so the layer-blur reads
+as glass. Focus-presence shadow: `SHADOW_SOFTNESS/SPREAD/OFFSET_*/COLOR`. One pointer: `CURSOR_THEME/SIZE`.
 
 ## Do / Don't
 
