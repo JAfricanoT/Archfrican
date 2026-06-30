@@ -92,12 +92,14 @@ Signature easing `cubic-bezier(0.22,0.61,0.18,1.0)` (confident, soft settle); en
 ## Elevation / translucency / cursor
 
 `OPACITY_BAR .85 · PANEL .96 · CARD .94 · TERM .92 · GLASS .80` (`ALPHA_GLASS_HEX cc` = the same .80 as a
-hex suffix for fuzzel's colours), `ELEV_BORDER .22` (hairline alpha), `BLUR_PASSES 3 / BLUR_RADIUS 8`.
-Frosted glass is opt-in via `archfrican-blur`, which now toggles BOTH window blur (window-rule) AND the
-launcher + control-center / notifications (niri `layer-rule`) together — validating with `niri validate`
-and reverting on an older niri. The control center (swaync) and launcher (fuzzel) render their *whole*
-config from tokens (shape + elevation, not only colour) and use `OPACITY_GLASS` so the layer-blur reads
-as glass. Focus-presence shadow: `SHADOW_SOFTNESS/SPREAD/OFFSET_*/COLOR`. One pointer: `CURSOR_THEME/SIZE`.
+hex suffix for fuzzel's colours), `ELEV_BORDER .22` (hairline alpha). Frosted glass is opt-in via
+`archfrican-blur`, which toggles niri's `background-effect { blur true }` on windows (window-rule) and on
+the **launcher** (layer-rule) — validated with `niri validate`, reverted on an older niri. It is deliberately
+NOT applied to swaync: niri blurs the *whole* layer surface (no per-card clip until apps speak
+`ext-background-effect`), so blurring the large control-center layer would flatten the screen behind it. The
+control center is a near-opaque token panel (`OPACITY_PANEL`) instead; only the small launcher
+(`OPACITY_GLASS`) gets the frost. swaync + fuzzel still render their *whole* config from tokens (shape +
+elevation, not only colour). Focus shadow: `SHADOW_SOFTNESS/SPREAD/OFFSET_*/COLOR`. One pointer: `CURSOR_THEME/SIZE`.
 
 ## Do / Don't
 

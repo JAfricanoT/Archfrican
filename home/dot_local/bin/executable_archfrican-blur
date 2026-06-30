@@ -12,41 +12,16 @@ cfg="${XDG_CONFIG_HOME:-$HOME/.config}/niri/config.kdl"
 win_on=$'    background-effect {\n        blur true\n    }'
 win_off=$'    // background-effect {\n    //     blur true\n    // }'
 
-# Top-level layer-rule blur+shadow, one per frosted layer surface. Multi-line on purpose: single-line
-# nested KDL silently breaks niri. Corner radii match the launcher/control-center (16) + the toast (12).
+# Top-level layer-rule for the LAUNCHER only. niri's layer blur covers the ENTIRE layer surface (it can't
+# clip to just the visible card until apps speak ext-background-effect), so blurring swaync's large
+# control-center / notification layers would flatten the whole screen behind them. For the launcher that
+# whole-layer blur is exactly the wanted Spotlight focus effect. Multi-line on purpose (single-line nested
+# KDL silently breaks niri).
 layer_blocks() {
   cat <<'KDL'
 layer-rule {
     match namespace="^launcher$"
     geometry-corner-radius 16
-    shadow {
-        on
-        softness 30
-        spread 3
-        offset x=0 y=6
-        color "#00000055"
-    }
-    background-effect {
-        blur true
-    }
-}
-layer-rule {
-    match namespace="^swaync-control-center$"
-    geometry-corner-radius 16
-    shadow {
-        on
-        softness 30
-        spread 3
-        offset x=0 y=6
-        color "#00000055"
-    }
-    background-effect {
-        blur true
-    }
-}
-layer-rule {
-    match namespace="^swaync-notification-window$"
-    geometry-corner-radius 12
     shadow {
         on
         softness 30
@@ -100,7 +75,7 @@ case "${1:-status}" in
     fi
     rm -f "$cfg.afbak"; echo "blur: $1 (windows + launcher/control-center; niri live-reloads on save)" ;;
   status)
-    if awk '/BLUR-START/{f=1;next}/BLUR-END/{f=0}f' "$cfg" | grep -qE '^[[:space:]]*blur[[:space:]]*\{'; then
+    if awk '/BLUR-START/{f=1;next}/BLUR-END/{f=0}f' "$cfg" | grep -qE '^[[:space:]]*background-effect[[:space:]]*\{'; then
       echo on; else echo off; fi ;;
   *)
     echo "usage: archfrican-blur on|off|status" >&2; exit 1 ;;

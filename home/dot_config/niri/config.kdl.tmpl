@@ -62,43 +62,17 @@ window-rule {
     // BLUR-END
 }
 
-// macOS-like frosted glass on the LAUNCHER (fuzzel) + CONTROL CENTER / notifications (swaync). These are
-// layer-shell surfaces, so blur + shadow come from layer-rule (not the window-rule above). Shipped OFF for
-// the SAME version-safety as window blur (an older niri lacks layer blur/shadow and would refuse to start).
-// Enable everything together — validated and auto-reverted if niri is too old — with:  archfrican-blur on
+// macOS-like frosted glass on the LAUNCHER (fuzzel) — a layer-shell surface, so blur + shadow come from a
+// layer-rule. LAUNCHER ONLY: niri's layer blur covers the ENTIRE layer surface (it can't clip to just the
+// visible card yet — that needs the ext-background-effect protocol), so blurring swaync's large
+// control-center / notification layers would flatten the whole screen behind them. The control center stays
+// a clean translucent panel via its own CSS; for the launcher this whole-layer blur is the wanted Spotlight
+// focus effect. Shipped OFF for version-safety (older niri lacks blur); enable with: archfrican-blur on
 // (Multi-line blocks on purpose: single-line nested KDL silently breaks niri.)
 // LAYER-BLUR-START
 // layer-rule {
 //     match namespace="^launcher$"
 //     geometry-corner-radius 16
-//     shadow {
-//         on
-//         softness 30
-//         spread 3
-//         offset x=0 y=6
-//         color "#00000055"
-//     }
-//     background-effect {
-//         blur true
-//     }
-// }
-// layer-rule {
-//     match namespace="^swaync-control-center$"
-//     geometry-corner-radius 16
-//     shadow {
-//         on
-//         softness 30
-//         spread 3
-//         offset x=0 y=6
-//         color "#00000055"
-//     }
-//     background-effect {
-//         blur true
-//     }
-// }
-// layer-rule {
-//     match namespace="^swaync-notification-window$"
-//     geometry-corner-radius 12
 //     shadow {
 //         on
 //         softness 30
