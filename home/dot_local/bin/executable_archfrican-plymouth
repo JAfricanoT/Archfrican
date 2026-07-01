@@ -1,14 +1,56 @@
 #!/usr/bin/env bash
-# Boot splash (Plymouth) — OPT-IN. A clean spinner so boot -> SDDM -> desktop has no text-mode seam.
-# WARNING: this touches the initramfs — it is gated and best validated in a VM first. Recovery if boot
-# ever misbehaves: pick linux-lts or a Btrfs snapshot in the GRUB menu. Backs up + restores on failure.
+# Disk-unlock + boot splash (Plymouth) — OPT-IN. Installs an Archfrican Plymouth theme that MIRRORS the
+# SDDM login (same ADL gradient + teal accent), so the encrypted-disk password prompt looks like the
+# login and boot -> SDDM -> desktop has no text-mode seam. Colours come from your ACTIVE palette
+# (re-run this after a theme change to refresh the splash). WARNING: touches the initramfs — VM-validate
+# first (docs/STAGE2-VALIDATION.md). Recovery if boot misbehaves: pick linux-lts or a Btrfs snapshot in
+# GRUB. Backs up + restores HOOKS on mkinitcpio failure; a bad theme degrades to the plain text prompt.
 set -euo pipefail
 have() { command -v "$1" >/dev/null 2>&1; }
 note() { have notify-send && notify-send "Archfrican" "$1" || echo "$1"; }
+ROOT="${ARCHFRICAN_ROOT:-$HOME/.archfrican}"
+
+# build_theme <palette.sh> <out.script> <template.in> — render the Plymouth script from the palette,
+# converting each hex colour to Plymouth's 0..1 RGB floats. Subshell + set -e so a missing colour aborts
+# (the caller then falls back to the stock spinner). Only BG/BG_ALT/FG_DIM/ACCENT are needed.
+build_theme() {
+  ( set -euo pipefail
+    # shellcheck disable=SC1090
+    . "$1"
+    rgbf() {                       # rgbf <#RRGGBB> <R|G|B> -> 0..1 float (printf parses the hex, awk divides)
+      local hex="${1#\#}" byte
+      case "$2" in R) byte="${hex:0:2}";; G) byte="${hex:2:2}";; B) byte="${hex:4:2}";; esac
+      awk "BEGIN{printf \"%.4f\", $(printf '%d' "0x$byte")/255}"
+    }
+    # shellcheck disable=SC2154   # BG/BG_ALT/FG_DIM/ACCENT come from the sourced palette
+    sed -e "s/@BG_R@/$(rgbf "$BG" R)/g"          -e "s/@BG_G@/$(rgbf "$BG" G)/g"          -e "s/@BG_B@/$(rgbf "$BG" B)/g" \
+        -e "s/@BG_ALT_R@/$(rgbf "$BG_ALT" R)/g"  -e "s/@BG_ALT_G@/$(rgbf "$BG_ALT" G)/g"  -e "s/@BG_ALT_B@/$(rgbf "$BG_ALT" B)/g" \
+        -e "s/@FG_DIM_R@/$(rgbf "$FG_DIM" R)/g"  -e "s/@FG_DIM_G@/$(rgbf "$FG_DIM" G)/g"  -e "s/@FG_DIM_B@/$(rgbf "$FG_DIM" B)/g" \
+        -e "s/@ACCENT_R@/$(rgbf "$ACCENT" R)/g"  -e "s/@ACCENT_G@/$(rgbf "$ACCENT" G)/g"  -e "s/@ACCENT_B@/$(rgbf "$ACCENT" B)/g" \
+        "$3" > "$2" )
+}
 
 confirm="$(printf 'Sí, instalar el splash de arranque\nCancelar\n' | fuzzel --dmenu --prompt '  Plymouth (toca initramfs)  ')" || exit 0
 case "$confirm" in "Sí,"*) ;; *) exit 0 ;; esac
 sudo pacman -S --needed --noconfirm plymouth || { note "no pude instalar plymouth"; exit 1; }
+
+# ── install the Archfrican theme (from the active palette); fall back to the stock spinner on any gap ──
+theme_name=spinner
+src="$ROOT/assets/plymouth/archfrican"
+active="$(cat "$HOME/.config/.archfrican-theme" 2>/dev/null || echo archfrican-dark)"
+pal="$ROOT/themes/$active/colors.sh"; [ -r "$pal" ] || pal="$ROOT/themes/archfrican-dark/colors.sh"
+if [ -r "$src/archfrican.script.in" ] && [ -r "$src/archfrican.plymouth" ] && [ -r "$pal" ]; then
+  rendered="$(mktemp)"
+  if build_theme "$pal" "$rendered" "$src/archfrican.script.in" \
+     && sudo install -d -m 0755 /usr/share/plymouth/themes/archfrican \
+     && sudo install -m 0644 "$src/archfrican.plymouth" /usr/share/plymouth/themes/archfrican/archfrican.plymouth \
+     && sudo install -m 0644 "$rendered" /usr/share/plymouth/themes/archfrican/archfrican.script; then
+    theme_name=archfrican
+  else
+    note "no pude generar el tema Archfrican — usaré el spinner por defecto"
+  fi
+  rm -f "$rendered"
+fi
 
 mk=/etc/mkinitcpio.conf
 if ! grep -qE '^HOOKS=.*\bplymouth\b' "$mk"; then
@@ -26,10 +68,10 @@ if [ -f "$gd" ] && ! grep -q splash "$gd"; then
   if have grub-mkconfig; then sudo grub-mkconfig -o /boot/grub/grub.cfg >/dev/null 2>&1 || true; fi
 fi
 
-sudo plymouth-set-default-theme spinner 2>/dev/null || true
+sudo plymouth-set-default-theme "$theme_name" 2>/dev/null || true
 
 if sudo mkinitcpio -P; then
-  note "Plymouth instalado (spinner). Reinicia para verlo. Recovery: linux-lts/snapshot en GRUB."
+  note "Plymouth instalado ($theme_name). Reinicia para verlo. Recovery: linux-lts/snapshot en GRUB."
 else
   if [ -f "$mk.archfrican.bak" ]; then sudo mv -f "$mk.archfrican.bak" "$mk"; sudo mkinitcpio -P || true; fi
   note "mkinitcpio falló — restauré HOOKS. Plymouth NO activado."

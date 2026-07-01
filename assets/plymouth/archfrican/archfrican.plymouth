@@ -1,0 +1,8 @@
+[Plymouth Theme]
+Name=Archfrican
+Description=Archfrican disk-unlock splash — mirrors the SDDM login (ADL gradient + teal accent)
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/archfrican
+ScriptFile=/usr/share/plymouth/themes/archfrican/archfrican.script

@@ -1,0 +1,53 @@
+// Archfrican Plymouth theme — the encrypted-disk unlock splash, mirroring the SDDM login: the same ADL
+// gradient (BG_ALT -> BG) with the teal accent on the password bullets. This is a TEMPLATE: archfrican-
+// plymouth substitutes the @…@ placeholders with the ACTIVE palette's colours converted to Plymouth's
+// 0..1 RGB floats, and installs the result as archfrican.script.
+//
+// Plymouth's script language runs in the initramfs and CANNOT be unit-tested from the dev box — this is
+// VM-validate territory (docs/STAGE2-VALIDATION.md). A malformed theme degrades to the plain text prompt
+// (never a brick), and archfrican-plymouth restores HOOKS if mkinitcpio fails.
+
+// ── background: the ADL vertical gradient (matches SDDM bgTop/bgBottom) ─────────────────────────────
+Window.SetBackgroundTopColor(@BG_ALT_R@, @BG_ALT_G@, @BG_ALT_B@);
+Window.SetBackgroundBottomColor(@BG_R@, @BG_G@, @BG_B@);
+
+// Global sprites so each password refresh REPLACES the previous (no accumulation), and display_normal
+// clears them (NULL -> Plymouth removes the sprite). This is the canonical robust prompt pattern.
+global.prompt_sprite = NULL;
+global.entry_sprite = NULL;
+
+// ── password prompt (systemd / cryptsetup ask-password) ────────────────────────────────────────────
+fun display_password (prompt, bullets) {
+    label = Image.Text(prompt, @FG_DIM_R@, @FG_DIM_G@, @FG_DIM_B@);
+    global.prompt_sprite = Sprite(label);
+    global.prompt_sprite.SetPosition((Window.GetWidth()  - label.GetWidth())  / 2,
+                                     (Window.GetHeight() / 2) - label.GetHeight() - 8, 10000);
+
+    dots = "";
+    for (i = 0; i < bullets; i++) dots += "●";
+    if (dots == "") dots = "·";
+    entry = Image.Text(dots, @ACCENT_R@, @ACCENT_G@, @ACCENT_B@);
+    global.entry_sprite = Sprite(entry);
+    global.entry_sprite.SetPosition((Window.GetWidth()  - entry.GetWidth())  / 2,
+                                    (Window.GetHeight() / 2) + 8, 10000);
+}
+Plymouth.SetDisplayPasswordFunction(display_password);
+
+// ── normal boot / after unlock: clear the prompt ───────────────────────────────────────────────────
+fun display_normal () {
+    global.prompt_sprite = NULL;
+    global.entry_sprite = NULL;
+}
+Plymouth.SetDisplayNormalFunction(display_normal);
+
+// ── messages (e.g. "cryptsetup: unlocking…") shown dim, centred at the bottom ──────────────────────
+global.message_sprite = NULL;
+fun display_message (text) {
+    msg = Image.Text(text, @FG_DIM_R@, @FG_DIM_G@, @FG_DIM_B@);
+    global.message_sprite = Sprite(msg);
+    global.message_sprite.SetPosition((Window.GetWidth() - msg.GetWidth()) / 2,
+                                      Window.GetHeight() - msg.GetHeight() - 40, 10000);
+}
+fun hide_message (text) { global.message_sprite = NULL; }
+Plymouth.SetDisplayMessageFunction(display_message);
+Plymouth.SetHideMessageFunction(hide_message);
