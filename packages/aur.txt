@@ -7,4 +7,15 @@ otf-san-francisco-mono       # SF Mono
 nwg-dock                     # macOS-style dock for Wayland
 bemoji                       # emoji/symbol picker for the launcher (archfrican-emoji falls back if absent)
 walker                       # Spotlight launcher (GTK4, rich grid) — archfrican-spotlight; fuzzel stays as fallback
-elephant                     # Walker's backend daemon (providers: apps/calc/files/web/clipboard/symbols/windows)
+elephant                     # Walker's backend daemon (loads provider .so plugins from /usr/lib/elephant)
+# elephant providers are SEPARATE packages (NOT bundled in `elephant`) — without them Walker is empty and
+# won't search. Exactly the ones home/dot_config/walker/config.toml references, so nothing here goes unused.
+elephant-desktopapplications # app grid (the default/empty provider)
+elephant-calc                # `=` calculator (libqalculate)
+elephant-websearch           # `@` web search
+elephant-files               # `/` file search (fd)
+elephant-clipboard           # `:` clipboard history (wl-clipboard, imagemagick)
+elephant-windows             # `$` open-window switcher (fd)
+elephant-symbols             # `.` symbols / emoji
+elephant-providerlist        # `;` provider switcher
+elephant-menus               # Walker's action / submenu system
