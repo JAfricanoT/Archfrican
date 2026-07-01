@@ -186,6 +186,8 @@ whenever the mic or camera is in use.
 | [FIDO2-RECOVERY](docs/FIDO2-RECOVERY.md) | FIDO2 enrollment and key rotation |
 | [PRIVACY](docs/PRIVACY.md) | Telemetry posture |
 | [STAGE2-VALIDATION](docs/STAGE2-VALIDATION.md) | ISO installer validation |
+| [VALIDATION](docs/VALIDATION.md) | Real-install validation guide (hardware smoke test) |
+| [WM-INTEGRATION](docs/WM-INTEGRATION.md) | niri-specific surface map — guide for porting to other compositors |
 
 ## Layout
 
