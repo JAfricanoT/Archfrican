@@ -2,8 +2,8 @@
 # archfrican-update — bring this machine to the repo's desired state, then upgrade packages, all
 # under a pre-snapshot (reversible). The promise: "updating an old Archfrican == a fresh install".
 #   archfrican-update              read-only report — pre-checks + drift (changes NOTHING)
-#   archfrican-update --run        full pipeline: snapshot → repo refresh → migrate → converge
-#                                  (only changed modules) → pacman -Syu → AUR (reviewed)
+#   archfrican-update --run        full pipeline: snapshot → repo refresh → pacman -Syu → converge
+#                                  (only changed modules, against a fresh DB) → AUR (reviewed)
 #   archfrican-update --converge   just re-apply the repo's config/dotfiles (no package upgrade)
 #   archfrican-update --prune      offer to remove Archfrican-managed pkgs no longer in the repo
 #                                  (interactive; your own hand-installed packages are NEVER listed)
@@ -99,9 +99,12 @@ pre_snapshot() {
   else _note "could not create a pre-snapshot (continuing)"; fi
 }
 
-# ---------- desired-state converge -------------------------------------------
-converge() {
-  _hd "Converge — re-apply the repo's desired state"
+# ---------- repo refresh + desired-state converge ----------------------------
+# Split into two so --run can slot the SYSTEM UPGRADE between the pull and the module run: a module that
+# installs a package newly added to a repo list must see it in a FRESH pacman DB — otherwise `pacman -S`
+# fails "target not found" on a stale DB and the package silently doesn't install (the gtklock/provider
+# case), only self-healing on a SECOND --run.
+repo_refresh() {                 # pull the desired state + run migrations (no package changes)
   if [ -d "$ROOT/.git" ] && command -v git >/dev/null 2>&1; then
     local old new; old="$(git -C "$ROOT" rev-parse --short HEAD 2>/dev/null)"
     if git -C "$ROOT" fetch --depth 1 origin "$ARCHFRICAN_REF" >/dev/null 2>&1; then
@@ -112,9 +115,11 @@ converge() {
     else _note "git fetch failed — converging the on-disk repo ($old)"; fi
   fi
   run_migrations || { _note "migrations failed — aborting before the converge"; return 1; }
-  # The converge subprocess runs the freshly-pulled installer; only changed modules re-run.
+}
+converge_modules() {             # run the freshly-pulled installer; only CHANGED modules re-run
   ARCHFRICAN_UPDATE=1 bash "$ROOT/install.sh" --update || { _note "converge reported an error — review above"; return 1; }
 }
+converge() { _hd "Converge — re-apply the repo's desired state"; repo_refresh && converge_modules; }
 
 # ---------- opt-in prune (only Archfrican-managed, never your packages) -------
 do_prune() {
@@ -141,10 +146,17 @@ post_summary() {
 if [ "$RUN" = 1 ]; then
   precheck
   pre_snapshot
-  converge || exit 1
+  # Order matters: pull → UPGRADE (syncs the DB + brings the system current) → converge (installs against
+  # the fresh DB) → AUR. Converging BEFORE the upgrade left a stale DB, so a package newly added to a repo
+  # list failed to install ("target not found") and only self-healed on a second --run. Rollback (the
+  # pre-snapshot) covers the whole sequence.
+  _hd "Repo refresh — pull the desired state"
+  repo_refresh || exit 1
   _hd "System upgrade (official repos) — interactive, never --noconfirm"
   [ "$warn_n" -gt 0 ] && printf '  \e[33m%d caution(s) in the pre-check above.\e[0m\n\n' "$warn_n"
   sudo pacman -Syu || _note "pacman -Syu reported an error — review above"
+  _hd "Converge — re-apply the repo's desired state (installs against the fresh DB)"
+  converge_modules || exit 1
   if [ "$NO_AUR" = 0 ] && command -v paru >/dev/null 2>&1; then
     _hd "AUR upgrade (reviewed; a failed build never blocks the system)"
     paru -Sua || _note "an AUR build failed — the official upgrade still applied; retry later: paru -Sua"
