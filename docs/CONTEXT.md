@@ -41,8 +41,8 @@ es **programación de alto rendimiento** (polyglot). Nombre del proyecto: **Arch
 | Editor | **Code-OSS** (`code`, Wayland nativo), desacoplado vía LSP | Build open-source (Open VSX, sin Marketplace de MS). Los language servers se instalan a nivel de sistema (`rust-analyzer`, `gopls`, `pyright`+`ruff`, `typescript-language-server`, `clangd`); Code-OSS es solo un frontend, intercambiable por Neovim/Helix/Zed sin reconfigurar. |
 | Lenguajes | Rust/C/C++, Go, Python/datos-ML, JS/TS | Toolchains vía version managers (rustup, go, uv, fnm) en vez de versiones del sistema. |
 | Periféricos | waybar, **fuzzel** (estilo Spotlight), mako, swaylock+swayidle, awww-daemon, grim+slurp, cliphist, **paru**, nwg-dock | Todos Wayland-native, niri-friendly, en módulos independientes (vetar cualquiera). |
-| Estética | **macOS-like**, tema default `macos-dark` | Migración desde macOS con mínima fricción. Tahoe grafito + azul de sistema, fuentes **SF Pro + SF Mono**, GTK **WhiteSur** + iconos, cursores McMojave, **blur de niri 26.04** (efecto vidrio, opt-in — ver `config.kdl`). |
-| Theming | **Switcher multi-tema en caliente** (estilo Omarchy) | `theme-switch <name>`. Temas: macos-dark, macos-light, catppuccin-mocha, tokyo-night. |
+| Estética | **macOS-like**, tema default `adl-dark` (ADL) | Migración desde macOS con mínima fricción. Tahoe grafito + azul de sistema, fuentes **SF Pro + SF Mono**, GTK **WhiteSur** + iconos, cursores McMojave, **blur de niri 26.04** (efecto vidrio, opt-in — ver `config.kdl`). |
+| Theming | **Switcher multi-tema en caliente** (estilo Omarchy) | `theme-switch <name>`. 9 temas: adl-dark (default), adl-light, archfrican-dark, archfrican-light, catppuccin-mocha, high-contrast, macos-dark, macos-light, tokyo-night. |
 | Fricción macOS | **keyd**: ⌘+letra → Ctrl | Mantiene muscle-memory de copy/paste/save/quit. ⌘ sigue siendo el modificador de niri para combos **sin-letra y con Shift** → sin colisiones. + scroll natural, tap-to-click, gestos 3 dedos, ⌘+Space=launcher, ⌘+Tab=overview. |
 
 ### Regla de diseño clave (keybinds)
@@ -77,31 +77,33 @@ archfrican/
 niri auto-reload por marcadores `// THEME-START/END` en config.kdl). fuzzel usa hex **sin `#`**
 (se hace strip aparte). Añadir tema = soltar un `colors.sh` con el mismo esquema de variables.
 
-## 5. Estado actual (lo construido — v0)
+## 5. Estado actual (lo construido — producción temprana)
 
-- Esqueleto de **42 archivos** generado y entregado como `archfrican.zip`.
-- Todos los scripts pasan `bash -n`.
+- **217 archivos** rastreados en git; repo completo con CI verde en todos los jobs.
+- **ISO booteable** disponible (`build-iso.sh`); reconstrucción automática semanal en CI; ver [docs/ISO.md](ISO.md).
+- **12 módulos** de fase 2: 00-base, 10-gpu, 20-niri-desktop, 30-dev, 35-apps, 40-theming, 45-print, 50-snapshots, 55-multiboot, 60-security, 65-gaming, 70-hygiene.
+- **9 temas** disponibles: adl-dark (default), adl-light, archfrican-dark, archfrican-light, catppuccin-mocha, high-contrast, macos-dark, macos-light, tokyo-night.
+- **44 comandos** CLI en `~/.local/bin/` (ver [docs/COMMANDS.md](COMMANDS.md)).
 - `theme-switch` corre desde el symlink desplegado (`~/.local/bin` → clon del repo);
-  su idempotencia la encierra el smoke-test de CI (aplica los 4 temas ×2 y comprueba
+  su idempotencia la encierra el smoke-test de CI (aplica los 9 temas ×2 y comprueba
   que no quede ningún `${VAR}` sin renderizar) sobre ghostty/fuzzel/mako/waybar y el borde de niri.
 - Switcher reescrito **sin dependencias** (sed, no envsubst/gettext) para que no rompa en máquina nueva.
-- Es un **v0 para iterar**, no para correr a ciegas en hardware todavía.
+- Todos los scripts pasan `bash -n` y `shellcheck`; todos los módulos son idempotentes.
 
 ## 6. Caveats / a verificar antes de usar en hardware
 
-- **archinstall**: el esquema JSON cambia entre versiones → revisar el TUI antes de tocar el disco.
-- **CachyOS**: verificar la URL del tarball del repo en `modules/00-base.sh` contra la doc oficial.
-- **NVIDIA**: reiniciar tras la fase 2 antes de la primera sesión de niri.
+- **CachyOS**: verificar la URL del tarball del repo en `modules/00-base.sh` contra la doc oficial si cambia.
+- **NVIDIA**: reiniciar tras la fase 2 antes de la primera sesión de niri (quirk del driver).
 - **WhiteSur** puede ser imperfecto en algunas apps Wayland (`nwg-look` para ajustar).
-- Algunos keybinds de niri son no-estándar por la regla "sin Mod+letra" (documentado).
+- Algunos keybinds de niri son no-estándar por la regla "sin Mod+letra" (documentado en [docs/FIRST-STEPS.md](FIRST-STEPS.md)).
+- La ISO requiere hardware `x86_64` con UEFI y ≥ 20 GiB libre; ver [docs/HARDWARE.md](HARDWARE.md).
 
 ## 7. Próximos pasos abiertos
 
 - Pulir el módulo `dev` (settings concretos de Code-OSS, configs de LSP por lenguaje).
 - Afinar **nwg-dock** para un dock que se sienta de verdad como el de macOS.
-- Más temas en el switcher.
 - Explotar **templating de chezmoi** para generar config específica de GPU desde una sola fuente.
-- Evaluar **DankMaterialShell** (shell pulido basado en niri) como capa opcional.
+- Validación end-to-end en hardware real (AMD y NVIDIA) y en VM ARM64.
 
 ## 8. Datos de referencia (mediados 2026, reverificar)
 
