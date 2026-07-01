@@ -6,3 +6,5 @@ otf-san-francisco            # SF Pro family
 otf-san-francisco-mono       # SF Mono
 nwg-dock                     # macOS-style dock for Wayland
 bemoji                       # emoji/symbol picker for the launcher (archfrican-emoji falls back if absent)
+walker                       # Spotlight launcher (GTK4, rich grid) — archfrican-spotlight; fuzzel stays as fallback
+elephant                     # Walker's backend daemon (providers: apps/calc/files/web/clipboard/symbols/windows)

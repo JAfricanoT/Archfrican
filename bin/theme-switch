@@ -60,6 +60,8 @@ render fuzzel.ini          "$CFG/fuzzel/fuzzel.ini"      # whole config (shape+s
 render swaync.colors.css   "$CFG/swaync/colors.css"
 render swaync.style.css    "$CFG/swaync/style.css"       # whole stylesheet (shape+elevation tokenised)
 render nwg-dock.css        "$CFG/nwg-dock/style.css"
+mkdir -p "$CFG/walker/themes/archfrican"                    # Walker: only the stylesheet is ours; layouts fall back to its default
+render walker.css          "$CFG/walker/themes/archfrican/style.css"
 sed -i 's/=#/=/g' "$CFG/fuzzel/colors.ini"   # fuzzel wants hex without #
 
 # Cohesion base (always on): drive the GTK accent, system fonts and the cursor from the SAME tokens, so

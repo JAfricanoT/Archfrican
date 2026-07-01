@@ -113,6 +113,8 @@ environment {
 
 spawn-at-startup "waybar"
 spawn-at-startup "swaync"
+spawn-at-startup "elephant"                          // Walker's backend data daemon (must run in the session env)
+spawn-at-startup "walker" "--gapplication-service"   // launcher service → instant ⌘+Space (archfrican-spotlight)
 spawn-at-startup "awww-daemon"
 spawn-at-startup "{{ .chezmoi.homeDir }}/.local/bin/archfrican-wallpaper-restore"   // repose wallpaper (or solid backdrop)
 spawn-at-startup "{{ .chezmoi.homeDir }}/.local/bin/archfrican-idle"   // idle + suspend screen lock

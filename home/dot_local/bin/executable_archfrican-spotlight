@@ -1,11 +1,21 @@
 #!/usr/bin/env bash
-# Archfrican Spotlight — ⌘+Space. ONE surface to reach everything: launch any app, or dive into
-# file search, web search, calculator, open windows, clipboard history, or the system actions hub.
-# Pure fuzzel + niri IPC, no daemons. Type to filter across everything; pick a mode to go deeper.
+# Archfrican Spotlight — ⌘+Space. Primary surface: Walker (GTK4 — rich app grid, calc, files, web,
+# clipboard, symbols, open windows) backed by the elephant daemon. Falls back to the pure-fuzzel launcher
+# below if Walker/elephant aren't installed, so ⌘+Space never dies. Type to filter; prefixes jump modes.
 set -euo pipefail
 have() { command -v "$1" >/dev/null 2>&1; }
-have fuzzel || exit 1
 B="$HOME/.local/bin"
+
+# ── Walker path (preferred) ──────────────────────────────────────────────────────────────────────────
+if have walker && have elephant; then
+  # elephant is Walker's backend and must run in the session env; start it once if it isn't already up
+  # (niri also spawns it at login — the guard keeps this from double-starting). Never fatal.
+  pgrep -x elephant >/dev/null 2>&1 || setsid -f elephant >/dev/null 2>&1 || true
+  exec walker
+fi
+
+# ── fuzzel fallback (self-contained; the original Spotlight) ─────────────────────────────────────────
+have fuzzel || exit 1
 TAB="$(printf '\t')"
 
 # Mode shortcuts. Kept verbatim so the returned selection routes unambiguously; each gets a real

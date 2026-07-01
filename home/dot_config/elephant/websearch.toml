@@ -1,0 +1,31 @@
+# Archfrican · elephant websearch engines (Walker's "@" mode). %TERM% is the query.
+# Mirrors the old archfrican-websearch bang set, now a visual engine picker.
+
+[[entries]]
+default = true
+name = "DuckDuckGo"
+url = "https://duckduckgo.com/?q=%TERM%"
+
+[[entries]]
+name = "Google"
+url = "https://www.google.com/search?q=%TERM%"
+
+[[entries]]
+name = "YouTube"
+url = "https://www.youtube.com/results?search_query=%TERM%"
+
+[[entries]]
+name = "Wikipedia"
+url = "https://en.wikipedia.org/w/index.php?search=%TERM%"
+
+[[entries]]
+name = "Arch Wiki"
+url = "https://wiki.archlinux.org/index.php?search=%TERM%"
+
+[[entries]]
+name = "AUR"
+url = "https://aur.archlinux.org/packages?K=%TERM%"
+
+[[entries]]
+name = "GitHub"
+url = "https://github.com/search?q=%TERM%"
