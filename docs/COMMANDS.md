@@ -490,14 +490,23 @@ FORCE=1 ./install.sh          # redo everything regardless of .done stamps
 The main launcher (`⌘+Space`). One surface to reach everything: launch any app, search
 files, search the web, open the calculator, switch windows, or browse clipboard history.
 
+Uses **Walker** (GTK4 Raycast-style launcher with an app grid, icons, and built-in modes)
+backed by the `elephant` daemon. Falls back automatically to the fuzzel launcher if Walker
+or elephant are not installed, so `⌘+Space` never fails.
+
 ```
 archfrican-spotlight
 ```
 
-Type to filter across all installed apps and the built-in modes:
+**Walker path** (when `walker` + `elephant` are on PATH): Walker opens with its built-in
+mode prefixes for apps, files, clipboard, calc, web, and open windows. Walker's stylesheet
+is styled from ADL tokens by `theme-switch` so it matches every other Archfrican surface.
 
-| Mode trigger | What it does |
-|-------------|-------------|
+**Fuzzel fallback** (when Walker is absent): a single-column fuzzel picker with the same
+mode triggers below.
+
+| Mode trigger (fuzzel fallback) | What it does |
+|-------------------------------|-------------|
 | `Buscar archivos…` | Local file search (archfrican-find) |
 | `Buscar en la web…` | Web search with bang prefixes (archfrican-websearch) |
 | `Calculadora…` | Expression evaluator (archfrican-calc) |

@@ -41,7 +41,7 @@ The cheat sheet is always one key away:
 
 | Shortcut | Action |
 |----------|--------|
-| `⌘+Space` | Spotlight launcher — apps, files, run any command |
+| `⌘+Space` | Spotlight launcher (Walker) — apps, files, web, calc, clipboard |
 | `⌘+Return` | New terminal (Ghostty) |
 | `⌘+Shift+Q` | Close window |
 | `⌘+Tab` | Mission-Control overview of all workspaces |
