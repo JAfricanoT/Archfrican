@@ -62,8 +62,8 @@ same state as a fresh one**. Run one module with `~/.archfrican/install.sh 30-de
 Keep it current with one command — `archfrican-update` (report) / `--run` (snapshot → refresh →
 converge → `pacman -Syu` → AUR, all reversible). See [docs/UPDATES.md](docs/UPDATES.md).
 
-> Full install straight from the Arch ISO (disk + base + desktop in one shot) is coming in a
-> VM-validated release — for now use the base-Arch one-liner above.
+> The Archfrican ISO (disk partitioning + base + desktop in one shot) is now available —
+> see [docs/ISO.md](docs/ISO.md). Download from GitHub Releases or grab a nightly build.
 
 ### Multi-boot (dual-boot)
 
@@ -84,8 +84,9 @@ o hibernado puede no detectarse — apágalo del todo primero.
 ## Theming
 
 ```bash
-theme-switch macos-dark        # default
-theme-switch macos-light
+theme-switch adl-dark          # default (Archfrican Design Language — dark)
+theme-switch adl-light
+theme-switch macos-dark
 theme-switch catppuccin-mocha
 theme-switch tokyo-night
 ```
@@ -166,6 +167,25 @@ Handy commands: `archfrican-auto-appearance on` (auto light/dark by sun position
 `archfrican-blur on` (frosted-glass blur, `niri validate`-guarded so it can't break your config) ·
 `archfrican-defaults` (set the default browser/mail the no-nag way). A privacy dot appears in the bar
 whenever the mic or camera is in use.
+
+## Documentation
+
+| Doc | Contents |
+|-----|---------|
+| [FIRST-STEPS](docs/FIRST-STEPS.md) | Day-1 guide: WiFi, browser, shortcuts, theming, backups |
+| [COMMANDS](docs/COMMANDS.md) | All CLI commands and every flag |
+| [MODULES](docs/MODULES.md) | What each installer module installs and does |
+| [ARCHITECTURE](docs/ARCHITECTURE.md) | Two-phase install, convergence engine, update loop |
+| [THEMING](docs/THEMING.md) | Themes, wallpaper, app cohesion, custom themes |
+| [RECOVERY](docs/RECOVERY.md) | Ten recovery scenarios with exact steps |
+| [ISO](docs/ISO.md) | Build and use the Archfrican installer ISO |
+| [HARDWARE](docs/HARDWARE.md) | GPU matrix, TPM2, FIDO2, fingerprint, WiFi |
+| [UPDATES](docs/UPDATES.md) | Convergence update model |
+| [DESIGN-LANGUAGE](docs/DESIGN-LANGUAGE.md) | ADL token system for contributors |
+| [COHESION](docs/COHESION.md) | Tier-A/B app cohesion architecture |
+| [FIDO2-RECOVERY](docs/FIDO2-RECOVERY.md) | FIDO2 enrollment and key rotation |
+| [PRIVACY](docs/PRIVACY.md) | Telemetry posture |
+| [STAGE2-VALIDATION](docs/STAGE2-VALIDATION.md) | ISO installer validation |
 
 ## Layout
 

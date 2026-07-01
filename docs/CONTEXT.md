@@ -55,14 +55,15 @@ p.ej., cerrar ventana = `Mod+Shift+Q`. keyd solo intercepta `⌘+<letra>` plano.
 Instalación en **un comando** sobre una base Arch booteada:
 `sh -c "$(curl -fsSL .../install.sh)"`. `install.sh` se auto-clona, detecta el entorno (ISO live vs
 base booteada), hace preflight, corre un wizard (gum) y monta la capa desktop/dev de forma idempotente.
-(La instalación completa desde la ISO — disco + base + escritorio — llegará en un release validado en VM.)
+(La instalación completa desde la ISO — disco + base + escritorio en un solo paso — ya está disponible. Ver [docs/ISO.md](ISO.md).)
 
 ```
 archfrican/
 ├── install.sh            # entrada única (curl|sh): self-clone + detect + preflight + wizard + dispatch
 ├── lib/base-install.sh   # bedrock base installer (Btrfs+subvols+snapper, dual kernel, GRUB) — fase 1
 ├── lib/                  # common, detect-gpu, env, ui (gum), preflight, host-config, phase2
-├── modules/              # 00-base 10-gpu 20-niri-desktop 30-dev 40-theming 50-snapshots
+├── modules/              # 00-base 10-gpu 20-niri-desktop 30-dev 35-apps 40-theming
+│                         #   45-print 50-snapshots 55-multiboot 60-security 65-gaming 70-hygiene
 ├── packages/             # listas por capa: base / niri-desktop / dev / theming / aur
 ├── themes/<name>/colors.sh   # paletas (esquema único de variables)
 ├── templates/            # plantillas por app (placeholders ${VAR})

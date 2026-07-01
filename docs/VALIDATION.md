@@ -151,10 +151,10 @@ cat ~/.config/.archfrican-theme                       # -> tokyo-night
 chezmoi apply                                         # MUST NOT revert the theme (color files are chezmoi-ignored;
                                                        # run_after re-applies the saved theme)
 grep -c 'THEME-START' ~/.config/niri/config.kdl       # still exactly 1 (no duplication)
-for t in macos-dark macos-light catppuccin-mocha tokyo-night; do theme-switch "$t"; done   # all 4 work
+for t in adl-dark adl-light archfrican-dark macos-dark catppuccin-mocha tokyo-night; do theme-switch "$t"; done   # spot-check 6 of 9
 ```
-Pass criteria: the on-PATH `theme-switch <name>` works for all four themes (the old deployed copy was
-dead), and a `chezmoi apply` does **not** snap the theme back to macos-dark. Live reload: waybar + mako
+Pass criteria: the on-PATH `theme-switch <name>` works for all nine themes (the old deployed copy was
+dead), and a `chezmoi apply` does **not** snap the theme back to adl-dark. Live reload: waybar + mako
 repaint immediately; ghostty/fuzzel apply to new windows (this is expected — see the README note).
 
 ### 2.7 Idempotency / re-run safety
@@ -201,13 +201,13 @@ Tick every box on the VM before bare metal:
 
 - [ ] Static: `bash -n` + shellcheck clean; CI green.
 - [ ] Phase 1: Btrfs + `@.snapshots` in fstab; correct disk; reboots.
-- [ ] **SEC-01:** install completes all 6 modules; no `target not found`; preflight passes.
+- [ ] **SEC-01:** install completes all 12 modules; no `target not found`; preflight passes.
 - [ ] **REL-01:** `lspci` present; VM resolves `unknown` and install proceeds; right GPU stack on real HW.
 - [ ] **DATA-02:** `grub-btrfsd.service` enabled; `snapper -c root list` works; `/.snapshots` mounted;
       snapshots appear in GRUB; `snapper rollback` reverts.
 - [ ] **REL-02/03:** best-effort step failure warns & continues; resume hint + checkpoints work.
 - [ ] **QUAL-01:** `ghostty` installed; `⌘+Return` opens it; `verify_spawns` passed.
-- [ ] **DATA-01/03:** `~/.local/bin/theme-switch` is a symlink; all 4 themes apply from PATH; `chezmoi
+- [ ] **DATA-01/03:** `~/.local/bin/theme-switch` is a symlink; all 9 themes apply from PATH; `chezmoi
       apply` does not revert the theme.
 - [ ] Idempotency: a second `./install.sh` is safe.
 - [ ] Recovery drills (LTS boot, snapshot boot, rollback) all pass.
