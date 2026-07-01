@@ -3,3 +3,4 @@ tests/e2e/answers.env
 *.log
 *.zip
 .DS_Store
+out/                  # built ISOs (build-iso.sh output)

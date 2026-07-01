@@ -1,0 +1,17 @@
+
+  ╔══════════════════════════════════════════════════════════╗
+  ║                  Archfrican Installer                    ║
+  ║         Arch Linux · niri · Wayland · CachyOS            ║
+  ╚══════════════════════════════════════════════════════════╝
+
+  The installer should have started automatically.
+  If not, run:  bash /root/.archfrican/install.sh
+
+  WiFi (connect before the installer reaches the disk step):
+    nmtui                              — graphical selector
+    iwctl                              — manual:
+      station wlan0 get-networks
+      station wlan0 connect "SSID"
+
+  Docs:  /root/.archfrican/docs/STAGE2-VALIDATION.md
+
