@@ -142,7 +142,7 @@ jobs:
           cp home/dot_config/niri/config.kdl.tmpl "$HOME/.config/niri/config.kdl"
           files=(ghostty/colors waybar/colors.css fuzzel/colors.ini swaync/colors.css niri/config.kdl \
                  gtk-3.0/gtk.css gtk-4.0/gtk.css fontconfig/fonts.conf qt6ct/qt6ct.conf qt5ct/qt5ct.conf \
-                 archfrican/cohesion/vscode.colors.json)
+                 archfrican/cohesion/vscode.colors.json walker/themes/archfrican/style.css)
           snap() { for f in "${files[@]}"; do cat "$HOME/.config/$f"; done | sha256sum; }
           for t in adl-dark adl-light archfrican-dark archfrican-light macos-dark macos-light catppuccin-mocha tokyo-night high-contrast; do
             bin/theme-switch "$t" >/dev/null; a="$(snap)"
@@ -155,6 +155,7 @@ jobs:
                  "$HOME/.config/fontconfig/fonts.conf" "$HOME/.icons/default/index.theme" \
                  "$HOME/.config/qt6ct/qt6ct.conf" "$HOME/.config/qt5ct/qt5ct.conf" \
                  "$HOME/.config/archfrican/cohesion/vscode.colors.json" \
+                 "$HOME/.config/walker/themes/archfrican/style.css" \
                  "$HOME/.local/share/archfrican-webapps-ext/theme.css"; then
               echo "::error::unrendered \${VAR} token left by $t"; exit 1
             fi
