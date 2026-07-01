@@ -52,7 +52,7 @@ archfrican-update --prune       # review and remove orphaned managed packages
 
 ## archfrican-doctor
 
-System health monitor. Runs 25+ checks across disk, services, packages, security,
+System health monitor. Runs 22 checks across disk, services, packages, security,
 and Archfrican config. Safe to run anytime — never modifies the system except with `--fix`.
 
 ```
