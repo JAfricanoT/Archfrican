@@ -2,9 +2,10 @@
 # TPM2 auto-unlock for your encrypted disk (FileVault-style) — OPT-IN, SAFE BY DESIGN. Enrolls the TPM2
 # so boot CAN unlock LUKS without the passphrase. systemd-cryptenroll only ADDS a keyslot — your
 # passphrase ALWAYS still works (at the LUKS prompt, press Enter to skip the TPM and type it). It backs
-# up the LUKS header and offers an offline recovery key first. The boot-critical "make it unlock at
-# boot" step (initramfs) is PRINTED for you to apply — not auto-run — and only works with the systemd
-# 'sd-encrypt' hook. Validate a reboot immediately, while the passphrase fallback is in hand.
+# up the LUKS header and offers an offline recovery key first, THEN migrates the initramfs to the systemd
+# 'sd-encrypt' hook + writes /etc/crypttab.initramfs (tpm2-device=auto) so boot auto-unlocks — every step
+# backup + restore-on-fail. Boot-critical: VM-validate, and reboot immediately with the passphrase in hand
+# (it stays valid — a mismatched PCR just falls back to the themed passphrase prompt).
 set -euo pipefail
 have() { command -v "$1" >/dev/null 2>&1; }
 note() { have notify-send && notify-send "Archfrican" "$1" || echo "$1"; }
@@ -29,18 +30,42 @@ confirm="$(printf 'Sí, enrolar TPM2 (mi passphrase seguirá funcionando)\nCance
 case "$confirm" in "Sí,"*) ;; *) exit 0 ;; esac
 
 target="/dev/disk/by-uuid/$uuid"; [ -n "$uuid" ] || target="$dev"
-ghostty -e sh -c "set -e
-echo '== Respaldo del header LUKS (cópialo luego a un USB) =='
-sudo cryptsetup luksHeaderBackup '$target' --header-backup-file \"\$HOME/luks-header-backup.img\" 2>/dev/null && echo 'guardado en ~/luks-header-backup.img' || true
-echo; echo '== Clave de recuperación offline (recomendado — guárdala en papel/USB) =='
-printf '¿Enrolar una clave de recuperación primero? [Y/n] '; read -r a; [ \"\$a\" = n ] || sudo systemd-cryptenroll '$target' --recovery-key || true
-echo; echo '== Enrolando el TPM2 (binding a PCR 7) — tu passphrase NO se modifica =='
-sudo systemd-cryptenroll --tpm2-device=auto --tpm2-pcrs=7 '$target'
-echo; echo '== Verificación (debe aparecer un token systemd-tpm2) =='; sudo cryptsetup luksDump '$target' | grep -i tpm2 || true
-echo; printf '(enter para cerrar) '; read -r _"
 
-if grep -qE '^HOOKS=.*\bsd-encrypt\b' /etc/mkinitcpio.conf 2>/dev/null; then
-  note "TPM2 enrolado. Para que el arranque lo use, añade a /etc/crypttab.initramfs:  $mapname UUID=$uuid none tpm2-device=auto,tpm2-measure-pcr=yes   luego:  sudo mkinitcpio -P   y reinicia (si el TPM no abre, usa tu passphrase)."
-else
-  note "TPM2 enrolado ✓ — pero tu initramfs usa el hook 'encrypt' (no 'sd-encrypt'), así que el arranque seguirá pidiendo la passphrase. Migrar ese hook es un cambio de arranque sensible: hazlo manualmente y valida en VM."
+# The whole boot-critical sequence runs in a terminal (so you SEE mkinitcpio + can react), guided and
+# with restore-on-fail. Built as a temp script to avoid nested-quote escaping. Vars are injected as sh
+# single-quoted literals; everything else uses sh syntax. Your passphrase keyslot is never touched.
+payload="$(mktemp)"
+cat > "$payload" <<EOF
+set -e
+target='$target'; uuid='$uuid'; mapname='$mapname'
+echo '== 1/4 · Respaldo del header LUKS (cópialo luego a un USB) =='
+sudo cryptsetup luksHeaderBackup "\$target" --header-backup-file "\$HOME/luks-header-backup.img" 2>/dev/null && echo '  -> ~/luks-header-backup.img' || true
+echo; echo '== 2/4 · Clave de recuperación offline (recomendado — papel/USB) =='
+printf '¿Enrolar una clave de recuperación primero? [Y/n] '; read -r a; [ "\$a" = n ] || sudo systemd-cryptenroll "\$target" --recovery-key || true
+echo; echo '== 3/4 · Enrolando el TPM2 (binding a PCR 7) — tu passphrase NO se modifica =='
+sudo systemd-cryptenroll --tpm2-device=auto --tpm2-pcrs=7 "\$target"
+sudo cryptsetup luksDump "\$target" | grep -qi tpm2 && echo '  token systemd-tpm2 presente ✓' || echo '  AVISO: no veo el token tpm2'
+echo; echo '== 4/4 · Auto-unlock en el arranque: initramfs -> sd-encrypt + crypttab.initramfs =='
+if grep -qE '^HOOKS=.*\bsd-encrypt\b' /etc/mkinitcpio.conf; then echo '  el initramfs ya usa sd-encrypt'; else
+  sudo cp /etc/mkinitcpio.conf /etc/mkinitcpio.conf.archfrican-tpm.bak
+  sudo sed -i -E '/^HOOKS=/ { s/\budev\b/systemd/; s/\bkeymap\b/sd-vconsole/; s/\bencrypt\b/sd-encrypt/ }' /etc/mkinitcpio.conf
 fi
+printf '%s UUID=%s none tpm2-device=auto\n' "\$mapname" "\$uuid" | sudo tee /etc/crypttab.initramfs >/dev/null
+sudo chmod 0600 /etc/crypttab.initramfs
+echo '  HOOKS:'; grep '^HOOKS=' /etc/mkinitcpio.conf | sed 's/^/    /'
+if sudo mkinitcpio -P; then
+  echo; echo '✓ LISTO. REINICIA YA para probar — con la passphrase A MANO.'
+  echo '  Normal: el disco se abre solo (sin prompt) y vas al login. Si el TPM no abre: aparece el prompt'
+  echo '  (tu passphrase y la clave de recuperación siguen funcionando).'
+else
+  echo; echo '✗ mkinitcpio falló — restaurando el initramfs anterior…'
+  [ -f /etc/mkinitcpio.conf.archfrican-tpm.bak ] && sudo mv -f /etc/mkinitcpio.conf.archfrican-tpm.bak /etc/mkinitcpio.conf
+  sudo rm -f /etc/crypttab.initramfs
+  sudo mkinitcpio -P || true
+  echo '  Restaurado. El sistema arranca como antes (sin auto-unlock).'
+fi
+echo; printf '(enter para cerrar) '; read -r _
+EOF
+ghostty -e sh "$payload" || true
+rm -f "$payload"
+note "TPM2: revisa el terminal y REINICIA para probar el auto-unlock (passphrase a mano). Si falló, ya se restauró. Recovery si no arranca: linux-lts / snapshot en GRUB."
