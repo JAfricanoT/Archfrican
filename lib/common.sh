@@ -89,6 +89,18 @@ render_sddm_theme() {             # render_sddm_theme <theme-name>
   ) | write_system_file /usr/share/sddm/themes/archfrican/theme.conf 0644
 }
 
+render_grub_theme() {             # render_grub_theme <theme-name>  ->  /boot/grub/themes/archfrican/theme.txt
+  local theme="$1"
+  local pal="$REPO_ROOT/themes/$theme/colors.sh" tmpl="$REPO_ROOT/templates/grub.theme.txt"
+  if [ ! -r "$pal" ] || [ ! -r "$tmpl" ]; then warn "render_grub_theme: missing $pal or $tmpl — skipping"; return 0; fi
+  ( # shellcheck disable=SC1090
+    . "$pal"
+    # shellcheck disable=SC2154   # BG/BG_DIM/FG/FG_DIM/ACCENT come from the sourced palette (GRUB uses hex directly)
+    sed -e "s|\${BG}|$BG|g" -e "s|\${BG_DIM}|$BG_DIM|g" \
+        -e "s|\${FG}|$FG|g" -e "s|\${FG_DIM}|$FG_DIM|g" -e "s|\${ACCENT}|$ACCENT|g" "$tmpl"
+  ) | write_system_file /boot/grub/themes/archfrican/theme.txt 0644
+}
+
 # ---- idempotent package install ------------------------------------------
 # Installs only what's missing so the script is safe to re-run.
 pac_install() {            # pac_install pkg1 pkg2 ...

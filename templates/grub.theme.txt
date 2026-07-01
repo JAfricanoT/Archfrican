@@ -1,0 +1,62 @@
+# Archfrican · GRUB boot menu — rendered by theme-switch from the ADL palette (only the COLOURS change per
+# theme; the font is the generated inter.pf2 = "Inter Regular 20"). Matches the SDDM login + the Plymouth
+# unlock: solid graphite ${BG} with ${ACCENT} on the selected entry. Fully tokenised, no image assets.
+# A malformed theme just makes GRUB fall back to its text menu (still bootable) — nothing here bricks boot.
+
+title-text: ""
+desktop-color: "${BG}"
+
+# identity title, subtle and centred at the top
++ label {
+    top   = 16%
+    left  = 0
+    width = 100%
+    align = "center"
+    color = "${FG}"
+    font  = "Inter Regular 20"
+    text  = "Archfrican"
+}
+
+# the boot entries — flat colour selection (no pixmaps): dim items, accent-highlighted selection
++ boot_menu {
+    left   = 25%
+    top    = 30%
+    width  = 50%
+    height = 44%
+
+    item_font           = "Inter Regular 20"
+    selected_item_font  = "Inter Regular 20"
+    item_color          = "${FG_DIM}"
+    selected_item_color = "${ACCENT}"
+
+    item_height     = 40
+    item_padding    = 10
+    item_spacing    = 6
+    icon_width      = 0
+    icon_height     = 0
+    item_icon_space = 0
+    scrollbar       = false
+}
+
+# countdown text + a thin accent progress bar (mirrors the login's timing cues)
++ label {
+    id    = "__timeout_label__"
+    top   = 82%
+    left  = 0
+    width = 100%
+    align = "center"
+    color = "${FG_DIM}"
+    font  = "Inter Regular 20"
+    text  = "Arrancando en %d s"
+}
+
++ progress_bar {
+    id           = "__timeout__"
+    left         = 30%
+    top          = 88%
+    width        = 40%
+    height       = 4
+    fg_color     = "${ACCENT}"
+    bg_color     = "${BG_DIM}"
+    border_color = "${BG_DIM}"
+}

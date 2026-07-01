@@ -125,6 +125,17 @@ if [ -f "$ROOT/templates/sddm.theme.conf" ]; then
   rm -f "$tmp_sddm"
 fi
 
+# GRUB boot menu lives under /boot (system path). GRUB reads theme.txt at boot, so a palette change shows
+# next boot with NO grub-mkconfig — only the colours change; the generated .pf2 font is untouched. Same
+# best-effort sudo -n as SDDM (never blocks a theme switch). Authoritative install is 40-theming.
+if [ -f "$ROOT/templates/grub.theme.txt" ] && [ -d /boot/grub/themes/archfrican ]; then
+  tmp_grub="$(mktemp)"; render grub.theme.txt "$tmp_grub"
+  if sudo -n install -D -m 0644 "$tmp_grub" /boot/grub/themes/archfrican/theme.txt 2>/dev/null; then
+    echo "updated the GRUB boot-menu theme (visible next boot)"
+  fi
+  rm -f "$tmp_grub"
+fi
+
 # GTK / cursors / dark-light
 gsettings set org.gnome.desktop.interface color-scheme "$GTK_SCHEME" 2>/dev/null || true
 gsettings set org.gnome.desktop.interface gtk-theme    "$GTK_THEME"  2>/dev/null || true
