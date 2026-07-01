@@ -138,13 +138,15 @@ else
   ok "CPU microcode present (or unknown vendor) — skipping"
 fi
 
-# ---- screen-lock PAM (guarantee the locker can ALWAYS authenticate) ---------
+# ---- screen-lock PAM (guarantee an INSTALLED locker can ALWAYS authenticate) -
 # A missing/empty /etc/pam.d/<locker> makes PAM fall through to 'other' (deny) → the lock then rejects
-# EVERY password and traps you at a gray screen. The gtklock/swaylock packages each ship one, but we do
-# NOT trust that (a bad update / removed pacsave can drop it). Ensure a known-good 'auth include login'
-# when the file is missing or has no auth line — never clobber a valid one (no .pacnew churn).
-substep "ensuring the screen-lock PAM (gtklock/swaylock can always authenticate)"
+# EVERY password and traps you at a gray screen. The gtklock/swaylock packages each ship one; we backfill
+# ONLY when the locker is installed but its file went missing (a bad update / removed pacsave).
+# CRUCIAL: never pre-create it for a NOT-yet-installed locker — pacman then refuses to install the package
+# ("conflicting files: /etc/pam.d/<locker> exists in filesystem"). Never clobber a valid one (no .pacnew).
+substep "ensuring the screen-lock PAM (installed lockers can always authenticate)"
 for _lock in gtklock swaylock; do
+  command -v "$_lock" >/dev/null 2>&1 || continue    # only for an INSTALLED locker (else we'd block its install)
   _f="/etc/pam.d/$_lock"
   if [ -s "$_f" ] && grep -qE '^[[:space:]]*auth' "$_f" 2>/dev/null; then
     ok "$_f present"
