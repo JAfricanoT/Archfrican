@@ -187,7 +187,7 @@ binds {
     Mod+Shift+R { spawn "{{ .chezmoi.homeDir }}/.local/bin/archfrican-record"; }   // screen-record toggle
 
     // lock
-    Mod+Shift+L { spawn "swaylock"; }
+    Mod+Shift+L { spawn "{{ .chezmoi.homeDir }}/.local/bin/archfrican-lock"; }
 
     // clipboard history (⌘+Shift+V) — surfaces the cliphist daemon already running at startup
     Mod+Shift+V { spawn "sh" "-c" "cliphist list | fuzzel --dmenu | cliphist decode | wl-copy"; }   // clipboard history

@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+# Archfrican lock — the SINGLE screen-lock entry point (idle, before-sleep, and ⌘+Shift+L all call this).
+# Prefers gtklock (login-styled: ext-session-lock, userinfo avatar card + powerbar, themed from the ADL
+# tokens, wallpaper backdrop); falls back to themed swaylock so the screen ALWAYS locks. Both authenticate
+# via PAM — guaranteed present by modules/60-security.sh — so a correct password is never refused.
+#
+# Locked out? Switch to a text console (Ctrl+Alt+F3), log in, and run:  loginctl unlock-session
+set -euo pipefail
+have() { command -v "$1" >/dev/null 2>&1; }
+CFG="${XDG_CONFIG_HOME:-$HOME/.config}"
+
+# Current wallpaper (archfrican-wallpaper state) as the lock backdrop, if we can resolve a real file.
+wp=""
+for p in "$CFG/archfrican/wallpaper" "${XDG_STATE_HOME:-$HOME/.local/state}/archfrican/wallpaper"; do
+  [ -r "$p" ] || continue
+  w="$(cat "$p" 2>/dev/null || true)"
+  if [ -n "$w" ] && [ -f "$w" ]; then wp="$w"; break; fi
+done
+
+# --- gtklock (preferred, login-styled) ---
+if have gtklock; then
+  set -- -d -s "$CFG/gtklock/style.css"
+  if [ -f "$CFG/gtklock/config.ini" ]; then set -- "$@" -c "$CFG/gtklock/config.ini"; fi
+  for m in userinfo powerbar; do                       # load a module only if it's installed (graceful)
+    if [ -e "/usr/lib/gtklock/$m.so" ]; then set -- "$@" -m "$m"; fi
+  done
+  if [ -n "$wp" ]; then set -- "$@" -b "$wp"; fi
+  exec gtklock "$@"
+fi
+
+# --- swaylock (fallback — always locks) ---
+if have swaylock; then
+  set -- -f
+  if [ -f "$CFG/swaylock/config" ]; then set -- "$@" -C "$CFG/swaylock/config"; fi
+  if [ -n "$wp" ]; then set -- "$@" -i "$wp"; fi
+  exec swaylock "$@"
+fi
+
+echo "archfrican-lock: no locker installed (gtklock or swaylock)" >&2
+exit 1

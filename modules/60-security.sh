@@ -138,6 +138,23 @@ else
   ok "CPU microcode present (or unknown vendor) — skipping"
 fi
 
+# ---- screen-lock PAM (guarantee the locker can ALWAYS authenticate) ---------
+# A missing/empty /etc/pam.d/<locker> makes PAM fall through to 'other' (deny) → the lock then rejects
+# EVERY password and traps you at a gray screen. The gtklock/swaylock packages each ship one, but we do
+# NOT trust that (a bad update / removed pacsave can drop it). Ensure a known-good 'auth include login'
+# when the file is missing or has no auth line — never clobber a valid one (no .pacnew churn).
+substep "ensuring the screen-lock PAM (gtklock/swaylock can always authenticate)"
+for _lock in gtklock swaylock; do
+  _f="/etc/pam.d/$_lock"
+  if [ -s "$_f" ] && grep -qE '^[[:space:]]*auth' "$_f" 2>/dev/null; then
+    ok "$_f present"
+  else
+    printf 'auth include login\n' | sudo tee "$_f" >/dev/null
+    sudo chmod 0644 "$_f"
+    ok "wrote a known-good $_f (auth include login)"
+  fi
+done
+
 # ---- FIDO2 PAM (only when a key was enrolled in the wizard) -----------------
 # Marker written by run_phase2's enroll step; absent on a normal/headless run.
 if [ -f "$HOME/.config/.archfrican-fido2" ]; then

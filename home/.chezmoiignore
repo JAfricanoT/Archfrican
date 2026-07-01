@@ -13,6 +13,8 @@ README.md
 .config/swaync/style.css
 .config/fuzzel/fuzzel.ini
 .config/walker/themes/archfrican/style.css
+.config/gtklock/style.css
+.config/swaylock/config
 # ADL cohesion-base outputs (theme-switch is the sole writer; same rationale as the colour files).
 .config/fontconfig/fonts.conf
 .config/gtk-3.0/gtk.css

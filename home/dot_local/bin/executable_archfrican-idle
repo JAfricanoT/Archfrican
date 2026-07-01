@@ -7,7 +7,9 @@ conf="${XDG_CONFIG_HOME:-$HOME/.config}/archfrican/lock.conf"
 ARCHFRICAN_LOCK_TIMEOUT=900
 # shellcheck source=/dev/null
 [ -r "$conf" ] && . "$conf"
-locker='swaylock -f'
+# the lock UI itself lives in archfrican-lock (gtklock login-styled → swaylock fallback), so idle,
+# before-sleep and ⌘+Shift+L all lock the same way and via the same PAM-guaranteed authenticator.
+locker="$HOME/.local/bin/archfrican-lock"
 args=(-w before-sleep "$locker" lock "$locker")
 if [ "${ARCHFRICAN_LOCK_TIMEOUT:-0}" -gt 0 ] 2>/dev/null; then
   args+=(timeout "$ARCHFRICAN_LOCK_TIMEOUT" "$locker" resume 'true')

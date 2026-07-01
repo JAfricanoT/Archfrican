@@ -62,7 +62,10 @@ render swaync.style.css    "$CFG/swaync/style.css"       # whole stylesheet (sha
 render nwg-dock.css        "$CFG/nwg-dock/style.css"
 mkdir -p "$CFG/walker/themes/archfrican"                    # Walker: only the stylesheet is ours; layouts fall back to its default
 render walker.css          "$CFG/walker/themes/archfrican/style.css"
-sed -i 's/=#/=/g' "$CFG/fuzzel/colors.ini"   # fuzzel wants hex without #
+mkdir -p "$CFG/gtklock" "$CFG/swaylock"
+render gtklock.css         "$CFG/gtklock/style.css"       # login-styled lock (gtklock)
+render swaylock.conf       "$CFG/swaylock/config"         # fallback lock
+sed -i 's/=#/=/g' "$CFG/fuzzel/colors.ini" "$CFG/swaylock/config"   # fuzzel + swaylock want hex without #
 
 # Cohesion base (always on): drive the GTK accent, system fonts and the cursor from the SAME tokens, so
 # GTK/libadwaita apps — and even apps that read neither GTK nor Qt settings — wear the identity too.
