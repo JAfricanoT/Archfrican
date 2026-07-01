@@ -6,6 +6,8 @@ set -euo pipefail
 dir="${XDG_CONFIG_HOME:-$HOME/.config}/archfrican/sessions"
 mkdir -p "$dir"
 command -v niri >/dev/null 2>&1 || exit 1
+# ── WM seam (niri): all compositor IPC in this file routes through here — one place to port. docs/WM-INTEGRATION.md
+wm_focus_workspace() { niri msg action focus-workspace "$@"; }
 
 name="${1:-}"
 if [ -z "$name" ]; then
@@ -22,7 +24,7 @@ file="$dir/$name.session"
 while read -r ws cmd || [ -n "$ws" ]; do
   case "$ws" in ''|\#*) continue ;; esac
   [ -n "$cmd" ] || continue
-  niri msg action focus-workspace "$ws" 2>/dev/null || true
+  wm_focus_workspace "$ws" 2>/dev/null || true
   setsid sh -c "$cmd" >/dev/null 2>&1 &
   sleep 1
 done < "$file"

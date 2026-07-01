@@ -181,7 +181,7 @@ check_drift() {
 
 # The single most important check: if the niri config does not parse, niri silently runs its built-in
 # defaults and nothing of Archfrican is active. RED.
-check_niri_config() {
+check_niri_config() {   # WM-coupled (niri) — one of the few niri touchpoints; see docs/WM-INTEGRATION.md
   _h_have niri || { _h_skip "niri config"; return; }
   local cfg="${XDG_CONFIG_HOME:-$HOME/.config}/niri/config.kdl"
   [ -r "$cfg" ] || { _h_red "niri config" "missing ($cfg) — niri is running its defaults"; return; }
@@ -217,6 +217,7 @@ check_archfrican_cli() {
 check_theme_render() {
   local cfg="${XDG_CONFIG_HOME:-$HOME/.config}" f stray=""
   for f in waybar/colors.css swaync/colors.css swaync/style.css fuzzel/colors.ini fuzzel/fuzzel.ini \
+           walker/themes/archfrican/style.css \
            ghostty/colors gtk-3.0/gtk.css gtk-4.0/gtk.css nwg-dock/style.css qt6ct/qt6ct.conf; do
     [ -r "$cfg/$f" ] || continue
     grep -qE '\$\{[A-Za-z_]+\}' "$cfg/$f" 2>/dev/null && stray="$stray $f"

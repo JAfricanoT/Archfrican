@@ -15,6 +15,9 @@
 set -euo pipefail
 have() { command -v "$1" >/dev/null 2>&1; }
 note() { if have notify-send; then notify-send "Archfrican" "$1"; else echo "$1"; fi; }
+# ── WM seam (niri): all compositor IPC in this file routes through here — one place to port. docs/WM-INTEGRATION.md
+wm_outputs_json() { niri msg --json outputs; }
+wm_validate()     { niri validate; }
 
 CFG="${XDG_CONFIG_HOME:-$HOME/.config}"
 KDL="$CFG/niri/config.kdl"
@@ -27,7 +30,7 @@ END="// ARCHFRICAN-DISPLAYS-END"
 # Only enabled outputs (logical != null). Captures mode/scale/position/VRR (rotation is left to niri's
 # default — uncommon, and omitting it keeps the generated KDL minimal and valid).
 gen_blocks() {
-  niri msg --json outputs | jq -r '
+  wm_outputs_json | jq -r '
     to_entries[] | .key as $n | .value as $o
     | select($o.logical != null)
     | ($o.modes[$o.current_mode]) as $m
@@ -62,7 +65,7 @@ apply_to_config() {
   fi
   mv -f "$tmp" "$KDL"
   # Verify-or-revert: a block niri can't parse would silently disable the whole config.
-  if have niri && ! niri validate >/dev/null 2>&1; then
+  if have niri && ! wm_validate >/dev/null 2>&1; then
     cp -f "$BAK" "$KDL"
     note "niri rechazó el layout generado — REVERTÍ config.kdl (nada se rompió). Reporta: 'archfrican-displays save --debug'"
     return 1

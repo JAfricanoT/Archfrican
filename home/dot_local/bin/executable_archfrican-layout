@@ -4,6 +4,8 @@
 # Teaches niri's model without a manual (the thing that makes raw tiling approachable for newcomers).
 set -euo pipefail
 command -v niri >/dev/null 2>&1 || exit 1
+# ── WM seam (niri): all compositor IPC in this file routes through here — one place to port. docs/WM-INTEGRATION.md
+wm_action() { niri msg action "$@"; }
 sel="$(printf '%s\n' \
   "Un tercio (1/3)" \
   "Mitad (1/2)" \
@@ -14,11 +16,11 @@ sel="$(printf '%s\n' \
   "Expulsar ventana de la columna" \
   | fuzzel --dmenu --prompt '  layout  ')" || exit 0
 case "$sel" in
-  "Un tercio"*)   niri msg action set-column-width "33%" ;;
-  "Mitad"*)       niri msg action set-column-width "50%" ;;
-  "Dos tercios"*) niri msg action set-column-width "67%" ;;
-  "Maximizar"*)   niri msg action maximize-column ;;
-  "Pantalla"*)    niri msg action fullscreen-window ;;
-  "Consumir"*)    niri msg action consume-window-into-column ;;
-  "Expulsar"*)    niri msg action expel-window-from-column ;;
+  "Un tercio"*)   wm_action set-column-width "33%" ;;
+  "Mitad"*)       wm_action set-column-width "50%" ;;
+  "Dos tercios"*) wm_action set-column-width "67%" ;;
+  "Maximizar"*)   wm_action maximize-column ;;
+  "Pantalla"*)    wm_action fullscreen-window ;;
+  "Consumir"*)    wm_action consume-window-into-column ;;
+  "Expulsar"*)    wm_action expel-window-from-column ;;
 esac
