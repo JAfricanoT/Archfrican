@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# archfrican-notepad — persistent markdown scratchpad
+# File lives at ~/.local/state/archfrican/notepad.md so it survives chezmoi re-applies.
+# Opens in the best available terminal editor; falls back to xdg-open for GUI editors.
+NOTES="${XDG_STATE_HOME:-$HOME/.local/state}/archfrican/notepad.md"
+mkdir -p "$(dirname "$NOTES")"
+
+if [ ! -f "$NOTES" ]; then
+    cat > "$NOTES" << 'EOF'
+# Notas
+
+EOF
+fi
+
+# Pick the best available editor
+for ed in nvim vim nano; do
+    if command -v "$ed" >/dev/null 2>&1; then
+        exec ghostty --title "Notas — Archfrican" --window-width 90 --window-height 35 -e "$ed" "$NOTES"
+    fi
+done
+
+# No terminal editor found: try GUI via xdg-open
+xdg-open "$NOTES"
