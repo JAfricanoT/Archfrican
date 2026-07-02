@@ -86,38 +86,6 @@ apply_default() {  # apply_default <desktop-id> <how> [mime...] ; how = browser 
   esac
 }
 
-# category <prompt> <how> <mimes-space-separated> <"Display|desktop-id|install-spec[|how-override]"...>
-# how-override lets a single category mix check styles (e.g. a CLI tool next to a GUI app) —
-# omit it to just use the category's <how> for that row, like every pre-existing category does.
-category() {
-  local prompt="$1" how="$2" targets="$3"; shift 3
-  local rows=("$@") entries=() row disp id spec row_how sel want
-  local tgt=(); [ -n "$targets" ] && read -r -a tgt <<<"$targets"
-  for row in "${rows[@]}"; do
-    IFS='|' read -r disp id spec row_how <<<"$row"; row_how="${row_how:-$how}"
-    if is_installed "$row_how" "$id"; then entries+=("$disp"); else entries+=("⤓ Instalar $disp…"); fi
-  done
-  [ "$how" = cli ] || entries+=("Otra app instalada…")   # CLIs have no .desktop list to fall back to
-  sel="$(printf '%s\n' "${entries[@]}" | fuzzel --dmenu --prompt "$prompt ")" || return 0
-  [ -n "$sel" ] || return 0
-  if [ "$sel" = "Otra app instalada…" ]; then
-    id="$(list_apps | fuzzel --dmenu --prompt "$prompt " | cut -f2)"; [ -n "$id" ] || return 0
-    apply_default "$id" "$how" ${tgt[@]+"${tgt[@]}"}; note "Por defecto: $id"; return 0
-  fi
-  want="${sel#⤓ Instalar }"; want="${want%…}"
-  for row in "${rows[@]}"; do
-    IFS='|' read -r disp id spec row_how <<<"$row"; row_how="${row_how:-$how}"
-    [ "$disp" = "$want" ] || continue
-    if ! is_installed "$row_how" "$id"; then
-      do_install "$spec" || return 0
-      if ! is_installed "$row_how" "$id" && ! pkg_installed "$spec"; then note "$disp no quedó instalado"; return 0; fi
-    fi
-    if [ "$row_how" = cli ] || [ "$row_how" = none ]; then note "$disp listo ✓"
-    else apply_default "$id" "$row_how" ${tgt[@]+"${tgt[@]}"}; note "Por defecto: $disp"; fi
-    return 0
-  done
-}
-
 category_data() {   # category_data <slug> ; sets HOW, TARGETS, ROWS (global, for this call only)
   case "$1" in
     browser)
