@@ -7,43 +7,52 @@
   "margin-left": 10,
   "margin-right": 10,
   "modules-left": ["niri/workspaces", "niri/window"],
-  "modules-center": ["clock"],
+  // center island: weather pill (left) + clock anchor (right)
+  "modules-center": ["custom/weather", "clock"],
   "modules-right": [
     "custom/privacy",
     "pulseaudio", "bluetooth", "custom/connectivity", "network",
-    "custom/weather", "temperature", "cpu", "memory", "disk",
+    "cpu", "memory", "disk",
     "power-profiles-daemon", "battery",
     "custom/caffeine", "custom/health", "custom/notification", "tray"
   ],
 
   "niri/workspaces": { "format": "{icon}" },
 
-  // center clock — hover shows an inline calendar; click opens gsimplecal (or gnome-calendar)
+  // center clock — full day name for a richer feel; hover shows inline calendar; click opens gsimplecal
   "clock": {
-    "format": "{:%a %d %b  %H:%M}",
+    "format": "{:%A, %d %b   %H:%M}",
     "tooltip-format": "<big>{:%B %Y}</big>\n<tt><small>{calendar}</small></tt>",
     "on-click": "sh -c 'command -v gsimplecal && exec gsimplecal || command -v gnome-calendar && exec gnome-calendar || true'"
   },
 
   // system stats — click cpu or memory to jump to btop
-  "cpu": { "format": "  {usage}%", "on-click": "ghostty -e btop", "tooltip": false },
-  "memory": { "format": "  {}%", "on-click": "ghostty -e btop", "tooltip": false },
-  "disk": { "format": " {free}", "tooltip-format": "{used} / {total} ({percentage_used}%)\n{path}" },
-  "temperature": { "thermal-zone": 0, "format": " {temperatureC}°", "critical-threshold": 82, "format-critical": " {temperatureC}°" },
+  "cpu":    { "format": " {usage}%", "on-click": "ghostty -e btop", "tooltip": false },
+  "memory": { "format": " {}%",      "on-click": "ghostty -e btop", "tooltip": false },
+  "disk":   { "format": " {free}",   "tooltip-format": "{used} / {total} ({percentage_used}%)\n{path}" },
 
-  "battery": { "format": "{icon} {capacity}%", "format-icons": ["", "", "", "", ""] },
+  "battery": {
+    "format": "{icon} {capacity}%",
+    "format-icons": ["", "", "", "", ""]
+  },
+  // power-profiles icons: nf-fa-rocket (performance) · nf-fa-bolt (balanced) · nf-fa-leaf (power-saver)
+  // U+F135 / U+F0E7 / U+F06C — all Font Awesome subset, stable across NF v2→v3
   "power-profiles-daemon": {
     "format": "{icon}",
     "tooltip-format": "Perfil de energía: {profile}",
-    "format-icons": { "performance": "", "balanced": "", "power-saver": "" }
+    "format-icons": {
+      "performance": "",
+      "balanced":    "",
+      "power-saver": ""
+    }
   },
 
   "network": {
-    "format-wifi": "  {essid}",
-    "format-ethernet": "  wired",
-    "format-disconnected": "  off",
-    "tooltip-format-ethernet": "{ifname} · IP {ipaddr}/{cidr}\nGateway {gwaddr}",
-    "tooltip-format-wifi": "{essid} ({signalStrength}%) · IP {ipaddr}/{cidr}\nGateway {gwaddr}",
+    "format-wifi":        " {essid}",
+    "format-ethernet":    " wired",
+    "format-disconnected": " off",
+    "tooltip-format-ethernet":   "{ifname} · IP {ipaddr}/{cidr}\nGateway {gwaddr}",
+    "tooltip-format-wifi":       "{essid} ({signalStrength}%) · IP {ipaddr}/{cidr}\nGateway {gwaddr}",
     "tooltip-format-disconnected": "Sin red"
   },
   "custom/connectivity": {
@@ -54,9 +63,9 @@
     "tooltip": true
   },
   "bluetooth": {
-    "format": "",
-    "format-disabled": "",
-    "format-connected": " {num_connections}",
+    "format":           "",
+    "format-disabled":  "",
+    "format-connected": " {num_connections}",
     "tooltip-format": "{controller_alias}\t{status}",
     "on-click": "blueman-manager"
   },
@@ -93,8 +102,7 @@
     "escape": true
   },
 
-  // caffeine: click to inhibit idle (stop screen-lock / auto-suspend); click again to restore
-  // uses SIGRTMIN+8 for instant update — archfrican-caffeine toggle sends the signal after flipping
+  // caffeine: click to inhibit idle (stop screen-lock / auto-suspend); SIGRTMIN+8 for instant refresh
   "custom/caffeine": {
     "format": "{}",
     "return-type": "json",
@@ -105,8 +113,7 @@
     "tooltip": true
   },
 
-  // weather: opt-in — enable with: echo "auto" > ~/.config/archfrican/weather
-  // hidden (zero width) until enabled; cached 30 min so it doesn't hammer wttr.in
+  // weather: auto-derived from system timezone; echo "off" > ~/.config/archfrican/weather to disable
   "custom/weather": {
     "format": "{}",
     "return-type": "json",
@@ -117,7 +124,7 @@
 
   "pulseaudio": {
     "format": "{icon} {volume}%",
-    "format-icons": { "default": ["", "", ""] },
+    "format-icons": { "default": ["", "", ""] },
     "on-click": "pavucontrol"
   },
   "tray": { "spacing": 8 }

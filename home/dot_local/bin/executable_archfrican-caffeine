@@ -5,9 +5,9 @@
 # Uses SIGRTMIN+8 so waybar refreshes the icon instantly on click.
 STAMP=/tmp/archfrican-caffeine
 IDLE="$HOME/.local/bin/archfrican-idle"
-# Nerd Font glyphs: U+F186 = moon (off), U+2615 = hot beverage (on)
-ICON_OFF=$'\xef\x86\x86'   # nf-fa-moon-o
-ICON_ON=$'\xe2\x98\x95'    # ☕ (U+2615, renders without emoji font)
+# Nerd Font glyphs: U+F186 = moon (off), U+F0F4 = coffee (on) — both nf-fa, same visual weight
+ICON_OFF=$'\xef\x86\x86'   # nf-fa-moon-o  U+F186
+ICON_ON=$'\xef\x83\xb4'    # nf-fa-coffee  U+F0F4
 
 if [ "$1" = toggle ]; then
     if [ -f "$STAMP" ]; then

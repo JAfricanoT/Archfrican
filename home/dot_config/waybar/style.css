@@ -29,7 +29,7 @@ window#waybar {
 /* every module sits flush inside its island */
 #workspaces button,
 #window, #clock,
-#custom-privacy, #pulseaudio, #bluetooth, #network, #temperature,
+#custom-privacy, #pulseaudio, #bluetooth, #network,
 #cpu, #memory, #disk, #power-profiles-daemon, #battery,
 #custom-caffeine, #custom-weather, #custom-connectivity,
 #custom-health, #custom-notification, #tray {
@@ -40,19 +40,30 @@ window#waybar {
   border-radius: 11px;
 }
 
-/* workspaces — teal pill on the focused one */
+/* workspaces — accent pill on the focused one */
 #workspaces button { color: @fg_dim; padding: 2px 10px; }
 #workspaces button.focused,
 #workspaces button.active { color: @bg; background: @accent; }
 #workspaces button:hover { background: alpha(@accent, 0.18); color: @fg; }
 
-/* center clock is the anchor */
-#clock { font-weight: 700; }
+/* center island: weather pill dims left, clock anchors right */
+.modules-center #custom-weather {
+  font-size: 12px;
+  color: @fg_dim;
+  border-right: 1px solid alpha(@fg_dim, 0.20);
+  padding-right: 10px;
+  margin-right: 2px;
+}
+#clock {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
 #window { color: @fg_dim; font-weight: 500; }
 
 /* right-side controls get a subtle hover affordance */
 #custom-privacy:hover, #pulseaudio:hover, #bluetooth:hover, #network:hover,
-#temperature:hover, #cpu:hover, #memory:hover, #disk:hover,
+#cpu:hover, #memory:hover, #disk:hover,
 #power-profiles-daemon:hover, #battery:hover,
 #custom-caffeine:hover, #custom-weather:hover,
 #custom-health:hover, #custom-notification:hover {
@@ -66,18 +77,18 @@ window#waybar {
 #custom-connectivity.online   { color: #57d9a3; }
 #custom-connectivity.unstable { color: #f5c451; }
 #custom-connectivity.offline  { color: #ff5f56; }
-#custom-privacy { color: #ff5f56; }        /* mic/camera in use — fixed warm colour, stands out by design */
+#custom-privacy { color: #ff5f56; }        /* mic/camera active — fixed warm colour, stands out by design */
 #battery.warning { color: #f5c451; }
-#battery.critical, #temperature.critical { color: #ff5f56; }
+#battery.critical { color: #ff5f56; }
 #tray { padding: 2px 6px; }
 
 /* dim secondary stats */
-#disk, #memory, #temperature { color: @fg_dim; }
+#disk, #memory { color: @fg_dim; }
 
-/* caffeine — coffee accent when ON, dim when OFF */
+/* caffeine — same visual weight as other NF glyphs; accent when ON */
 #custom-caffeine { color: @fg_dim; }
-#custom-caffeine.active { color: @accent; font-size: 15px; }
+#custom-caffeine.active { color: @accent; }
 
-/* weather — dim until it has data; collapsed when hidden (disabled) */
+/* weather — dim in center context (overridden above) and in right if ever moved back */
 #custom-weather { color: @fg_dim; }
 #custom-weather.hidden { min-width: 0; padding: 0; margin: 0; border: none; }
