@@ -1,0 +1,49 @@
+name = "defaults"
+name_pretty = "Apps por defecto"
+icon = "preferences-desktop-default-applications"
+fixed_order = true
+
+[[entries]]
+text = "Navegador web"
+submenu = "defaults-browser"
+
+[[entries]]
+text = "Editor / IDE"
+submenu = "defaults-editor"
+
+[[entries]]
+text = "IA / agentes (CLI)"
+submenu = "defaults-ia-cli"
+
+[[entries]]
+text = "Terminal"
+submenu = "defaults-terminal"
+
+[[entries]]
+text = "Gestor de archivos"
+submenu = "defaults-archivos"
+
+[[entries]]
+text = "Visor de PDF"
+submenu = "defaults-pdf"
+
+[[entries]]
+text = "Visor de imágenes"
+submenu = "defaults-imagenes"
+
+[[entries]]
+text = "Correo"
+submenu = "defaults-correo"
+
+[[entries]]
+text = "Gestor de contenedores"
+submenu = "defaults-contenedores"
+
+[[entries]]
+text = "Mensajería"
+submenu = "defaults-mensajeria"
+
+[[entries]]
+text = "Control de versiones · Git…"
+terminal = true
+actions = { run = "{{ .chezmoi.homeDir }}/.local/bin/archfrican-git" }
