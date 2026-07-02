@@ -32,6 +32,24 @@ do_install() {  # do_install <spec> ; spec = repo:pkgs | aur:pkgs | flatpak:appi
     repo)    ghostty -e sh -c "sudo pacman -S --needed -- $pkg; printf '\n(enter para cerrar) '; read -r _" ;;
     aur)     if have paru; then ghostty -e sh -c "paru -S --needed -- $pkg; printf '\n(enter para cerrar) '; read -r _"
              else note "paru (AUR) no disponible"; return 1; fi ;;
+    # Same as `aur:`, but for AUR picks with a hard package conflict or a system-wide install
+    # script (modifying /etc/hosts, auto-enabling a systemd unit for every user, etc.) — shows
+    # what's about to happen and waits for y/N before running paru. Points at the AUR page
+    # itself rather than hardcoding today's specifics, since a PKGBUILD can change them later.
+    aur-warn) if have paru; then
+                ghostty -e env AF_PKG="$pkg" sh -c '
+                  echo "This AUR package makes broader-than-usual changes to your system — check"
+                  echo "its AUR page (conflicts, install script) before continuing:"
+                  echo "  https://aur.archlinux.org/packages/$AF_PKG"
+                  printf "Install %s anyway? [y/N] " "$AF_PKG"
+                  read -r ans
+                  case "$ans" in
+                    y|Y) paru -S --needed -- "$AF_PKG" ;;
+                    *) echo "cancelled" ;;
+                  esac
+                  printf "\n(enter para cerrar) "; read -r _
+                '
+              else note "paru (AUR) no disponible"; return 1; fi ;;
     flatpak) if have flatpak; then ghostty -e sh -c "flatpak install -y flathub $pkg; printf '\n(enter para cerrar) '; read -r _"
              else note "flatpak no disponible"; return 1; fi ;;
     # Vendors' official one-line installer (e.g. Claude Code) — more reliable than the flaky AUR
@@ -40,8 +58,11 @@ do_install() {  # do_install <spec> ; spec = repo:pkgs | aur:pkgs | flatpak:appi
              else note "curl no disponible"; return 1; fi ;;
     # For services with no native Linux client (e.g. WhatsApp) — wraps archfrican-webapp, the
     # project's existing answer for this. spec = webapp:Name,https://url (name/url hardcoded in the table).
-    webapp)  if have archfrican-webapp; then local wname="${pkg%%,*}" wurl="${pkg#*,}"
-               ghostty -e sh -c "archfrican-webapp '$wname' '$wurl'; printf '\n(enter para cerrar) '; read -r _"
+    # Absolute path, NOT a PATH lookup: niri-spawned processes (this script included) inherit the
+    # systemd --user session PATH, which has no ~/.local/bin (only the interactive zsh PATH does) —
+    # same reason the "Control de versiones" case below uses $HOME/.local/bin/archfrican-git.
+    webapp)  if [ -x "$HOME/.local/bin/archfrican-webapp" ]; then local wname="${pkg%%,*}" wurl="${pkg#*,}"
+               ghostty -e sh -c "'$HOME/.local/bin/archfrican-webapp' '$wname' '$wurl'; printf '\n(enter para cerrar) '; read -r _"
              else note "archfrican-webapp no disponible"; return 1; fi ;;
     *) return 1 ;;
   esac
@@ -50,7 +71,7 @@ do_install() {  # do_install <spec> ; spec = repo:pkgs | aur:pkgs | flatpak:appi
 pkg_installed() {  # did the package from this <spec> install? (repo/aur via pacman) — a robust fallback
   local kind="${1%%:*}" pkg="${1#*:}"                                 # when a guessed .desktop id is wrong
   case "$kind" in
-    repo|aur) have pacman && pacman -Qq "${pkg%% *}" >/dev/null 2>&1 ;;
+    repo|aur|aur-warn) have pacman && pacman -Qq "${pkg%% *}" >/dev/null 2>&1 ;;
     *) return 1 ;;
   esac
 }
@@ -162,7 +183,7 @@ case "$cat" in
     # preguntará antes de tocar nada.
     category '  contenedores  ' cli '' \
       "LazyDocker|lazydocker|repo:lazydocker" \
-      "Docker Desktop|docker-desktop.desktop|aur:docker-desktop|none" ;;
+      "Docker Desktop|docker-desktop.desktop|aur-warn:docker-desktop|none" ;;
   "Mensajería")
     # tampoco hay "default" aquí — solo instala y confirma. WhatsApp no tiene cliente nativo de
     # Linux, así que se resuelve como cualquier otro servicio sin app: archfrican-webapp.
