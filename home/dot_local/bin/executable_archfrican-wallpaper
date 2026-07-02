@@ -17,7 +17,10 @@ if have awww; then awww img "$img" >/dev/null 2>&1 || true; fi
 # Persist the path so archfrican-wallpaper-restore can repose it at next login (awww doesn't).
 mkdir -p "$HOME/.config/archfrican"; printf '%s\n' "$img" > "$HOME/.config/archfrican/wallpaper"
 
-json="$(matugen image "$img" --json hex 2>/dev/null)" || { note "matugen falló"; exit 1; }
+# --prefer is REQUIRED for a non-interactive invocation (spawned from a keybind, no controlling
+# terminal): without it, matugen aborts asking which of several extracted source colors to prefer
+# whenever a photo yields more than one candidate — which is the common case for any real photo.
+json="$(matugen image "$img" --json hex --prefer saturation 2>/dev/null)" || { note "matugen falló"; exit 1; }
 # Defensive against matugen JSON format changes: try a few plausible paths, fall back to macOS-dark.
 hex() { printf '%s' "$json" | jq -r "(.colors.dark.\"$1\" // .colors.\"$1\".default.hex // .colors.dark.\"$1\".hex // \"$2\")" 2>/dev/null; }
 BG="$(hex background '#1c1c1e')";          FG="$(hex on_background '#f5f5f7')";        ACCENT="$(hex primary '#0a84ff')"
