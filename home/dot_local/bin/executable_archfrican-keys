@@ -6,6 +6,48 @@ set -euo pipefail
 cfg="${XDG_CONFIG_HOME:-$HOME/.config}/niri/config.kdl"
 keyd="/etc/keyd/default.conf"
 
+tsv() {
+  if [ -r "$cfg" ]; then
+    awk '
+      /^[[:space:]]*\/\/[[:space:]]*nota:/ { next }
+      /^[[:space:]]*\/\// && $0 !~ /\{/ {
+        h = $0
+        sub(/^[[:space:]]*\/\/[[:space:]]*/, "", h)
+        pending = h
+        next
+      }
+      /^[[:space:]]*(Mod|Print|XF86)[A-Za-z0-9+]*[[:space:]]*\{/ {
+        line = $0
+        key = line; sub(/[[:space:]]*\{.*/, "", key); gsub(/^[[:space:]]+/, "", key)
+        if (line ~ /\/\//) { desc = line; sub(/.*\/\/[[:space:]]*/, "", desc) }
+        else { desc = line; sub(/^[^{]*\{[[:space:]]*/, "", desc); sub(/[[:space:]]*;?[[:space:]]*\}.*/, "", desc) }
+        gsub(/Mod/, "⌘", key)
+        printf "%s\t%s\t%s\n", key, pending, desc
+      }' "$cfg"
+  fi
+  if [ -r "$keyd" ]; then
+    printf '\n'
+    awk '
+      /^\[.*\]/ { insec = ($0 == "[meta]"); next }
+      insec && /^[a-z]+[[:space:]]*=/ {
+        gsub(/[[:space:]]/, "")
+        n = index($0, "="); k = substr($0, 1, n - 1); v = substr($0, n + 1)
+        sub(/^C-/, "", v)
+        printf "⌘+%s%s\tCtrl+%s\n", toupper(substr(k, 1, 1)), substr(k, 2), toupper(v)
+      }' "$keyd"
+  fi
+}
+
+if [ "${1:-}" = "__tsv" ]; then
+  tsv
+  exit 0
+fi
+
+if command -v walker >/dev/null 2>&1 \
+   && elephant listproviders 2>/dev/null | grep -q "^menus:keys$"; then
+  exec walker -m "menus:keys"
+fi
+
 emit() {
   if [ -r "$cfg" ]; then
     # Each niri bind lives on one line: "Keys { action; }   // human comment".
