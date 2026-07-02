@@ -34,8 +34,39 @@ archfrican-lock --help 2>/dev/null || head -30 ~/.local/bin/archfrican-lock
 | gtklock no acepta el flag `-b` de esa versión | `gtklock --help \| grep background` para verificar el flag |
 
 ### Fix en el repo (después del diagnóstico)
-Editar `home/dot_local/bin/executable_archfrican-lock` para corregir la detección
-del wallpaper o la invocación de módulos según lo que muestre el diagnóstico.
+El script `archfrican-lock` ya maneja correctamente ambas rutas de wallpaper y carga
+módulos condicionalmente — no se necesitan cambios de código. El problema es ambiental:
+asegurarse de que `~/.config/archfrican/wallpaper` contenga una ruta válida a un archivo
+que exista.
+
+---
+
+## 1b. gtklock — avatar card / tarjeta de usuario
+
+**Síntoma:** la pantalla de bloqueo no muestra la foto de usuario ni la tarjeta de
+login estilo greeter (no se parece al SDDM de Archfrican).
+
+### Diagnóstico
+```bash
+# ¿Está instalado el módulo userinfo?
+ls /usr/lib/gtklock/userinfo.so 2>/dev/null && echo "OK" || echo "FALTA"
+
+# ¿Existe la imagen de avatar?
+ls ~/.face 2>/dev/null && file ~/.face || echo "Sin avatar en ~/.face"
+
+# Ver qué carga archfrican-lock en módulos
+grep -A5 'userinfo\|modules' ~/.local/bin/archfrican-lock
+```
+
+### Fix
+| Causa | Fix |
+|---|---|
+| `gtklock-userinfo-module.so` no instalado | `sudo pacman -S gtklock-userinfo-module` |
+| Avatar no configurado | Copiar imagen a `~/.face` (cuadrada, ≥96×96 px, PNG/JPEG) |
+| Módulo instalado pero ruta `.so` distinta | `find /usr/lib -name 'userinfo*.so' 2>/dev/null` |
+
+**Nota:** `archfrican-lock` ya usa `-m userinfo` condicionalmente si el `.so` existe —
+no requiere cambios en el repo, solo tener el paquete instalado y `~/.face` presente.
 
 ---
 
@@ -79,8 +110,31 @@ sudo ddcutil setvcp 10 70    # poner brillo al 70%
 # Ver si ddcutil necesita permisos i2c
 sudo usermod -aG i2c "$USER" && newgrp i2c
 ```
-Pendiente: `archfrican-brightness` script que use `brightnessctl` (laptop) +
-`ddcutil setvcp 10` (monitores externos) con detección automática.
+#### Script `archfrican-brightness` (nuevo, pendiente)
+Interfaz unificada para brillo de laptop y monitores externos:
+
+```
+archfrican-brightness up        # +10%
+archfrican-brightness down      # -10%
+archfrican-brightness set 70    # 70% absoluto
+```
+
+Lógica interna:
+- Detecta backlight de laptop: `brightnessctl -l | grep -i backlight`
+- Detecta monitores externos: `ddcutil detect 2>/dev/null | grep -i "Display"`
+- Para laptop: `brightnessctl set <N>%`
+- Para externos: `ddcutil setvcp 10 <N>` (VCP code 10 = brillo)
+- Muestra notificación: `notify-send -t 1500 "Brillo" "<N>%"`
+- Refresha waybar si hay módulo de brillo: `pkill -SIGRTMIN+8 waybar`
+
+Keybinds en `home/dot_config/niri/config.kdl.tmpl`:
+```kdl
+Mod+BrightnessUp   { spawn "archfrican-brightness" "up"; }
+Mod+BrightnessDown { spawn "archfrican-brightness" "down"; }
+```
+(o las teclas `XF86MonBrightnessUp` / `XF86MonBrightnessDown` sin modificador)
+
+Paquetes a añadir a `packages/niri-desktop.txt` si faltan: `brightnessctl`, `ddcutil`.
 
 ### 2b. Audio — panel de dispositivos
 
@@ -192,8 +246,31 @@ Si el selfcheck falla, el backup en `/etc/pam.d/gtklock.archfrican.bak` permite 
 
 ## Orden sugerido de ejecución
 
-1. **gtklock wallpaper** — diagnóstico rápido, fix en minutos
-2. **check_lock doctor** — añadir al health check (no requiere hardware, pero confirmar que health.sh no tiene WIP)
-3. **Phase 3a** — swaync brillo (más impacto visual inmediato)
-4. **FIDO2-on-lock** — solo si hay llave enrollada
+1. **gtklock wallpaper + avatar card (1 y 1b)** — diagnóstico rápido, fix en minutos
+2. **check_lock doctor** — añadir al health check (confirmar que `lib/health.sh` no tiene WIP: `git diff lib/health.sh`)
+3. **Phase 3a** — `archfrican-brightness` + swaync brillo (más impacto visual inmediato)
+4. **FIDO2-on-lock** — solo si hay llave FIDO2 enrollada (`cat ~/.config/.archfrican-fido2`)
 5. **Phase 3b/c/d** — audio/wifi/bluetooth panels
+
+---
+
+## 5. Phase 5 — GTK4/Astal dashboard (diferido)
+
+**Estado:** explícitamente diferido hasta que Phase 3 esté validado en hardware.
+
+**Objetivo:** reemplazar waybar + swaync por un shell GTK4 unificado (barra, launcher,
+centro de control en un solo proceso) con animaciones fluidas nativas de GTK.
+
+**Framework candidato: Astal**
+- Rust/Lua/JS sobre GTK4, activo, módulos sueltos (no todo-o-nada)
+- `astal-bar`, `astal-tray`, `astal-battery`, `astal-network`, etc.
+
+**Por qué no Quickshell (QML):** DankMaterialShell lo usa pero está pre-1.0 y el modelo
+QML es "todo-o-nada" — incompatible con la filosofía modular de Archfrican.
+
+**Prerequisitos antes de considerar Phase 5:**
+1. Phase 3 Control Center 2.0 validado y estable
+2. Astal ≥ 0.2 en AUR / repositorio oficial
+3. Decisión sobre lenguaje de scripting (Lua vs JS/TS)
+
+**No hay nada que hacer en el repo hasta que la decisión esté tomada.**
