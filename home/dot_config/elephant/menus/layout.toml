@@ -1,0 +1,32 @@
+name = "layout"
+name_pretty = "Layout"
+icon = "view-grid-symbolic"
+fixed_order = true
+
+[[entries]]
+text = "Un tercio (1/3)"
+actions = { run = "niri msg action set-column-width \"33%\"" }
+
+[[entries]]
+text = "Mitad (1/2)"
+actions = { run = "niri msg action set-column-width \"50%\"" }
+
+[[entries]]
+text = "Dos tercios (2/3)"
+actions = { run = "niri msg action set-column-width \"67%\"" }
+
+[[entries]]
+text = "Maximizar columna"
+actions = { run = "niri msg action maximize-column" }
+
+[[entries]]
+text = "Pantalla completa"
+actions = { run = "niri msg action fullscreen-window" }
+
+[[entries]]
+text = "Consumir ventana en la columna"
+actions = { run = "niri msg action consume-window-into-column" }
+
+[[entries]]
+text = "Expulsar ventana de la columna"
+actions = { run = "niri msg action expel-window-from-column" }
