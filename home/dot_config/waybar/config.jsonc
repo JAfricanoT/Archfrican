@@ -27,12 +27,12 @@
   },
 
   // system stats — click cpu or memory to jump to btop
-  "cpu":    { "format": " {usage}%", "on-click": "ghostty -e btop", "tooltip": false },
-  "memory": { "format": " {}%",      "on-click": "ghostty -e btop", "tooltip": false },
-  "disk":   { "format": " {free}",   "tooltip-format": "{used} / {total} ({percentage_used}%)\n{path}" },
+  "cpu":    { "format": "  {usage}%", "on-click": "ghostty -e btop", "tooltip": false },
+  "memory": { "format": "  {}%",      "on-click": "ghostty -e btop", "tooltip": false },
+  "disk":   { "format": "  {free}",   "tooltip-format": "{used} / {total} ({percentage_used}%)\n{path}" },
 
   "battery": {
-    "format": "{icon} {capacity}%",
+    "format": "{icon}  {capacity}%",
     "format-icons": ["", "", "", "", ""]
   },
   // power-profiles icons: nf-fa-rocket (performance) · nf-fa-bolt (balanced) · nf-fa-leaf (power-saver)
@@ -48,9 +48,9 @@
   },
 
   "network": {
-    "format-wifi":        " {essid}",
-    "format-ethernet":    " wired",
-    "format-disconnected": " off",
+    "format-wifi":        "  {essid}",
+    "format-ethernet":    "  wired",
+    "format-disconnected": "  off",
     "tooltip-format-ethernet":   "{ifname} · IP {ipaddr}/{cidr}\nGateway {gwaddr}",
     "tooltip-format-wifi":       "{essid} ({signalStrength}%) · IP {ipaddr}/{cidr}\nGateway {gwaddr}",
     "tooltip-format-disconnected": "Sin red"
@@ -65,7 +65,7 @@
   "bluetooth": {
     "format":           "",
     "format-disabled":  "",
-    "format-connected": " {num_connections}",
+    "format-connected": "  {num_connections}",
     "tooltip-format": "{controller_alias}\t{status}",
     "on-click": "blueman-manager"
   },
@@ -123,7 +123,7 @@
   },
 
   "pulseaudio": {
-    "format": "{icon} {volume}%",
+    "format": "{icon}  {volume}%",
     "format-icons": { "default": ["", "", ""] },
     "on-click": "pavucontrol"
   },
