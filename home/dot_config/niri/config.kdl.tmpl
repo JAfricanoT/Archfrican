@@ -2,6 +2,9 @@
 // │ Archfrican · niri config — scrolling WM with macOS-friendly bindings        │
 // │ Rule: the ⌘ (Mod/Super) key uses ONLY non-letter or Shift combos here,  │
 // │ so it never collides with the ⌘+letter app shortcuts handled by keyd.  │
+// │ Exception: Mod+W / Mod+Q — keyd (modules/20-niri-desktop.sh) leaves    │
+// │ these two out of its [meta] layer on purpose, so niri owns window/app  │
+// │ close semantics (guaranteed to work, unlike app-dependent Ctrl+W/Q).   │
 // ╰──────────────────────────────────────────────────────────────────────╯
 
 input {
@@ -138,7 +141,8 @@ binds {
     Mod+Return        { spawn "ghostty"; }
     Mod+Space         { spawn "{{ .chezmoi.homeDir }}/.local/bin/archfrican-spotlight"; }   // ⌘+Space = Spotlight (apps + buscar todo)
     Mod+Tab           { toggle-overview; }         // Mission-Control-like
-    Mod+Shift+Q       { close-window; }            // ⌘+W closes app tabs via keyd
+    Mod+W             { close-window; }            // ⌘+W closes ONE window
+    Mod+Q             { spawn "{{ .chezmoi.homeDir }}/.local/bin/archfrican-quit-app"; }   // ⌘+Q closes ALL windows of the app
     Mod+Shift+E       { quit; }
     Mod+Shift+Slash   { show-hotkey-overlay; }
     Mod+Shift+K       { spawn "{{ .chezmoi.homeDir }}/.local/bin/archfrican-keys"; }   // searchable key cheatsheet

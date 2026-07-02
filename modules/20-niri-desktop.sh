@@ -70,7 +70,11 @@ write_system_file /etc/keyd/default.conf <<'KEYD'
 #   [meta+shift]  ⌘+Shift+<letter>  -> Super+Shift+<letter>   (passed to niri for its WM/launcher binds)
 # Without the [meta+shift] layer, keyd's [meta] mapping ALSO fires on ⌘+Shift+<letter> and DROPS the
 # Shift (documented keyd behaviour), stealing ⌘+Shift+A/C/F/… from niri. A composite layer takes
-# precedence when all its modifiers are held, so the two stop colliding. niri binds no plain Mod+letter.
+# precedence when all its modifiers are held, so the two stop colliding. niri binds no plain Mod+letter
+# EXCEPT w and q — deliberately left out of [meta] below so bare ⌘+W/⌘+Q reach niri instead of being
+# rewritten into Ctrl+W/Ctrl+Q first. niri owns window/app-close there (see config.kdl.tmpl): a
+# WM-level close is guaranteed to work, unlike Ctrl+W/Ctrl+Q which depend on the focused app
+# supporting them (and Ctrl+W collides with the shell's word-delete in a terminal).
 [ids]
 *
 
@@ -80,6 +84,7 @@ capslock = overload(control, esc)   # bonus: tap=Esc, hold=Ctrl (great for vim)
 # ⌘+letter -> Ctrl+letter (app-level macOS shortcuts). These MUST live in the [meta] modifier-layer
 # section: keyd REJECTS the `meta.x = …` shorthand ("not a valid key or alias"). Inside [meta] the
 # meta modifier is consumed, so the app receives a clean Ctrl+letter — ⌘+C copies, ⌘+A selects all, etc.
+# (w and q are intentionally absent — see the note above.)
 [meta]
 c = C-c
 v = C-v
@@ -88,10 +93,8 @@ z = C-z
 a = C-a
 s = C-s
 f = C-f
-w = C-w
 t = C-t
 n = C-n
-q = C-q
 l = C-l
 r = C-r
 

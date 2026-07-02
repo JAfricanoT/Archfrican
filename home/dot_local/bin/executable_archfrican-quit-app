@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# archfrican-quit-app — closes EVERY window of the focused app (macOS ⌘+Q semantics), not just the
+# one focused window. niri has no native "close app" action, only per-window close-window; this
+# finds every window sharing the focused window's app-id and closes each one via niri IPC.
+set -euo pipefail
+command -v niri >/dev/null 2>&1 || exit 1
+command -v jq >/dev/null 2>&1 || exit 1
+# ── WM seam (niri): all compositor IPC in this file routes through here — one place to port. docs/WM-INTEGRATION.md
+wm_windows_json() { niri msg --json windows; }
+wm_close_window() { niri msg action close-window --id "$1"; }
+
+windows="$(wm_windows_json)"
+app_id="$(jq -r '.[] | select(.is_focused) | .app_id // empty' <<<"$windows")"
+[ -n "$app_id" ] || exit 0
+
+jq -r --arg app "$app_id" '.[] | select(.app_id == $app) | .id' <<<"$windows" \
+  | while read -r id; do wm_close_window "$id" || true; done

@@ -43,7 +43,8 @@ The cheat sheet is always one key away:
 |----------|--------|
 | `⌘+Space` | Spotlight launcher (Walker) — apps, files, web, calc, clipboard |
 | `⌘+Return` | New terminal (Ghostty) |
-| `⌘+Shift+Q` | Close window |
+| `⌘+W` | Close window |
+| `⌘+Q` | Quit app (closes every window of the focused app) |
 | `⌘+Tab` | Mission-Control overview of all workspaces |
 | `⌘+Shift+A` | Actions hub — all Archfrican commands in one place |
 | `⌘+Shift+K` | Key cheat sheet |

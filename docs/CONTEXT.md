@@ -46,9 +46,13 @@ es **programación de alto rendimiento** (polyglot). Nombre del proyecto: **Arch
 | Fricción macOS | **keyd**: ⌘+letra → Ctrl | Mantiene muscle-memory de copy/paste/save/quit. ⌘ sigue siendo el modificador de niri para combos **sin-letra y con Shift** → sin colisiones. + scroll natural, tap-to-click, gestos 3 dedos, ⌘+Space=launcher, ⌘+Tab=overview. |
 
 ### Regla de diseño clave (keybinds)
-Para que keyd y niri no colisionen: **niri nunca usa `Mod+<letra>` a secas**. Solo
-`Mod+<no-letra>` (Return, Space, flechas, números, comas) y `Mod+Shift+...`. Por eso,
-p.ej., cerrar ventana = `Mod+Shift+Q`. keyd solo intercepta `⌘+<letra>` plano.
+Para que keyd y niri no colisionen: **niri no usa `Mod+<letra>` a secas**, salvo dos
+excepciones deliberadas. Solo `Mod+<no-letra>` (Return, Space, flechas, números, comas),
+`Mod+Shift+...`, y `Mod+W`/`Mod+Q`. keyd intercepta `⌘+<letra>` plano y lo reescribe a
+Ctrl+letra — excepto w y q, que se dejan fuera de esa capa a propósito para que niri
+mismo cierre ventanas/apps (garantizado, a diferencia de Ctrl+W/Ctrl+Q que dependen de
+que la app los soporte): `Mod+W` cierra una ventana, `Mod+Q` cierra toda la app (todas
+sus ventanas, vía `archfrican-quit-app`).
 
 ## 4. Arquitectura del repo
 
