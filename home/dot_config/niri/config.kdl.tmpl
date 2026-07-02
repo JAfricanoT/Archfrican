@@ -74,6 +74,16 @@ window-rule {
     // BLUR-END
 }
 
+// Chromium-based windows (the browser + every archfrican-webapp) remember their OWN last window
+// size/position across launches. When that remembered geometry doesn't match niri's tiling grid,
+// the new window opens "almost fullscreen" (edge-to-edge, no gaps) but waybar still shows on top —
+// it's a real niri window, just sized off-grid. open-maximized forces a clean, correctly-tiled
+// column every time, regardless of what the app itself tries to restore.
+window-rule {
+    match app-id=r#"^(vivaldi-stable|brave-browser|chromium|webapp-.*)$"#
+    open-maximized true
+}
+
 // macOS-like frosted glass on the LAUNCHER (fuzzel) — a layer-shell surface, so blur + shadow come from a
 // layer-rule. LAUNCHER ONLY: niri's layer blur covers the ENTIRE layer surface (it can't clip to just the
 // visible card yet — that needs the ext-background-effect protocol), so blurring swaync's large
