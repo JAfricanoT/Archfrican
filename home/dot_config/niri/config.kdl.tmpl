@@ -229,15 +229,14 @@ binds {
     // Bloqueo de pantalla
     Mod+Shift+L { spawn "{{ .chezmoi.homeDir }}/.local/bin/archfrican-lock"; }   // bloquear sesión
 
-    // nota: surge del daemon cliphist ya iniciado al arrancar
     // Portapapeles
-    Mod+Shift+V { spawn "sh" "-c" "cliphist list | fuzzel --dmenu | cliphist decode | wl-copy"; }   // clipboard history
+    Mod+Shift+V { spawn "walker" "-m" "clipboard"; }   // historial de portapapeles (provider nativo de Walker)
 
     // Buscadores y paneles
     Mod+Shift+A { spawn "{{ .chezmoi.homeDir }}/.local/bin/archfrican-actions"; }   // actions / settings hub
-    Mod+Shift+W { spawn "{{ .chezmoi.homeDir }}/.local/bin/archfrican-window"; }    // window switcher
-    Mod+Shift+C { spawn "{{ .chezmoi.homeDir }}/.local/bin/archfrican-calc"; }      // calculator
-    Mod+Shift+G { spawn "{{ .chezmoi.homeDir }}/.local/bin/archfrican-find"; }      // search files
+    Mod+Shift+W { spawn "walker" "-m" "windows"; }    // selector de ventanas (provider nativo de Walker)
+    Mod+Shift+C { spawn "walker" "-m" "calc"; }       // calculadora (provider nativo de Walker)
+    Mod+Shift+G { spawn "walker" "-m" "files"; }      // buscar archivos (provider nativo de Walker)
 
     // Centro de control y diseño
     Mod+Shift+D { spawn "swaync-client" "-t" "-sw"; }   // toggle control center
