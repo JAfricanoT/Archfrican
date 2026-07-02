@@ -5,6 +5,14 @@
 #   archfrican-doctor --notify   quiet unless amber/red, then one notify-send
 #   archfrican-doctor --fix      run ONLY provably-safe fixes (paccache/reset-failed/pacdiff); never -Syu/-Rns
 set -uo pipefail
+if [ "${EUID:-$(id -u)}" -eq 0 ]; then
+  echo "archfrican-doctor: run as your normal user, not root/sudo." >&2
+  echo "Under sudo, \$HOME becomes /root, so the niri-config and PATH checks look at root's" >&2
+  echo "environment instead of yours — that's what just reported a false 'missing'/'not on PATH'." >&2
+  echo "The checks that actually need root (snapshots, scrub, SMART, dual-boot) already call" >&2
+  echo "sudo -n internally and just skip (○) if you don't have a cached credential." >&2
+  exit 1
+fi
 self="$(readlink -f "$0" 2>/dev/null || echo "$0")"
 ROOT="${ARCHFRICAN_ROOT:-$(cd "$(dirname "$self")/.." && pwd)}"
 export REPO_ROOT="$ROOT"
