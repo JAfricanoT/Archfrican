@@ -57,8 +57,8 @@ precheck() {
 
   if [ -f /etc/pacman.d/mirrorlist ]; then
     age=$(( ( $(date +%s) - $(stat -c %Y /etc/pacman.d/mirrorlist 2>/dev/null || echo 0) ) / 86400 ))
-    if [ "$age" -le 30 ]; then _ok "mirrorlist ${age}d old"
-    else _note "mirrorlist ${age}d old — refresh (reflector) if downloads are slow"; fi
+    if [ "$age" -le 7 ]; then _ok "mirrorlist ${age}d old"
+    else _note "mirrorlist ${age}d old — --run auto-refreshes it (>7d) before the upgrade"; fi
   fi
 
   news="$(curl -fsS --max-time 8 'https://archlinux.org/feeds/news/' 2>/dev/null \
@@ -98,6 +98,24 @@ pre_snapshot() {
   if sudo snapper -c root create -d "$desc" >/dev/null 2>&1; then
     _ok "pre-snapshot created (\"$desc\") — one reboot rolls the whole update back"
   else _note "could not create a pre-snapshot (continuing)"; fi
+}
+
+# ---------- keep the mirrorlist fresh WITHOUT an always-on background timer --
+# modules/70-hygiene.sh leaves reflector.timer off by default (it can overwrite the mirrorlist
+# unattended on its own schedule). Refreshing here instead ties it to something the user actually
+# asked for (--run, right before pacman -Syu uses it) — same reflector.conf, just not silent/background.
+refresh_mirrors_if_stale() {
+  [ "${ARCHFRICAN_SKIP_REFLECTOR:-0}" = 1 ] && { warn "mirror refresh skipped (ARCHFRICAN_SKIP_REFLECTOR=1)"; return 0; }
+  command -v reflector >/dev/null 2>&1 || return 0
+  [ -f /etc/pacman.d/mirrorlist ] || return 0
+  local age; age=$(( ( $(date +%s) - $(stat -c %Y /etc/pacman.d/mirrorlist 2>/dev/null || echo 0) ) / 86400 ))
+  [ "$age" -gt 7 ] || return 0
+  _hd "Mirror refresh — mirrorlist is ${age}d old"
+  if [ -r /etc/xdg/reflector/reflector.conf ]; then
+    sudo reflector @/etc/xdg/reflector/reflector.conf
+  else
+    sudo reflector --protocol https --latest 20 --sort rate --age 12 --save /etc/pacman.d/mirrorlist
+  fi && _ok "mirrorlist refreshed" || _note "reflector failed — continuing with the existing mirrorlist"
 }
 
 # ---------- repo refresh + desired-state converge ----------------------------
@@ -187,6 +205,7 @@ if [ "$RUN" = 1 ]; then
   # pre-snapshot) covers the whole sequence.
   _hd "Repo refresh — pull the desired state"
   repo_refresh || exit 1
+  refresh_mirrors_if_stale
   _hd "System upgrade (official repos) — interactive, never --noconfirm"
   [ "$warn_n" -gt 0 ] && printf '  \e[33m%d caution(s) in the pre-check above.\e[0m\n\n' "$warn_n"
   sudo pacman -Syu || _note "pacman -Syu reported an error — review above"
