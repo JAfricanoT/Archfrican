@@ -137,97 +137,100 @@ spawn-at-startup "udiskie" "-t"              // automount removable media (tray)
 spawn-at-startup "{{ .chezmoi.homeDir }}/.local/bin/archfrican-welcome-notify"   // one-time desktop welcome (stamp-gated)
 
 binds {
-    // launchers / core
-    Mod+Return        { spawn "ghostty"; }
+    // Lanzadores y núcleo
+    Mod+Return        { spawn "ghostty"; }             // abrir terminal
     Mod+Space         { spawn "{{ .chezmoi.homeDir }}/.local/bin/archfrican-spotlight"; }   // ⌘+Space = Spotlight (apps + buscar todo)
     Mod+Tab           { toggle-overview; }         // Mission-Control-like
     Mod+W             { close-window; }            // ⌘+W closes ONE window
     Mod+Q             { spawn "{{ .chezmoi.homeDir }}/.local/bin/archfrican-quit-app"; }   // ⌘+Q closes ALL windows of the app
-    Mod+Shift+E       { quit; }
-    Mod+Shift+Slash   { show-hotkey-overlay; }
+    Mod+Shift+E       { quit; }                    // cerrar sesión de niri
+    Mod+Shift+Slash   { show-hotkey-overlay; }      // resumen nativo de niri, sin buscador (compara con ⌘+Shift+K)
     Mod+Shift+K       { spawn "{{ .chezmoi.homeDir }}/.local/bin/archfrican-keys"; }   // searchable key cheatsheet
 
-    // scrolling navigation (the niri core) — Up/Down fall through to workspace switching at the
-    // top/bottom of a column, so they behave like Left/Right (which move across columns).
-    Mod+Left          { focus-column-left; }
-    Mod+Right         { focus-column-right; }
-    Mod+Up            { focus-window-or-workspace-up; }
-    Mod+Down          { focus-window-or-workspace-down; }
-    Mod+Shift+Left    { move-column-left; }
-    Mod+Shift+Right   { move-column-right; }
-    Mod+Shift+Up      { move-window-up-or-to-workspace-up; }
-    Mod+Shift+Down    { move-window-down-or-to-workspace-down; }
-    Mod+Home          { focus-column-first; }
-    Mod+End           { focus-column-last; }
+    // nota: arriba/abajo caen a cambio de espacio en los extremos de una columna, igual que izquierda/derecha
+    // Navegación entre columnas
+    Mod+Left          { focus-column-left; }   // enfocar columna a la izquierda
+    Mod+Right         { focus-column-right; }   // enfocar columna a la derecha
+    Mod+Up            { focus-window-or-workspace-up; }   // enfocar ventana arriba (o espacio anterior)
+    Mod+Down          { focus-window-or-workspace-down; }   // enfocar ventana abajo (o espacio siguiente)
+    Mod+Shift+Left    { move-column-left; }   // mover columna a la izquierda
+    Mod+Shift+Right   { move-column-right; }   // mover columna a la derecha
+    Mod+Shift+Up      { move-window-up-or-to-workspace-up; }   // mover ventana arriba (o al espacio anterior)
+    Mod+Shift+Down    { move-window-down-or-to-workspace-down; }   // mover ventana abajo (o al espacio siguiente)
+    Mod+Home          { focus-column-first; }   // enfocar primera columna
+    Mod+End           { focus-column-last; }   // enfocar última columna
 
-    // monitors (multi-monitor)
-    Mod+Ctrl+Left          { focus-monitor-left; }   // focus the monitor to the left
-    Mod+Ctrl+Right         { focus-monitor-right; }   // focus the monitor to the right
-    Mod+Ctrl+Up            { focus-monitor-up; }   // focus the monitor above
-    Mod+Ctrl+Down          { focus-monitor-down; }   // focus the monitor below
-    Mod+Ctrl+Shift+Left    { move-column-to-monitor-left; }   // move column to the monitor on the left
-    Mod+Ctrl+Shift+Right   { move-column-to-monitor-right; }   // move column to the monitor on the right
-    Mod+Ctrl+Shift+Up      { move-column-to-monitor-up; }   // move column to the monitor above
-    Mod+Ctrl+Shift+Down    { move-column-to-monitor-down; }   // move column to the monitor below
-    Mod+Ctrl+Alt+Left      { move-workspace-to-monitor-left; }   // move the whole workspace to the monitor on the left
-    Mod+Ctrl+Alt+Right     { move-workspace-to-monitor-right; }   // move the whole workspace to the monitor on the right
-    Mod+Ctrl+Alt+Up        { move-workspace-to-monitor-up; }   // move the whole workspace to the monitor above
-    Mod+Ctrl+Alt+Down      { move-workspace-to-monitor-down; }   // move the whole workspace to the monitor below
+    // Monitores (multimonitor)
+    Mod+Ctrl+Left          { focus-monitor-left; }   // enfocar el monitor de la izquierda
+    Mod+Ctrl+Right         { focus-monitor-right; }   // enfocar el monitor de la derecha
+    Mod+Ctrl+Up            { focus-monitor-up; }   // enfocar el monitor de arriba
+    Mod+Ctrl+Down          { focus-monitor-down; }   // enfocar el monitor de abajo
+    Mod+Ctrl+Shift+Left    { move-column-to-monitor-left; }   // mover columna al monitor de la izquierda
+    Mod+Ctrl+Shift+Right   { move-column-to-monitor-right; }   // mover columna al monitor de la derecha
+    Mod+Ctrl+Shift+Up      { move-column-to-monitor-up; }   // mover columna al monitor de arriba
+    Mod+Ctrl+Shift+Down    { move-column-to-monitor-down; }   // mover columna al monitor de abajo
+    Mod+Ctrl+Alt+Left      { move-workspace-to-monitor-left; }   // mover el espacio completo al monitor de la izquierda
+    Mod+Ctrl+Alt+Right     { move-workspace-to-monitor-right; }   // mover el espacio completo al monitor de la derecha
+    Mod+Ctrl+Alt+Up        { move-workspace-to-monitor-up; }   // mover el espacio completo al monitor de arriba
+    Mod+Ctrl+Alt+Down      { move-workspace-to-monitor-down; }   // mover el espacio completo al monitor de abajo
 
-    // columns / sizing
-    Mod+Comma         { consume-window-into-column; }
-    Mod+Period        { expel-window-from-column; }
-    Mod+Minus         { set-column-width "-10%"; }
-    Mod+Equal         { set-column-width "+10%"; }
-    Mod+Shift+F       { maximize-column; }
-    Mod+Shift+M       { fullscreen-window; }
-    Mod+Shift+Space   { toggle-window-floating; }
+    // Columnas: tamaño y modos
+    Mod+Comma         { consume-window-into-column; }   // meter ventana en la columna
+    Mod+Period        { expel-window-from-column; }   // sacar ventana de la columna
+    Mod+Minus         { set-column-width "-10%"; }   // encoger columna
+    Mod+Equal         { set-column-width "+10%"; }   // agrandar columna
+    Mod+Shift+F       { maximize-column; }   // maximizar columna
+    Mod+Shift+M       { fullscreen-window; }   // pantalla completa
+    Mod+Shift+Space   { toggle-window-floating; }   // ventana flotante on/off
 
-    // workspaces
-    Mod+1 { focus-workspace 1; }
-    Mod+2 { focus-workspace 2; }
-    Mod+3 { focus-workspace 3; }
-    Mod+4 { focus-workspace 4; }
-    Mod+5 { focus-workspace 5; }
-    Mod+Shift+1 { move-column-to-workspace 1; }
-    Mod+Shift+2 { move-column-to-workspace 2; }
-    Mod+Shift+3 { move-column-to-workspace 3; }
+    // Espacios de trabajo
+    Mod+1 { focus-workspace 1; }   // ir al espacio 1
+    Mod+2 { focus-workspace 2; }   // ir al espacio 2
+    Mod+3 { focus-workspace 3; }   // ir al espacio 3
+    Mod+4 { focus-workspace 4; }   // ir al espacio 4
+    Mod+5 { focus-workspace 5; }   // ir al espacio 5
+    Mod+Shift+1 { move-column-to-workspace 1; }   // mover columna al espacio 1
+    Mod+Shift+2 { move-column-to-workspace 2; }   // mover columna al espacio 2
+    Mod+Shift+3 { move-column-to-workspace 3; }   // mover columna al espacio 3
 
-    // screenshots (mac: ⌘+Shift+4 region -> here Print / Mod+Shift+S)
-    Print             { screenshot; }
-    Mod+Shift+S       { screenshot; }
-    Mod+Shift+P       { screenshot-screen; }
+    // Capturas de pantalla
+    Print             { screenshot; }   // captura de región
+    Mod+Shift+S       { screenshot; }   // captura de región
+    Mod+Shift+P       { screenshot-screen; }   // captura de toda la pantalla
 
-    // media / brightness (swayosd-client = on-screen feedback bar)
-    XF86AudioRaiseVolume  { spawn "swayosd-client" "--output-volume" "raise"; }
-    XF86AudioLowerVolume  { spawn "swayosd-client" "--output-volume" "lower"; }
-    XF86AudioMute         { spawn "swayosd-client" "--output-volume" "mute-toggle"; }
-    XF86MonBrightnessUp   { spawn "swayosd-client" "--brightness" "raise"; }
-    XF86MonBrightnessDown { spawn "swayosd-client" "--brightness" "lower"; }
+    // nota: swayosd-client muestra una barra visual en pantalla con el nuevo valor
+    // Media y brillo
+    XF86AudioRaiseVolume  { spawn "swayosd-client" "--output-volume" "raise"; }   // subir volumen
+    XF86AudioLowerVolume  { spawn "swayosd-client" "--output-volume" "lower"; }   // bajar volumen
+    XF86AudioMute         { spawn "swayosd-client" "--output-volume" "mute-toggle"; }   // silenciar / activar sonido
+    XF86MonBrightnessUp   { spawn "swayosd-client" "--brightness" "raise"; }   // subir brillo
+    XF86MonBrightnessDown { spawn "swayosd-client" "--brightness" "lower"; }   // bajar brillo
 
-    // apps — Mod+Shift+<letter> reaches niri because keyd's [meta+shift] layer passes it through as
-    // Super+Shift+<letter> (the [meta] ⌘+letter map would otherwise capture these — see 20-niri-desktop.sh)
+    // nota: Mod+Shift+<letra> llega a niri porque la capa [meta+shift] de keyd la deja pasar como
+    // nota: Super+Shift+<letra> (la capa [meta] de ⌘+letra la capturaría si no) — ver 20-niri-desktop.sh
+    // Apps rápidas
     Mod+Shift+N { spawn "nautilus"; }                 // GUI file manager
     Mod+Shift+Y { spawn "ghostty" "-e" "yazi"; }      // TUI file manager
     Mod+Shift+B { spawn "ghostty" "-e" "btop"; }      // system monitor
     Mod+Shift+R { spawn "{{ .chezmoi.homeDir }}/.local/bin/archfrican-record"; }   // screen-record toggle
 
-    // lock
-    Mod+Shift+L { spawn "{{ .chezmoi.homeDir }}/.local/bin/archfrican-lock"; }
+    // Bloqueo de pantalla
+    Mod+Shift+L { spawn "{{ .chezmoi.homeDir }}/.local/bin/archfrican-lock"; }   // bloquear sesión
 
-    // clipboard history (⌘+Shift+V) — surfaces the cliphist daemon already running at startup
+    // nota: surge del daemon cliphist ya iniciado al arrancar
+    // Portapapeles
     Mod+Shift+V { spawn "sh" "-c" "cliphist list | fuzzel --dmenu | cliphist decode | wl-copy"; }   // clipboard history
 
-    // launcher command-surface (Spotlight/Raycast-style modes over fuzzel)
+    // Buscadores y paneles
     Mod+Shift+A { spawn "{{ .chezmoi.homeDir }}/.local/bin/archfrican-actions"; }   // actions / settings hub
     Mod+Shift+W { spawn "{{ .chezmoi.homeDir }}/.local/bin/archfrican-window"; }    // window switcher
     Mod+Shift+C { spawn "{{ .chezmoi.homeDir }}/.local/bin/archfrican-calc"; }      // calculator
     Mod+Shift+G { spawn "{{ .chezmoi.homeDir }}/.local/bin/archfrican-find"; }      // search files
 
-    // control center / notifications (swaync)
+    // Centro de control y diseño
     Mod+Shift+D { spawn "swaync-client" "-t" "-sw"; }   // toggle control center
     Mod+Shift+T { spawn "{{ .chezmoi.homeDir }}/.local/bin/archfrican-layout"; }   // tiling layout picker
 
-    // accessibility: toggle the Orca screen reader (niri exposes its UI via AccessKit)
-    Mod+Alt+S { spawn "{{ .chezmoi.homeDir }}/.local/bin/archfrican-screenreader"; }
+    // Accesibilidad
+    Mod+Alt+S { spawn "{{ .chezmoi.homeDir }}/.local/bin/archfrican-screenreader"; }   // activar/desactivar lector de pantalla Orca
 }

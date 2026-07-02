@@ -9,8 +9,23 @@ keyd="/etc/keyd/default.conf"
 emit() {
   if [ -r "$cfg" ]; then
     # Each niri bind lives on one line: "Keys { action; }   // human comment".
+    # Category headers are standalone comment lines (e.g. "// Lanzadores y núcleo")
+    # that precede a run of bind lines. A comment line starting with "// nota:" is
+    # implementation rationale, not a header — it's skipped and the previous
+    # pending header (if any) stays in effect. Blank lines don't reset it either.
     awk '
+      /^[[:space:]]*\/\/[[:space:]]*nota:/ { next }
+      /^[[:space:]]*\/\// && $0 !~ /\{/ {
+        h = $0
+        sub(/^[[:space:]]*\/\/[[:space:]]*/, "", h)
+        pending = h
+        next
+      }
       /^[[:space:]]*(Mod|Print|XF86)[A-Za-z0-9+]*[[:space:]]*\{/ {
+        if (pending != "" && pending != printed) {
+          printf "\n  ── %s ──\n", pending
+          printed = pending
+        }
         line = $0
         key = line; sub(/[[:space:]]*\{.*/, "", key); gsub(/^[[:space:]]+/, "", key)
         if (line ~ /\/\//) { desc = line; sub(/.*\/\/[[:space:]]*/, "", desc) }
@@ -20,11 +35,15 @@ emit() {
       }' "$cfg"
   fi
   if [ -r "$keyd" ]; then
-    printf '\n  ── macOS ⌘ shortcuts (keyd) ──\n'
+    printf '\n  ── macOS ⌘ (keyd) ──\n'
+    # keyd uses ini-style layers ("[meta]" then bare "c = C-c" lines), not "meta.c = C-c".
+    # Only the [meta] layer is shown here (⌘+letter -> Ctrl+letter app shortcuts); [meta+shift]
+    # is the WM pass-through already covered, with descriptions, by the niri binds above.
     awk '
-      /^meta\.[a-z]+[[:space:]]*=/ {
+      /^\[.*\]/ { insec = ($0 == "[meta]"); next }
+      insec && /^[a-z]+[[:space:]]*=/ {
         gsub(/[[:space:]]/, "")
-        n = index($0, "="); k = substr($0, 6, n - 6); v = substr($0, n + 1)
+        n = index($0, "="); k = substr($0, 1, n - 1); v = substr($0, n + 1)
         sub(/^C-/, "", v)
         printf "  ⌘+%s%s  →  Ctrl+%s\n", toupper(substr(k, 1, 1)), substr(k, 2), toupper(v)
       }' "$keyd"
