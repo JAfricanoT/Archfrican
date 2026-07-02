@@ -9,13 +9,15 @@
 
 input {
     keyboard {
-        // compose:ralt = Right Alt types accents (é, ñ, ¿, ¡…) without touching the layout itself —
-        // keyd never remaps Right Alt, and "us" doesn't use AltGr for anything, so this is free.
-        // Sequences use the system's default X11 Compose table, e.g.: Compose ' e -> é, Compose ~ n
-        // -> ñ, Compose ? ? -> ¿, Compose ! ! -> ¡, Compose " u -> ü.
+        // variant "altgr-intl" = Right Alt (AltGr) + a vowel/n gives the accent directly in ONE combo
+        // (AltGr+e -> é, AltGr+n -> ñ, AltGr+1 -> ¡, AltGr+/ -> ¿ …), closer to the macOS "hold and
+        // press" feel than a Compose key's tap-then-3-key-sequence. Normal typing (', ", `, ~ alone)
+        // is untouched — this only overrides Right Alt combos, and "us" doesn't use AltGr for
+        // anything else. Ties to the "us" layout specifically: pick a different layout via
+        // archfrican-locale and this variant should be revisited (it's a us-symbols-file variant).
         xkb {
             layout "{{ output "sh" "-c" "cat ~/.config/.archfrican-kbd 2>/dev/null || echo us" | trim }}"
-            options "compose:ralt"
+            variant "altgr-intl"
         }
     }
     touchpad {

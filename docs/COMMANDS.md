@@ -778,16 +778,21 @@ Interactive fuzzel menu. Applies changes via `localectl`, `timedatectl`, and `ho
 (the same commands the installer uses). Language and keyboard layout require a re-login
 for full effect.
 
-**Accents on the `us` layout**: niri sets `Right Alt` as a Compose key
-(`home/dot_config/niri/config.kdl.tmpl`), so you can type accents without switching layout:
+**Accents on the `us` layout**: niri uses the `altgr-intl` xkb variant
+(`home/dot_config/niri/config.kdl.tmpl`), so `Right Alt` (AltGr) + a letter gives the accent in
+ONE combo — hold AltGr, press the letter, release both:
 
-| Sequence | Result |
-|----------|--------|
-| `Compose` `'` `e` (or a/i/o/u) | é (á/í/ó/ú) |
-| `Compose` `~` `n` | ñ |
-| `Compose` `"` `u` | ü |
-| `Compose` `?` `?` | ¿ |
-| `Compose` `!` `!` | ¡ |
+| Combo | Result |
+|-------|--------|
+| `AltGr` + `a`/`e`/`i`/`o`/`u` | á é í ó ú |
+| `AltGr` + `n` | ñ |
+| `AltGr` + `y` | ü |
+| `AltGr` + `1` | ¡ |
+| `AltGr` + `/` | ¿ |
+
+Normal typing (`'`, `"`, `` ` ``, `~` on their own) is unaffected — AltGr also still has its own
+dead keys (`AltGr` + `'` then a letter, `AltGr` + `` ` `` then a letter) for accents not listed
+above.
 
 ---
 
