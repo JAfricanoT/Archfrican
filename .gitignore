@@ -4,3 +4,4 @@ tests/e2e/answers.env
 *.zip
 .DS_Store
 out/                  # built ISOs (build-iso.sh output)
+.claude/              # Claude Code worktrees/session state (harness-managed, not repo content)
