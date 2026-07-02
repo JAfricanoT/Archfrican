@@ -37,7 +37,10 @@ write_manifest() {                # write_manifest <multiboot yes|no>
   # managed.txt must be world-readable: prune_candidates reads it WITHOUT sudo. Write it with an
   # explicit 0644 (symmetric with manifest.txt above) instead of `sudo tee`, whose mode would follow
   # root's umask — a stricter umask could leave it unreadable and silently disable --prune.
-  { sudo cat "$ARCHFRICAN_MANAGED" 2>/dev/null; cat "$tmp"; } | LC_ALL=C sort -u > "$tmp.mgd"
+  # `|| true`: on the FIRST ever run managed.txt doesn't exist yet, so `sudo cat` legitimately
+  # fails — but under `set -e` that failure inside this `{ }` group (a subshell, as the pipe's
+  # left side) would abort before `cat "$tmp"` runs at all, dropping the new packages entirely.
+  { sudo cat "$ARCHFRICAN_MANAGED" 2>/dev/null || true; cat "$tmp"; } | LC_ALL=C sort -u > "$tmp.mgd"
   sudo install -m 0644 "$tmp.mgd" "$ARCHFRICAN_MANAGED"
   rm -f "$tmp" "$tmp.mgd"
   ok "recorded desired-state manifest ($(grep -c . "$ARCHFRICAN_MANIFEST") pkgs) + managed ledger"
