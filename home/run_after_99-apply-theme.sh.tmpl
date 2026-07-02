@@ -33,3 +33,13 @@ if [ ! -e "$blur_stamp" ] && [ -x "$blur" ]; then
   "$blur" on >/dev/null 2>&1 || true
   if [ "$("$blur" status 2>/dev/null)" = on ]; then : > "$blur_stamp"; fi
 fi
+
+# Reinicia elephant para que detecte menús nuevos/editados bajo ~/.config/elephant/menus/ y
+# ~/.config/elephant/lib/ — sin esto, un `chezmoi apply` que agregue o cambie un archivo de menú
+# no se refleja hasta el próximo login. No falla el hook si elephant no está instalado (fresh
+# install antes de que 20-niri-desktop.sh corra, o un perfil sin Walker).
+if command -v elephant >/dev/null 2>&1; then
+  pkill -x elephant 2>/dev/null || true
+  sleep 0.5
+  setsid -f elephant >/dev/null 2>&1 || true
+fi
