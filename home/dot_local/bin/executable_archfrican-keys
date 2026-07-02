@@ -44,7 +44,7 @@ if [ "${1:-}" = "__tsv" ]; then
 fi
 
 if command -v walker >/dev/null 2>&1 \
-   && elephant listproviders 2>/dev/null | grep -q "^menus:keys$"; then
+   && elephant listproviders 2>/dev/null | grep -q "^desktopapplications$"; then
   exec walker -m "menus:keys"
 fi
 
