@@ -189,9 +189,9 @@ do_prune() {
 
 # ---------- post-update summary ----------------------------------------------
 post_summary() {
-  print_changelog
   _hd "Post-update health"
   "$ROOT/bin/archfrican-doctor" 2>/dev/null || true
+  print_changelog
   printf '\n  \e[32m✓ Update complete.\e[0m If a kernel changed: sudo systemctl reboot\n\n'
 }
 
