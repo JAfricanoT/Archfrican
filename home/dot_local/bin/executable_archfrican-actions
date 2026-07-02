@@ -86,11 +86,11 @@ case "$sel" in
   "Layout"*)             "$B/archfrican-layout" ;;
   "Abrir una sesión"*)   "$B/archfrican-session" ;;
   "Modo concentración"*) "$B/archfrican-focus" ;;
-  "Portapapeles"*)       sh -c 'cliphist list | fuzzel --dmenu | cliphist decode | wl-copy' ;;
-  "Emoji"*)              "$B/archfrican-emoji" ;;
-  "Calculadora"*)        "$B/archfrican-calc" ;;
-  "Buscar archivos"*)    "$B/archfrican-find" ;;
-  "Buscar en la web"*)   "$B/archfrican-websearch" ;;
+  "Portapapeles"*)       walker -m clipboard ;;
+  "Emoji"*)              walker -m symbols ;;
+  "Calculadora"*)        walker -m calc ;;
+  "Buscar archivos"*)    walker -m files ;;
+  "Buscar en la web"*)   walker -m websearch ;;
   "Navegador"*)          "$B/archfrican-browser" ;;
   "Mullvad"*)            "$B/archfrican-mullvad" ;;
   "Tienda"*)             gnome-software ;;
