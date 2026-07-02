@@ -52,9 +52,10 @@ prune_candidates() {
   [ -r "$ARCHFRICAN_MANAGED" ] && [ -r "$ARCHFRICAN_MANIFEST" ] || return 0
   command -v pacman >/dev/null 2>&1 || return 0
   local p reqby
-  # explicit installs that are NOT in the desired manifest … (LC_ALL=C so both inputs collate identically;
-  # a mismatched collation could make comm mis-pair and skip/keep the wrong package)
-  comm -23 <(pacman -Qeq 2>/dev/null | LC_ALL=C sort -u) <(LC_ALL=C sort -u "$ARCHFRICAN_MANIFEST") | while IFS= read -r p; do
+  # explicit installs that are NOT in the desired manifest … (LC_ALL=C on comm itself too, not just the
+  # inputs: comm assumes its OWN locale's collation order, so under a real non-C LANG it disagrees with
+  # C-sorted input and mispairs lines — live-reproduced: a real package was wrongly kept in the diff).
+  LC_ALL=C comm -23 <(pacman -Qeq 2>/dev/null | LC_ALL=C sort -u) <(LC_ALL=C sort -u "$ARCHFRICAN_MANIFEST") | while IFS= read -r p; do
     grep -qxF "$p" "$ARCHFRICAN_MANAGED" || continue          # … only if Archfrican ever declared it
     # LC_ALL=C: `pacman -Qi` localizes BOTH the "Required By" label and the "None" value, so on a
     # non-English LANG the awk match fails and every package looks dependency-free -> --prune silently

@@ -309,6 +309,8 @@ jobs:
         run: bash tests/unit/disk.sh
       - name: displays — niri layout splice + validate-or-revert
         run: sudo apt-get update -qq && sudo apt-get install -y -qq jq && bash tests/unit/displays.sh
+      - name: manifest — write_manifest fresh-state + prune_candidates locale robustness
+        run: bash tests/unit/manifest.sh
 
   keyd-config:
     runs-on: ubuntu-latest        # keyd is AUR (not in CI repos); validate the ⌘→Ctrl map STRUCTURALLY
