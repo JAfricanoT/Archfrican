@@ -1,0 +1,10 @@
+{
+    "window.title": "🔵 Archfrican — ${activeEditorShort}",
+    "workbench.colorCustomizations": {
+        "titleBar.activeBackground": "#0a84ff",
+        "titleBar.activeForeground": "#ffffff",
+        "titleBar.inactiveBackground": "#0a84ff",
+        "titleBar.inactiveForeground": "#ffffff",
+        "statusBar.background": "#0a84ff"
+    }
+}
