@@ -118,78 +118,162 @@ category() {
   done
 }
 
-cat="$(printf '%s\n' \
-  "Navegador web" "Editor / IDE" "IA / agentes (CLI)" "Terminal" "Gestor de archivos" \
-  "Visor de PDF" "Visor de imágenes" "Correo" "Gestor de contenedores" "Mensajería" \
-  "Control de versiones · Git…" \
-  | fuzzel --dmenu --prompt '  app por defecto  ')" || exit 0
+category_data() {   # category_data <slug> ; sets HOW, TARGETS, ROWS (global, for this call only)
+  case "$1" in
+    browser)
+      HOW=browser; TARGETS='x-scheme-handler/http x-scheme-handler/https text/html'
+      ROWS=(
+        "Firefox|firefox.desktop|repo:firefox"
+        "Brave|brave-browser.desktop|aur:brave-bin"
+        "Chromium|chromium.desktop|repo:chromium"
+        "Vivaldi|vivaldi-stable.desktop|aur:vivaldi"
+        "Mullvad Browser|mullvad-browser.desktop|aur:mullvad-browser-bin"
+      ) ;;
+    editor)
+      HOW=mime; TARGETS='text/plain text/markdown application/json text/x-csrc text/x-c++src text/x-python application/x-shellscript text/x-java'
+      ROWS=(
+        "VS Code (OSS)|code-oss.desktop|repo:code"
+        "Zed|dev.zed.Zed.desktop|repo:zed"
+        "Neovim (terminal)|nvim.desktop|repo:neovim"
+        "Gnome Text Editor|org.gnome.TextEditor.desktop|repo:gnome-text-editor"
+        "Kate|org.kde.kate.desktop|repo:kate"
+        "Cursor|cursor.desktop|aur:cursor-bin"
+        "Antigravity|antigravity-ide.desktop|aur:antigravity-ide"
+      ) ;;
+    ia-cli)
+      HOW=cli; TARGETS=''
+      ROWS=(
+        "Claude Code|claude|script:https://claude.ai/install.sh"
+        "OpenCode|opencode|aur:opencode-bin"
+        "Gemini CLI|gemini|aur:gemini-cli-git"
+        "Aider|aider|aur:aider-chat"
+        "Codex CLI|codex|aur:openai-codex-bin"
+      ) ;;
+    terminal)
+      HOW=terminal; TARGETS=''
+      ROWS=(
+        "Ghostty|com.mitchellh.ghostty.desktop|repo:ghostty"
+        "Kitty|kitty.desktop|repo:kitty"
+        "Alacritty|Alacritty.desktop|repo:alacritty"
+        "foot|foot.desktop|repo:foot"
+      ) ;;
+    archivos)
+      HOW=mime; TARGETS='inode/directory'
+      ROWS=(
+        "Nautilus (Files)|org.gnome.Nautilus.desktop|repo:nautilus"
+        "Dolphin|org.kde.dolphin.desktop|repo:dolphin"
+        "Thunar|thunar.desktop|repo:thunar"
+        "Nemo|nemo.desktop|repo:nemo"
+      ) ;;
+    pdf)
+      HOW=mime; TARGETS='application/pdf'
+      ROWS=(
+        "Papers / Evince|org.gnome.Evince.desktop|repo:evince"
+        "Okular|org.kde.okular.desktop|repo:okular"
+        "Zathura|org.pwmt.zathura.desktop|repo:zathura zathura-pdf-mupdf"
+      ) ;;
+    imagenes)
+      HOW=mime; TARGETS='image/png image/jpeg image/gif image/webp image/svg+xml image/tiff image/bmp'
+      ROWS=(
+        "Loupe|org.gnome.Loupe.desktop|repo:loupe"
+        "Image Viewer (eog)|org.gnome.eog.desktop|repo:eog"
+        "gThumb|org.gnome.gThumb.desktop|repo:gthumb"
+        "imv|imv.desktop|repo:imv"
+      ) ;;
+    correo)
+      HOW=mime; TARGETS='x-scheme-handler/mailto'
+      ROWS=(
+        "Thunderbird|thunderbird.desktop|repo:thunderbird"
+        "Geary|org.gnome.Geary.desktop|repo:geary"
+        "Evolution|org.gnome.Evolution.desktop|repo:evolution"
+      ) ;;
+    contenedores)
+      HOW=cli; TARGETS=''
+      ROWS=(
+        "LazyDocker|lazydocker|repo:lazydocker"
+        "Docker Desktop|docker-desktop.desktop|aur-warn:docker-desktop|none"
+      ) ;;
+    mensajeria)
+      HOW=none; TARGETS=''
+      ROWS=(
+        "Telegram|org.telegram.desktop.desktop|flatpak:org.telegram.desktop"
+        "Signal|org.signal.Signal.desktop|flatpak:org.signal.Signal"
+        "Discord|com.discordapp.Discord.desktop|flatpak:com.discordapp.Discord"
+        "WhatsApp (web app)|archfrican-webapp-whatsapp.desktop|webapp:WhatsApp,https://web.whatsapp.com"
+      ) ;;
+    *) return 1 ;;
+  esac
+}
 
-case "$cat" in
-  "Control de versiones"*) exec "$HOME/.local/bin/archfrican-git" ;;   # asistente: identidad + SSH + GitHub/GitLab
-  "Navegador web")
-    category '  navegador  ' browser 'x-scheme-handler/http x-scheme-handler/https text/html' \
-      "Firefox|firefox.desktop|repo:firefox" \
-      "Brave|brave-browser.desktop|aur:brave-bin" \
-      "Chromium|chromium.desktop|repo:chromium" \
-      "Vivaldi|vivaldi-stable.desktop|aur:vivaldi" \
-      "Mullvad Browser|mullvad-browser.desktop|aur:mullvad-browser-bin" ;;
-  "Editor / IDE")
-    category '  editor  ' mime 'text/plain text/markdown application/json text/x-csrc text/x-c++src text/x-python application/x-shellscript text/x-java' \
-      "VS Code (OSS)|code-oss.desktop|repo:code" \
-      "Zed|dev.zed.Zed.desktop|repo:zed" \
-      "Neovim (terminal)|nvim.desktop|repo:neovim" \
-      "Gnome Text Editor|org.gnome.TextEditor.desktop|repo:gnome-text-editor" \
-      "Kate|org.kde.kate.desktop|repo:kate" \
-      "Cursor|cursor.desktop|aur:cursor-bin" \
-      "Antigravity|antigravity-ide.desktop|aur:antigravity-ide" ;;
-  "IA / agentes (CLI)")
-    category '  IA (CLI)  ' cli '' \
-      "Claude Code|claude|script:https://claude.ai/install.sh" \
-      "OpenCode|opencode|aur:opencode-bin" \
-      "Gemini CLI|gemini|aur:gemini-cli-git" \
-      "Aider|aider|aur:aider-chat" \
-      "Codex CLI|codex|aur:openai-codex-bin" ;;
-  "Terminal")
-    category '  terminal  ' terminal '' \
-      "Ghostty|com.mitchellh.ghostty.desktop|repo:ghostty" \
-      "Kitty|kitty.desktop|repo:kitty" \
-      "Alacritty|Alacritty.desktop|repo:alacritty" \
-      "foot|foot.desktop|repo:foot" ;;
-  "Gestor de archivos")
-    category '  archivos  ' mime 'inode/directory' \
-      "Nautilus (Files)|org.gnome.Nautilus.desktop|repo:nautilus" \
-      "Dolphin|org.kde.dolphin.desktop|repo:dolphin" \
-      "Thunar|thunar.desktop|repo:thunar" \
-      "Nemo|nemo.desktop|repo:nemo" ;;
-  "Visor de PDF")
-    category '  PDF  ' mime 'application/pdf' \
-      "Papers / Evince|org.gnome.Evince.desktop|repo:evince" \
-      "Okular|org.kde.okular.desktop|repo:okular" \
-      "Zathura|org.pwmt.zathura.desktop|repo:zathura zathura-pdf-mupdf" ;;
-  "Visor de imágenes")
-    category '  imágenes  ' mime 'image/png image/jpeg image/gif image/webp image/svg+xml image/tiff image/bmp' \
-      "Loupe|org.gnome.Loupe.desktop|repo:loupe" \
-      "Image Viewer (eog)|org.gnome.eog.desktop|repo:eog" \
-      "gThumb|org.gnome.gThumb.desktop|repo:gthumb" \
-      "imv|imv.desktop|repo:imv" ;;
-  "Correo")
-    category '  correo  ' mime 'x-scheme-handler/mailto' \
-      "Thunderbird|thunderbird.desktop|repo:thunderbird" \
-      "Geary|org.gnome.Geary.desktop|repo:geary" \
-      "Evolution|org.gnome.Evolution.desktop|repo:evolution" ;;
-  "Gestor de contenedores")
-    # no hay concepto de "app por defecto" para esto — solo instala y confirma (como IA/agentes).
-    # Docker Desktop conflictúa con docker-compose (ya instalado por el módulo 30-dev); paru te
-    # preguntará antes de tocar nada.
-    category '  contenedores  ' cli '' \
-      "LazyDocker|lazydocker|repo:lazydocker" \
-      "Docker Desktop|docker-desktop.desktop|aur-warn:docker-desktop|none" ;;
-  "Mensajería")
-    # tampoco hay "default" aquí — solo instala y confirma. WhatsApp no tiene cliente nativo de
-    # Linux, así que se resuelve como cualquier otro servicio sin app: archfrican-webapp.
-    category '  mensajería  ' none '' \
-      "Telegram|org.telegram.desktop.desktop|flatpak:org.telegram.desktop" \
-      "Signal|org.signal.Signal.desktop|flatpak:org.signal.Signal" \
-      "Discord|com.discordapp.Discord.desktop|flatpak:com.discordapp.Discord" \
-      "WhatsApp (web app)|archfrican-webapp-whatsapp.desktop|webapp:WhatsApp,https://web.whatsapp.com" ;;
+list_category() {   # list_category <slug> ; TSV: display<TAB>installed(0|1)
+  category_data "$1" || return 1
+  local row disp id spec row_how
+  for row in "${ROWS[@]}"; do
+    IFS='|' read -r disp id spec row_how <<<"$row"; row_how="${row_how:-$HOW}"
+    if is_installed "$row_how" "$id"; then printf '%s\t1\n' "$disp"; else printf '%s\t0\n' "$disp"; fi
+  done
+}
+
+apply_category() {   # apply_category <slug> <display> ; same dispatch category()'s second half already did
+  category_data "$1" || return 1
+  local want="$2" row disp id spec row_how
+  local tgt=(); [ -n "$TARGETS" ] && read -r -a tgt <<<"$TARGETS"
+  for row in "${ROWS[@]}"; do
+    IFS='|' read -r disp id spec row_how <<<"$row"; row_how="${row_how:-$HOW}"
+    [ "$disp" = "$want" ] || continue
+    if ! is_installed "$row_how" "$id"; then
+      do_install "$spec" || return 0
+      if ! is_installed "$row_how" "$id" && ! pkg_installed "$spec"; then note "$disp no quedó instalado"; return 0; fi
+    fi
+    if [ "$row_how" = cli ] || [ "$row_how" = none ]; then note "$disp listo ✓"
+    else apply_default "$id" "$row_how" ${tgt[@]+"${tgt[@]}"}; note "Por defecto: $disp"; fi
+    return 0
+  done
+}
+
+CATEGORY_LABELS=(
+  "browser|Navegador web" "editor|Editor / IDE" "ia-cli|IA / agentes (CLI)" "terminal|Terminal"
+  "archivos|Gestor de archivos" "pdf|Visor de PDF" "imagenes|Visor de imágenes" "correo|Correo"
+  "contenedores|Gestor de contenedores" "mensajeria|Mensajería"
+)
+
+case "${1:-}" in
+  __list)  list_category "$2" ;;
+  __apply) apply_category "$2" "$3" ;;
+  *)
+    cat="$(printf '%s\n' \
+      "Navegador web" "Editor / IDE" "IA / agentes (CLI)" "Terminal" "Gestor de archivos" \
+      "Visor de PDF" "Visor de imágenes" "Correo" "Gestor de contenedores" "Mensajería" \
+      "Control de versiones · Git…" \
+      | fuzzel --dmenu --prompt '  app por defecto  ')" || exit 0
+    slug=""
+    case "$cat" in
+      "Control de versiones"*) exec "$HOME/.local/bin/archfrican-git" ;;
+      "Navegador web") slug=browser ;;
+      "Editor / IDE") slug=editor ;;
+      "IA / agentes (CLI)") slug=ia-cli ;;
+      "Terminal") slug=terminal ;;
+      "Gestor de archivos") slug=archivos ;;
+      "Visor de PDF") slug=pdf ;;
+      "Visor de imágenes") slug=imagenes ;;
+      "Correo") slug=correo ;;
+      "Gestor de contenedores") slug=contenedores ;;
+      "Mensajería") slug=mensajeria ;;
+    esac
+    [ -n "$slug" ] || exit 0
+    category_data "$slug"
+    local_prompt="$(printf '%s\n' "${CATEGORY_LABELS[@]}" | awk -F'|' -v s="$slug" '$1==s{print $2}')"
+    entries=(); for row in "${ROWS[@]}"; do
+      IFS='|' read -r disp id spec row_how <<<"$row"; row_how="${row_how:-$HOW}"
+      if is_installed "$row_how" "$id"; then entries+=("$disp"); else entries+=("⤓ Instalar $disp…"); fi
+    done
+    [ "$HOW" = cli ] || entries+=("Otra app instalada…")
+    sel="$(printf '%s\n' "${entries[@]}" | fuzzel --dmenu --prompt "  $local_prompt  ")" || exit 0
+    [ -n "$sel" ] || exit 0
+    if [ "$sel" = "Otra app instalada…" ]; then
+      id="$(list_apps | fuzzel --dmenu --prompt "  $local_prompt  " | cut -f2)"; [ -n "$id" ] || exit 0
+      tgt=(); [ -n "$TARGETS" ] && read -r -a tgt <<<"$TARGETS"
+      apply_default "$id" "$HOW" ${tgt[@]+"${tgt[@]}"}; note "Por defecto: $id"; exit 0
+    fi
+    apply_category "$slug" "${sel#⤓ Instalar }" ;;
 esac
