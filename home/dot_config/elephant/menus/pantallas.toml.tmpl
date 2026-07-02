@@ -1,0 +1,12 @@
+name = "pantallas"
+name_pretty = "Pantallas"
+icon = "video-display"
+fixed_order = true
+
+[[entries]]
+text = "Organizar pantallas (se guarda al cerrar)"
+actions = { run = "{{ .chezmoi.homeDir }}/.local/bin/archfrican-displays edit" }
+
+[[entries]]
+text = "Guardar el layout actual ahora"
+actions = { run = "{{ .chezmoi.homeDir }}/.local/bin/archfrican-displays save" }
