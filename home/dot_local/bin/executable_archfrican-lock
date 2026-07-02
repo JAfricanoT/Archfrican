@@ -22,7 +22,7 @@ if have gtklock; then
   set -- -d -s "$CFG/gtklock/style.css"
   if [ -f "$CFG/gtklock/config.ini" ]; then set -- "$@" -c "$CFG/gtklock/config.ini"; fi
   for m in userinfo powerbar; do                       # load a module only if it's installed (graceful)
-    if [ -e "/usr/lib/gtklock/$m.so" ]; then set -- "$@" -m "$m"; fi
+    if [ -e "/usr/lib/gtklock/$m-module.so" ]; then set -- "$@" -m "$m-module"; fi
   done
   if [ -n "$wp" ]; then set -- "$@" -b "$wp"; fi
   exec gtklock "$@"
