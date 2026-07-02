@@ -138,7 +138,7 @@ run_phase1() {
     TZ="$(timedatectl list-timezones 2>/dev/null | ui_filter 'Timezone' America/New_York)"
     LOCALE="$(ui_input 'Locale (LANG)' en_US.UTF-8)"
     XKB="$(ui_input 'Keyboard layout (xkb: us, latam, es, ...)' us)"
-    THEME="$(ui_choose 'Initial theme' archfrican-dark archfrican-light macos-dark macos-light catppuccin-mocha tokyo-night)"
+    THEME="$(ui_choose 'Initial theme' archfrican-dark archfrican-light catppuccin-mocha tokyo-night high-contrast)"
     GPU="${ARCHFRICAN_GPU:-$DETECTED_GPU}"   # auto-detected; the installer picks the driver (no mis-pick)
     ui_note "GPU: $GPU (auto-detectada — el instalador elige el driver. Override: ARCHFRICAN_GPU=vm|nvidia|amd|intel)"
     # Multi-boot: detect another OS on a DIFFERENT disk and offer to add it to the GRUB menu (os-prober,

@@ -39,8 +39,6 @@ archfrican-welcome   →   "Cambiar el tema"
 | `archfrican-light` | Archfrican palette light variant. |
 | `catppuccin-mocha` | [Catppuccin](https://catppuccin.com/) Mocha — mauve/lavender on dark brown. |
 | `tokyo-night` | Tokyo Night — cyan on near-black with blue-purple accents. |
-| `macos-dark` | macOS-inspired dark — graphite + system blue accent + SF Pro fonts. |
-| `macos-light` | macOS-inspired light. |
 | `high-contrast` | Accessibility high-contrast — maximum legibility, no translucency. |
 | `dynamic` | Wallpaper-generated Material You palette (see below). |
 

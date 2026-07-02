@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Hot-swap the whole desktop theme (Omarchy-style). Reloads apps live.
-#   theme-switch adl-dark | adl-light | macos-dark | macos-light | catppuccin-mocha | tokyo-night
+#   theme-switch adl-dark | adl-light | archfrican-dark | archfrican-light | catppuccin-mocha | tokyo-night | high-contrast
 # Dependency-free: pure-bash/sed substitution (no envsubst/gettext needed).
 set -euo pipefail
 # Locate the Archfrican repo assets (themes/ + templates/). The deployed switcher is a

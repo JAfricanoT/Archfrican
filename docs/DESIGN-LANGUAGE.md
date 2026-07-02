@@ -44,11 +44,10 @@ The 17 palette vars: `GTK_SCHEME GTK_THEME ICON_THEME`, `BG BG_ALT BG_DIM`, `FG 
 text/icon colour ON the accent; the bright teal needs dark text, so it is per-theme).
 
 - **Shipped default** = `archfrican-dark` / `archfrican-light` — the project's OWNED identity (graphite
-  `#1c1c1e` + system blue `#0a84ff`, macOS-grade): a base copied from the macOS look but evolved freely.
-  It keeps the 8/12/16 radius family (like the `macos-*` clones) yet inherits ADL's Inter / JetBrainsMono
-  type (no SF Pro dependency). `adl-dark` / `adl-light` (teal `#2dd4bf` on warm graphite `#17181b`) remain
-  the design-language root and a selectable identity. Other selectable themes: `macos-dark`, `macos-light`,
-  `catppuccin-mocha`, `tokyo-night`, `high-contrast`.
+  `#1c1c1e` + system blue `#0a84ff`, macOS-grade): a base inspired by the macOS look but evolved freely.
+  It keeps the 8/12/16 radius family yet inherits ADL's Inter / JetBrainsMono type (no SF Pro dependency).
+  `adl-dark` / `adl-light` (teal `#2dd4bf` on warm graphite `#17181b`) remain the design-language root and
+  a selectable identity. Other selectable themes: `catppuccin-mocha`, `tokyo-night`, `high-contrast`.
 - **Accent is used sparingly** — focus, selection, active/hover states. It is the teal *thread* that
   ties shell and apps together; do not flood surfaces with it.
 - **Light / dark / high-contrast** must all work. `darkman` auto-switches light↔dark *within* the

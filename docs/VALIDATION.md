@@ -151,9 +151,9 @@ cat ~/.config/.archfrican-theme                       # -> tokyo-night
 chezmoi apply                                         # MUST NOT revert the theme (color files are chezmoi-ignored;
                                                        # run_after re-applies the saved theme)
 grep -c 'THEME-START' ~/.config/niri/config.kdl       # still exactly 1 (no duplication)
-for t in adl-dark adl-light archfrican-dark macos-dark catppuccin-mocha tokyo-night; do theme-switch "$t"; done   # spot-check 6 of 9
+for t in adl-dark adl-light archfrican-dark high-contrast catppuccin-mocha tokyo-night; do theme-switch "$t"; done   # spot-check 6 of 7
 ```
-Pass criteria: the on-PATH `theme-switch <name>` works for all nine themes (the old deployed copy was
+Pass criteria: the on-PATH `theme-switch <name>` works for all seven themes (the old deployed copy was
 dead), and a `chezmoi apply` does **not** snap the theme back to adl-dark. Live reload: waybar + mako
 repaint immediately; ghostty/fuzzel apply to new windows (this is expected — see the README note).
 

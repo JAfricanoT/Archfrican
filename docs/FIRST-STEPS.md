@@ -130,10 +130,10 @@ For Mullvad Browser (privacy-first, Tor-compatible):
 ```bash
 theme-switch adl-dark           # default: Archfrican dark
 theme-switch adl-light          # light variant
+theme-switch archfrican-dark    # owned identity, dark
+theme-switch archfrican-light   # owned identity, light
 theme-switch catppuccin-mocha   # Catppuccin Mocha
 theme-switch tokyo-night        # Tokyo Night
-theme-switch macos-dark         # macOS-inspired dark
-theme-switch macos-light        # macOS-inspired light
 theme-switch high-contrast      # accessibility high-contrast
 ```
 

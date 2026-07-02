@@ -1,5 +1,5 @@
 # Archfrican — the owned DEFAULT identity (dark). Graphite + system blue, macOS-grade, but a palette the
-# project OWNS and evolves freely (themes/macos-dark stays a faithful clone). Pairs with archfrican-light
+# project OWNS and evolves freely. Pairs with archfrican-light
 # via darkman. Shape/type come from tokens.defaults.sh + ./tokens.sh.
 export GTK_SCHEME="prefer-dark"; export GTK_THEME="WhiteSur-Dark"; export ICON_THEME="WhiteSur-dark"
 export BG="#1c1c1e"  BG_ALT="#2c2c2e"  BG_DIM="#3a3a3c"

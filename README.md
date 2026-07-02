@@ -86,7 +86,7 @@ o hibernado puede no detectarse — apágalo del todo primero.
 ```bash
 theme-switch adl-dark          # default (Archfrican Design Language — dark)
 theme-switch adl-light
-theme-switch macos-dark
+theme-switch archfrican-dark
 theme-switch catppuccin-mocha
 theme-switch tokyo-night
 ```

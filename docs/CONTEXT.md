@@ -42,7 +42,7 @@ es **programación de alto rendimiento** (polyglot). Nombre del proyecto: **Arch
 | Lenguajes | Rust/C/C++, Go, Python/datos-ML, JS/TS | Toolchains vía version managers (rustup, go, uv, fnm) en vez de versiones del sistema. |
 | Periféricos | waybar, **Walker** (launcher Raycast-style, GTK4) + **fuzzel** (fallback), mako, swaylock+swayidle, awww-daemon, grim+slurp, cliphist, **paru**, nwg-dock | Todos Wayland-native, niri-friendly, en módulos independientes (vetar cualquiera). |
 | Estética | **macOS-like**, tema default `adl-dark` (ADL) | Migración desde macOS con mínima fricción. Tahoe grafito + azul de sistema, fuentes **SF Pro + SF Mono**, GTK **WhiteSur** + iconos, cursores McMojave, **blur de niri 26.04** (efecto vidrio, opt-in — ver `config.kdl`). |
-| Theming | **Switcher multi-tema en caliente** (estilo Omarchy) | `theme-switch <name>`. 9 temas: adl-dark (default), adl-light, archfrican-dark, archfrican-light, catppuccin-mocha, high-contrast, macos-dark, macos-light, tokyo-night. |
+| Theming | **Switcher multi-tema en caliente** (estilo Omarchy) | `theme-switch <name>`. 7 temas: adl-dark (default), adl-light, archfrican-dark, archfrican-light, catppuccin-mocha, high-contrast, tokyo-night. |
 | Fricción macOS | **keyd**: ⌘+letra → Ctrl | Mantiene muscle-memory de copy/paste/save/quit. ⌘ sigue siendo el modificador de niri para combos **sin-letra y con Shift** → sin colisiones. + scroll natural, tap-to-click, gestos 3 dedos, ⌘+Space=launcher, ⌘+Tab=overview. |
 
 ### Regla de diseño clave (keybinds)
@@ -86,7 +86,7 @@ niri auto-reload por marcadores `// THEME-START/END` en config.kdl). fuzzel usa 
 - **217 archivos** rastreados en git; repo completo con CI verde en todos los jobs.
 - **ISO booteable** disponible (`build-iso.sh`); reconstrucción automática semanal en CI; ver [docs/ISO.md](ISO.md).
 - **12 módulos** de fase 2: 00-base, 10-gpu, 20-niri-desktop, 30-dev, 35-apps, 40-theming, 45-print, 50-snapshots, 55-multiboot, 60-security, 65-gaming, 70-hygiene.
-- **9 temas** disponibles: adl-dark (default), adl-light, archfrican-dark, archfrican-light, catppuccin-mocha, high-contrast, macos-dark, macos-light, tokyo-night.
+- **7 temas** disponibles: adl-dark (default), adl-light, archfrican-dark, archfrican-light, catppuccin-mocha, high-contrast, tokyo-night.
 - **44 comandos** CLI en `~/.local/bin/` (ver [docs/COMMANDS.md](COMMANDS.md)).
 - `theme-switch` corre desde el symlink desplegado (`~/.local/bin` → clon del repo);
   su idempotencia la encierra el smoke-test de CI (aplica los 9 temas ×2 y comprueba

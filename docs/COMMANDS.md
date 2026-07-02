@@ -429,8 +429,6 @@ theme-switch <theme-name>
 | `adl-light` | ADL light variant — teal on warm white |
 | `archfrican-dark` | Archfrican palette dark variant (warmer than adl-dark) |
 | `archfrican-light` | Archfrican palette light variant |
-| `macos-dark` | macOS-inspired dark (graphite + blue accent) |
-| `macos-light` | macOS-inspired light |
 | `catppuccin-mocha` | Catppuccin Mocha palette |
 | `tokyo-night` | Tokyo Night palette |
 | `high-contrast` | Accessibility high-contrast |

@@ -144,7 +144,7 @@ jobs:
                  gtk-3.0/gtk.css gtk-4.0/gtk.css fontconfig/fonts.conf qt6ct/qt6ct.conf qt5ct/qt5ct.conf \
                  archfrican/cohesion/vscode.colors.json walker/themes/archfrican/style.css)
           snap() { for f in "${files[@]}"; do cat "$HOME/.config/$f"; done | sha256sum; }
-          for t in adl-dark adl-light archfrican-dark archfrican-light macos-dark macos-light catppuccin-mocha tokyo-night high-contrast; do
+          for t in adl-dark adl-light archfrican-dark archfrican-light catppuccin-mocha tokyo-night high-contrast; do
             bin/theme-switch "$t" >/dev/null; a="$(snap)"
             bin/theme-switch "$t" >/dev/null; b="$(snap)"
             [ "$a" = "$b" ] || { echo "::error::theme-switch not idempotent for $t"; exit 1; }
@@ -167,7 +167,7 @@ jobs:
           echo "theme-switch: all 9 themes render + idempotent; accent reaches GTK"
           # GRUB boot-menu theme.txt is a SYSTEM-path render (theme-switch writes it to /boot via sudo -n,
           # which CI can't do), so render it directly with the same token sed and assert it's fully resolved.
-          for t in adl-dark adl-light archfrican-dark archfrican-light macos-dark macos-light catppuccin-mocha tokyo-night high-contrast; do
+          for t in adl-dark adl-light archfrican-dark archfrican-light catppuccin-mocha tokyo-night high-contrast; do
             out="$( ( . "themes/$t/colors.sh"
                       sed -e "s|\${BG}|$BG|g" -e "s|\${BG_DIM}|$BG_DIM|g" -e "s|\${FG}|$FG|g" \
                           -e "s|\${FG_DIM}|$FG_DIM|g" -e "s|\${ACCENT}|$ACCENT|g" templates/grub.theme.txt ) )"
@@ -214,7 +214,7 @@ jobs:
           grep -q 'config\.backgroundMode' "$a/Main.qml"    || { echo "::error::Main.qml must read config.backgroundMode"; exit 1; }
           # render the palette for every theme; assert no stray tokens + valid hex colours
           tmpl=templates/sddm.theme.conf
-          for t in adl-dark adl-light archfrican-dark archfrican-light macos-dark macos-light catppuccin-mocha tokyo-night high-contrast; do
+          for t in adl-dark adl-light archfrican-dark archfrican-light catppuccin-mocha tokyo-night high-contrast; do
             out="$( ( . "themes/$t/colors.sh"
                       sed -e "s|\${BG}|$BG|g" -e "s|\${BG_ALT}|$BG_ALT|g" -e "s|\${BG_DIM}|$BG_DIM|g" \
                           -e "s|\${FG}|$FG|g" -e "s|\${FG_DIM}|$FG_DIM|g" -e "s|\${ACCENT}|$ACCENT|g" \
