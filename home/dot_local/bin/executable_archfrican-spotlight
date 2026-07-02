@@ -20,12 +20,7 @@ TAB="$(printf '\t')"
 
 # Mode shortcuts. Kept verbatim so the returned selection routes unambiguously; each gets a real
 # freedesktop icon (below) so they sit alongside the apps as first-class Spotlight results.
-M_FIND="Buscar archivos…"
-M_WEB="Buscar en la web…"
-M_CALC="Calculadora…"
-M_WIN="Ventanas abiertas…"
 M_CLIP="Portapapeles…"
-M_EMOJI="Emojis…"
 M_ACT="Acciones y ajustes…"
 
 # App index: "Name<TAB>desktop-id<TAB>icon" for every visible .desktop. Used to (a) render the list
@@ -50,12 +45,7 @@ done
 # Feed fuzzel: the six modes first, then every app (alpha, de-duped by name) with its icon via the
 # dmenu icon protocol (label \0 "icon" \x1f icon-name).
 build_list() {
-  printf '%s\0icon\x1fsystem-search\n'              "$M_FIND"
-  printf '%s\0icon\x1finternet-web-browser\n'       "$M_WEB"
-  printf '%s\0icon\x1faccessories-calculator\n'     "$M_CALC"
-  printf '%s\0icon\x1fpreferences-system-windows\n' "$M_WIN"
   printf '%s\0icon\x1fedit-paste\n'                 "$M_CLIP"
-  printf '%s\0icon\x1fface-smile\n'                 "$M_EMOJI"
   printf '%s\0icon\x1fpreferences-system\n'         "$M_ACT"
   sort -t "$TAB" -k1,1 -u "$idx" | while IFS="$TAB" read -r name _id icon; do
     if [ -n "$icon" ]; then printf '%s\0icon\x1f%s\n' "$name" "$icon"; else printf '%s\n' "$name"; fi
@@ -77,12 +67,7 @@ launch_app() {
 }
 
 case "$sel" in
-  "$M_FIND") "$B/archfrican-find" ;;
-  "$M_WEB")  "$B/archfrican-websearch" ;;
-  "$M_CALC") "$B/archfrican-calc" ;;
-  "$M_WIN")  "$B/archfrican-window" ;;
   "$M_CLIP") sh -c 'cliphist list | fuzzel --dmenu --prompt "   " | cliphist decode | wl-copy' ;;
-  "$M_EMOJI") "$B/archfrican-emoji" ;;
   "$M_ACT")  "$B/archfrican-actions" ;;
   *)         launch_app "$sel" ;;
 esac
