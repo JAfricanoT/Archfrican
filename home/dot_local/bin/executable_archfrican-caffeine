@@ -2,9 +2,12 @@
 # archfrican-caffeine — idle-inhibitor toggle (waybar custom/caffeine module)
 # ON:  swayidle stopped → screen never auto-locks or auto-suspends
 # OFF: archfrican-idle restarted → normal lock/sleep policy restored
-# Used by waybar with signal 8 (SIGRTMIN+8) for instant visual feedback.
+# Uses SIGRTMIN+8 so waybar refreshes the icon instantly on click.
 STAMP=/tmp/archfrican-caffeine
 IDLE="$HOME/.local/bin/archfrican-idle"
+# Nerd Font glyphs: U+F186 = moon (off), U+2615 = hot beverage (on)
+ICON_OFF=$'\xef\x86\x86'   # nf-fa-moon-o
+ICON_ON=$'\xe2\x98\x95'    # ☕ (U+2615, renders without emoji font)
 
 if [ "$1" = toggle ]; then
     if [ -f "$STAMP" ]; then
@@ -19,7 +22,7 @@ if [ "$1" = toggle ]; then
 fi
 
 if [ -f "$STAMP" ]; then
-    printf '{"text":"☕","class":"active","tooltip":"Caffeine ON — pantalla siempre activa"}\n'
+    printf '{"text":"%s","class":"active","tooltip":"Caffeine ON — pantalla siempre activa"}\n' "$ICON_ON"
 else
-    printf '{"text":"","class":"","tooltip":"Caffeine — clic para inhibir el apagado de pantalla"}\n'
+    printf '{"text":"%s","class":"","tooltip":"Caffeine — clic para inhibir el apagado de pantalla"}\n' "$ICON_OFF"
 fi
