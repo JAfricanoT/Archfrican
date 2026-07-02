@@ -1,14 +1,37 @@
 #!/usr/bin/env bash
-# archfrican-weather — wttr.in weather pill for waybar (opt-in)
-# Enable: echo "auto" > ~/.config/archfrican/weather   (auto-detect city via IP)
-#         echo "Madrid" > ~/.config/archfrican/weather  (explicit city)
-# Disable: rm ~/.config/archfrican/weather
+# archfrican-weather — wttr.in weather pill for waybar
+# City resolution priority:
+#   1. ~/.config/archfrican/weather contains an explicit city name  → use it
+#   2. file contains "auto"  OR  file absent                        → derive from system timezone
+#   3. file contains "off"                                          → hide the module
+# Examples:
+#   echo "off"         > ~/.config/archfrican/weather   # disable
+#   echo "auto"        > ~/.config/archfrican/weather   # timezone-based (default)
+#   echo "Buenos Aires"> ~/.config/archfrican/weather   # explicit city
 CONF="${XDG_CONFIG_HOME:-$HOME/.config}/archfrican/weather"
 
-[ -f "$CONF" ] || { printf '{"text":"","class":"hidden"}\n'; exit 0; }
+# Explicit opt-out
+if [ -f "$CONF" ] && [ "$(cat "$CONF" | tr -d '[:space:]')" = off ]; then
+    printf '{"text":"","class":"hidden"}\n'; exit 0
+fi
 
-city=$(cat "$CONF")
-[ "$city" = auto ] && city=""
+# City: explicit name > timezone-derived
+if [ -f "$CONF" ]; then
+    _val=$(cat "$CONF" | tr -d '[:space:]')
+else
+    _val=auto
+fi
+
+if [ "$_val" != auto ]; then
+    city="$_val"
+else
+    # /etc/localtime → .../zoneinfo/America/Caracas → city = Caracas
+    tz=$(readlink -f /etc/localtime 2>/dev/null | sed 's|.*/zoneinfo/||')
+    [ -z "$tz" ] && tz=$(timedatectl show 2>/dev/null | sed -n 's/^Timezone=//p')
+    city="${tz##*/}"     # strip continent  (America/Caracas → Caracas)
+    city="${city//_/ }"  # underscores → spaces (New_York → New York)
+fi
+
 enc="${city// /+}"
 
 CACHE="${XDG_CACHE_HOME:-$HOME/.cache}/archfrican/weather.json"
