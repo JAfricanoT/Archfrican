@@ -7,7 +7,10 @@
 detect_gpu() {
   command -v lspci >/dev/null 2>&1 || { echo "unknown"; return 0; }
   local vga
-  vga="$(lspci -nn 2>/dev/null | grep -Ei 'vga|3d|display' || true)"
+  # Match the PCI CLASS ID bracket (0300 VGA / 0301 XGA / 0302 3D / 0380 Other display), not loose
+  # text — a plain 'vga|3d|display' text grep false-positives on any device whose hex ID happens to
+  # contain "3d" (e.g. an Intel SATA controller [8086:43d2] reads as a second GPU, live-confirmed).
+  vga="$(lspci -nn 2>/dev/null | grep -Ei '\[03[0-9a-f]{2}\]' || true)"
 
   # A VIRTUAL GPU (emulated adapter) needs the software/llvmpipe path, not vendor drivers — niri can't
   # drive virtio-gpu/QXL/std-VGA with amd/nvidia/intel userspace. Detect it FIRST so it is never

@@ -26,6 +26,10 @@ assert_gpu(){
 
 assert_gpu nvidia "single NVIDIA (vendor 10de)" \
   "00:02.0 VGA compatible controller [0300]: NVIDIA Corporation GA104 [GeForce RTX 3070] [10de:2484]"
+# The "43d2" trap: a non-GPU device (here a SATA controller) whose hex device-id happens to contain
+# the substring "3d" must NOT be mis-read as a second (Intel) GPU next to a real single NVIDIA card.
+assert_gpu nvidia "single NVIDIA + SATA controller whose hex ID contains '3d' -> not hybrid" \
+  "$(printf '00:17.0 SATA controller [0106]: Intel Corporation 500 Series Chipset Family SATA Controller (AHCI) [8086:43d2] (rev 11)\n01:00.0 VGA compatible controller [0300]: NVIDIA Corporation GK208B [GeForce GT 730] [10de:1287] (rev a1)')"
 assert_gpu amd "single AMD (vendor 1002)" \
   "00:02.0 VGA compatible controller [0300]: Advanced Micro Devices, Inc. [AMD/ATI] Navi 22 [1002:73df]"
 assert_gpu intel "single Intel (vendor 8086)" \
@@ -37,14 +41,14 @@ assert_gpu hybrid-amd-nvidia "hybrid AMD + NVIDIA" \
 assert_gpu hybrid-amd-intel "hybrid AMD + Intel" \
   "$(printf 'VGA [0300]: Intel Corporation [8086:9bc4]\nDisplay [0380]: AMD [1002:1638]')"
 assert_gpu vm "virtio-gpu -> vm (software path)" \
-  "00:02.0 VGA compatible controller: Red Hat, Inc. Virtio GPU [1af4:1050]"
+  "00:02.0 VGA compatible controller [0300]: Red Hat, Inc. Virtio GPU [1af4:1050]"
 assert_gpu vm "QXL paravirtual -> vm" \
-  "00:02.0 VGA compatible controller: Red Hat, Inc. QXL paravirtual graphic card"
+  "00:02.0 VGA compatible controller [0300]: Red Hat, Inc. QXL paravirtual graphic card"
 assert_gpu vm "VMware SVGA -> vm" \
-  "00:0f.0 VGA compatible controller: VMware SVGA II Adapter"
+  "00:0f.0 VGA compatible controller [0300]: VMware SVGA II Adapter"
 # The "Corporation" trap: a bare-"ati" substring match would mis-flag this Intel-only box as AMD.
 assert_gpu intel "Intel-only is NOT mis-flagged AMD via 'CorporATIon'" \
-  "00:02.0 VGA compatible controller: Intel Corporation HD Graphics [8086:0416]"
+  "00:02.0 VGA compatible controller [0300]: Intel Corporation HD Graphics [8086:0416]"
 assert_gpu unknown "unrecognised vendor -> unknown" \
   "00:02.0 VGA compatible controller: Some Obscure Vendor [abcd:1234]"
 
