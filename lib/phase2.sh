@@ -8,11 +8,16 @@ current_module=""
 
 on_err() {
   local rc=$?
-  [ -n "$current_module" ] && {
+  if [ -n "$current_module" ]; then
     warn "step '$current_module' FAILED (exit $rc)"
     warn "re-run the installer to resume (completed modules are skipped; FORCE=1 redoes all,"
     warn "or run a single module: ./install.sh $current_module)."
-  }
+  else
+    # Outside any module (e.g. the post-converge first-boot marker / reboot-prompt tail): still
+    # surface SOMETHING, otherwise archfrican-update's "converge reported an error" has nothing
+    # to point at (this is exactly what silently swallowed a failure there before).
+    warn "post-converge step FAILED (exit $rc): '$BASH_COMMAND' at ${BASH_SOURCE[1]:-?}:${BASH_LINENO[0]:-?}"
+  fi
   exit "$rc"
 }
 
