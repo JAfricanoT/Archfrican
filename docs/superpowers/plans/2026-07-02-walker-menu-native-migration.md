@@ -1003,7 +1003,8 @@ case "${1:-}" in
       tgt=(); [ -n "$TARGETS" ] && read -r -a tgt <<<"$TARGETS"
       apply_default "$id" "$HOW" ${tgt[@]+"${tgt[@]}"}; note "Por defecto: $id"; exit 0
     fi
-    apply_category "$slug" "${sel#⤓ Instalar }" ;;
+    want="${sel#⤓ Instalar }"; want="${want%…}"
+    apply_category "$slug" "$want" ;;
 esac
 ```
 
