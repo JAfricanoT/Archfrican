@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# archfrican-caffeine — idle-inhibitor toggle (waybar custom/caffeine module)
+# ON:  swayidle stopped → screen never auto-locks or auto-suspends
+# OFF: archfrican-idle restarted → normal lock/sleep policy restored
+# Used by waybar with signal 8 (SIGRTMIN+8) for instant visual feedback.
+STAMP=/tmp/archfrican-caffeine
+IDLE="$HOME/.local/bin/archfrican-idle"
+
+if [ "$1" = toggle ]; then
+    if [ -f "$STAMP" ]; then
+        rm -f "$STAMP"
+        pgrep -x swayidle >/dev/null 2>&1 || setsid -f "$IDLE"
+    else
+        touch "$STAMP"
+        pkill -x swayidle 2>/dev/null || true
+    fi
+    pkill -SIGRTMIN+8 waybar 2>/dev/null || true
+    exit 0
+fi
+
+if [ -f "$STAMP" ]; then
+    printf '{"text":"☕","class":"active","tooltip":"Caffeine ON — pantalla siempre activa"}\n'
+else
+    printf '{"text":"","class":"","tooltip":"Caffeine — clic para inhibir el apagado de pantalla"}\n'
+fi

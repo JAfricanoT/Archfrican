@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+# archfrican-weather — wttr.in weather pill for waybar (opt-in)
+# Enable: echo "auto" > ~/.config/archfrican/weather   (auto-detect city via IP)
+#         echo "Madrid" > ~/.config/archfrican/weather  (explicit city)
+# Disable: rm ~/.config/archfrican/weather
+CONF="${XDG_CONFIG_HOME:-$HOME/.config}/archfrican/weather"
+
+[ -f "$CONF" ] || { printf '{"text":"","class":"hidden"}\n'; exit 0; }
+
+city=$(cat "$CONF")
+[ "$city" = auto ] && city=""
+enc="${city// /+}"
+
+CACHE="${XDG_CACHE_HOME:-$HOME/.cache}/archfrican/weather.json"
+AGE=1800
+mkdir -p "$(dirname "$CACHE")"
+
+if [ -f "$CACHE" ] && [ $(( $(date +%s) - $(stat -c %Y "$CACHE" 2>/dev/null || echo 0) )) -lt "$AGE" ]; then
+    cat "$CACHE"; exit 0
+fi
+
+raw=$(curl -fsS --max-time 8 "https://wttr.in/${enc}?format=j1" 2>/dev/null)
+if [ -z "$raw" ]; then
+    [ -f "$CACHE" ] && { cat "$CACHE"; exit 0; }
+    printf '{"text":"","tooltip":"Sin conexión"}\n'; exit 0
+fi
+
+result=$(printf '%s\n' "$raw" | python3 -c '
+import sys, json
+
+ICONS = {
+    "sunny": "", "clear": "", "partly": "",
+    "cloud": "", "overcast": "󰖐",
+    "rain": "", "drizzle": "", "shower": "",
+    "snow": "", "blizzard": "", "sleet": "",
+    "thunder": "", "lightning": "",
+    "mist": "", "fog": "", "haze": "",
+}
+
+try:
+    d = json.load(sys.stdin)
+    c = d["current_condition"][0]
+    n = d["nearest_area"][0]
+    temp = c["temp_C"]
+    feel = c["FeelsLikeC"]
+    hum  = c["humidity"]
+    desc = c["weatherDesc"][0]["value"]
+    loc  = n["areaName"][0]["value"] + ", " + n["country"][0]["value"]
+    icon = next((v for k, v in ICONS.items() if k in desc.lower()), "")
+    print(json.dumps({
+        "text":    f"{icon} {temp}°",
+        "tooltip": f"{loc}\n{desc} · Sensación {feel}° · Humedad {hum}%",
+    }))
+except Exception as e:
+    print(json.dumps({"text": "", "tooltip": f"Error: {e}"}))
+')
+
+printf '%s\n' "$result" | tee "$CACHE"

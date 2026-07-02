@@ -8,20 +8,117 @@
   "margin-right": 10,
   "modules-left": ["niri/workspaces", "niri/window"],
   "modules-center": ["clock"],
-  "modules-right": ["custom/privacy", "pulseaudio", "bluetooth", "custom/connectivity", "network", "temperature", "cpu", "memory", "power-profiles-daemon", "battery", "custom/health", "custom/notification", "tray"],
+  "modules-right": [
+    "custom/privacy",
+    "pulseaudio", "bluetooth", "custom/connectivity", "network",
+    "custom/weather", "temperature", "cpu", "memory", "disk",
+    "power-profiles-daemon", "battery",
+    "custom/caffeine", "custom/health", "custom/notification", "tray"
+  ],
+
   "niri/workspaces": { "format": "{icon}" },
-  "clock": { "format": "{:%a %d %b  %H:%M}" },
-  "cpu": { "format": "  {usage}%" },
-  "memory": { "format": "  {}%" },
+
+  // center clock — hover shows an inline calendar; click opens gsimplecal (or gnome-calendar)
+  "clock": {
+    "format": "{:%a %d %b  %H:%M}",
+    "tooltip-format": "<big>{:%B %Y}</big>\n<tt><small>{calendar}</small></tt>",
+    "on-click": "sh -c 'command -v gsimplecal && exec gsimplecal || command -v gnome-calendar && exec gnome-calendar || true'"
+  },
+
+  // system stats — click cpu or memory to jump to btop
+  "cpu": { "format": "  {usage}%", "on-click": "ghostty -e btop", "tooltip": false },
+  "memory": { "format": "  {}%", "on-click": "ghostty -e btop", "tooltip": false },
+  "disk": { "format": " {free}", "tooltip-format": "{used} / {total} ({percentage_used}%)\n{path}" },
   "temperature": { "thermal-zone": 0, "format": " {temperatureC}°", "critical-threshold": 82, "format-critical": " {temperatureC}°" },
+
   "battery": { "format": "{icon} {capacity}%", "format-icons": ["", "", "", "", ""] },
-  "power-profiles-daemon": { "format": "{icon}", "tooltip-format": "Perfil de energía: {profile}", "format-icons": { "performance": "", "balanced": "", "power-saver": "" } },
-  "network": { "format-wifi": "  {essid}", "format-ethernet": "  wired", "format-disconnected": "  off", "tooltip-format-ethernet": "{ifname} · IP {ipaddr}/{cidr}\nGateway {gwaddr}", "tooltip-format-wifi": "{essid} ({signalStrength}%) · IP {ipaddr}/{cidr}\nGateway {gwaddr}", "tooltip-format-disconnected": "Sin red" },
-  "custom/connectivity": { "format": "{}", "return-type": "json", "interval": 10, "exec": "$HOME/.local/bin/archfrican-net-status", "tooltip": true },
-  "bluetooth": { "format": "", "format-disabled": "", "format-connected": " {num_connections}", "tooltip-format": "{controller_alias}\t{status}", "on-click": "blueman-manager" },
-  "custom/health": { "format": "{}", "return-type": "json", "interval": 1800, "exec": "archfrican-doctor --json", "on-click": "ghostty -e sh -c 'archfrican-doctor; echo; echo \"(enter para cerrar)\"; read -r _'", "tooltip": true },
-  "custom/privacy": { "format": "{}", "return-type": "json", "interval": 3, "exec": "$HOME/.local/bin/archfrican-privacy-indicator", "tooltip": true },
-  "custom/notification": { "tooltip": false, "format": "{icon}", "format-icons": { "notification": "●", "none": "", "dnd-notification": "●", "dnd-none": "", "inhibited-notification": "●", "inhibited-none": "", "dnd-inhibited-notification": "●", "dnd-inhibited-none": "" }, "return-type": "json", "exec": "swaync-client -swb", "on-click": "swaync-client -t -sw", "on-click-right": "swaync-client -d -sw", "escape": true },
-  "pulseaudio": { "format": "{icon} {volume}%", "format-icons": { "default": ["", "", ""] }, "on-click": "pavucontrol" },
+  "power-profiles-daemon": {
+    "format": "{icon}",
+    "tooltip-format": "Perfil de energía: {profile}",
+    "format-icons": { "performance": "", "balanced": "", "power-saver": "" }
+  },
+
+  "network": {
+    "format-wifi": "  {essid}",
+    "format-ethernet": "  wired",
+    "format-disconnected": "  off",
+    "tooltip-format-ethernet": "{ifname} · IP {ipaddr}/{cidr}\nGateway {gwaddr}",
+    "tooltip-format-wifi": "{essid} ({signalStrength}%) · IP {ipaddr}/{cidr}\nGateway {gwaddr}",
+    "tooltip-format-disconnected": "Sin red"
+  },
+  "custom/connectivity": {
+    "format": "{}",
+    "return-type": "json",
+    "interval": 10,
+    "exec": "$HOME/.local/bin/archfrican-net-status",
+    "tooltip": true
+  },
+  "bluetooth": {
+    "format": "",
+    "format-disabled": "",
+    "format-connected": " {num_connections}",
+    "tooltip-format": "{controller_alias}\t{status}",
+    "on-click": "blueman-manager"
+  },
+
+  // --- right-side status modules ---
+  "custom/health": {
+    "format": "{}",
+    "return-type": "json",
+    "interval": 1800,
+    "exec": "archfrican-doctor --json",
+    "on-click": "ghostty -e sh -c 'archfrican-doctor; echo; echo \"(enter para cerrar)\"; read -r _'",
+    "tooltip": true
+  },
+  "custom/privacy": {
+    "format": "{}",
+    "return-type": "json",
+    "interval": 3,
+    "exec": "$HOME/.local/bin/archfrican-privacy-indicator",
+    "tooltip": true
+  },
+  "custom/notification": {
+    "tooltip": false,
+    "format": "{icon}",
+    "format-icons": {
+      "notification": "●", "none": "",
+      "dnd-notification": "●", "dnd-none": "",
+      "inhibited-notification": "●", "inhibited-none": "",
+      "dnd-inhibited-notification": "●", "dnd-inhibited-none": ""
+    },
+    "return-type": "json",
+    "exec": "swaync-client -swb",
+    "on-click": "swaync-client -t -sw",
+    "on-click-right": "swaync-client -d -sw",
+    "escape": true
+  },
+
+  // caffeine: click to inhibit idle (stop screen-lock / auto-suspend); click again to restore
+  // uses SIGRTMIN+8 for instant update — archfrican-caffeine toggle sends the signal after flipping
+  "custom/caffeine": {
+    "format": "{}",
+    "return-type": "json",
+    "interval": "once",
+    "exec": "$HOME/.local/bin/archfrican-caffeine",
+    "on-click": "$HOME/.local/bin/archfrican-caffeine toggle",
+    "signal": 8,
+    "tooltip": true
+  },
+
+  // weather: opt-in — enable with: echo "auto" > ~/.config/archfrican/weather
+  // hidden (zero width) until enabled; cached 30 min so it doesn't hammer wttr.in
+  "custom/weather": {
+    "format": "{}",
+    "return-type": "json",
+    "interval": 1800,
+    "exec": "$HOME/.local/bin/archfrican-weather",
+    "tooltip": true
+  },
+
+  "pulseaudio": {
+    "format": "{icon} {volume}%",
+    "format-icons": { "default": ["", "", ""] },
+    "on-click": "pavucontrol"
+  },
   "tray": { "spacing": 8 }
 }
