@@ -67,8 +67,9 @@ The cheat sheet is always one key away:
 | Shortcut | Action |
 |----------|--------|
 | `⌘+← / →` | Focus column left/right (niri scroll model) |
-| `⌘+↑ / ↓` | Focus window up/down in a column |
+| `⌘+↑ / ↓` | Focus window up/down in column (or cross to next workspace at edge) |
 | `⌘+Shift+← / →` | Move column |
+| `⌘+Shift+↑ / ↓` | Move window up/down in column (or to adjacent workspace) |
 | `⌘+Shift+F` | Maximize column |
 | `⌘+Shift+M` | Fullscreen |
 | `⌘+Shift+Space` | Toggle floating |
@@ -77,6 +78,14 @@ The cheat sheet is always one key away:
 | `⌘+− / =` | Resize column ±10% |
 | `⌘+1…5` | Jump to workspace 1–5 |
 | `⌘+Shift+1…3` | Move column to workspace |
+
+**Multi-monitor shortcuts** (when two or more screens are connected)
+
+| Shortcut | Action |
+|----------|--------|
+| `⌘+Ctrl+← / → / ↑ / ↓` | Focus the monitor in that direction |
+| `⌘+Ctrl+Shift+← / → / ↑ / ↓` | Move column to monitor in that direction |
+| `⌘+Ctrl+Alt+← / → / ↑ / ↓` | Move entire workspace to monitor in that direction |
 
 ---
 

@@ -95,7 +95,8 @@ VS Code settings are **backed up** before the first cohesion write (to
 
 **What Tier B covers**: VS Code color customizations, Chromium web-app instances.
 **What Tier A covers**: GTK 3/4, Qt 5/6, fonts, cursor, icons, waybar, swaync,
-fuzzel, Walker launcher, ghostty, niri borders, SDDM. Tier A is always active in `theme-switch`.
+fuzzel, Walker launcher, gtklock, ghostty, niri borders, SDDM, GRUB boot menu (palette
+change visible next boot — no `grub-mkconfig` required). Tier A is always active in `theme-switch`.
 
 See [COHESION.md](COHESION.md) for the full Tier-A/B architecture.
 

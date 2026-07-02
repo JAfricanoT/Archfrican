@@ -303,6 +303,31 @@ safety net, even if you are confident the procedure is non-destructive.
 
 ---
 
+## 11. Locked out of the screen lock
+
+**Symptom**: gtklock or swaylock accepted the correct password but the session didn't
+unlock, or the locker froze and `⌘+Shift+L` cannot be pressed.
+
+**Recovery**:
+
+```bash
+# 1. Switch to a text TTY (Ctrl+Alt+F3 or Ctrl+Alt+F2)
+# 2. Log in with your user credentials
+loginctl unlock-session              # unlocks all active graphical sessions
+# 3. Switch back to the Wayland session (Ctrl+Alt+F1 or F7)
+```
+
+If the locker process is completely frozen:
+
+```bash
+pkill gtklock   # or: pkill swaylock
+```
+
+Your password was never wrong — Archfrican's PAM stack (guaranteed by `modules/60-security.sh`)
+does not gate itself on FIDO2 or fingerprint. If it asks again after unlock, just type it.
+
+---
+
 ## Quick reference
 
 | Problem | First step |
@@ -317,3 +342,4 @@ safety net, even if you are confident the procedure is non-destructive.
 | AUR package broken | `archfrican-update --run --no-aur` |
 | Keyring expired | `sudo pacman-key --refresh-keys` |
 | Reinstall clean | Same disk + same passphrase; `@home` survives |
+| Screen lock frozen | TTY → `loginctl unlock-session` or `pkill gtklock` |

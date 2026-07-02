@@ -31,12 +31,13 @@ archfrican-update [--run] [--converge] [--prune] [--no-aur] [-h]
 
 1. Pre-checks: disk space (root ≥3 GB, boot ≥100 MB), mirrorlist age, CVE status
 2. Pre-snapshot via snapper (description includes current commit SHA)
-3. `git fetch --depth 1 origin $ARCHFRICAN_REF && git reset --hard FETCH_HEAD`
-4. Run pending migrations (`migrations/NNNN-slug.sh`)
-5. Re-converge only modules whose content hash changed (skips everything unchanged)
-6. `sudo pacman -Syu` (interactive; never `--noconfirm`)
-7. AUR upgrade via paru (failures don't block system upgrade)
-8. Summary + `archfrican-doctor` health check
+3. `git fetch --depth 1 origin $ARCHFRICAN_REF && git reset --hard FETCH_HEAD`; run pending migrations
+4. Mirrorlist refresh (via `reflector`) if the current list is older than 7 days
+5. `sudo pacman -Syu` (interactive; never `--noconfirm`) — **upgrade first** so new packages are available
+6. Re-converge only modules whose content hash changed (installs against the already-upgraded system)
+7. AUR upgrade via paru (failures don't block the system upgrade)
+8. Grouped changelog of what changed (commit subjects from the pulled range)
+9. `archfrican-doctor` health summary
 
 **Examples**
 
@@ -925,3 +926,201 @@ Interactive fuzzel menu. Assigns all relevant MIME types for the chosen category
 "Another installed app…" offers the full `xdg-mime` fallback. The "Gestor de contenedores"
 (LazyDocker, Docker Desktop) and "Mensajería" (Telegram, Signal, Discord, WhatsApp) categories
 have no MIME/default-handler concept — picking one just installs it and confirms.
+
+---
+
+## archfrican-lock
+
+Screen lock entry point. **Keyboard shortcut**: `⌘+Shift+L`. Also called by
+`archfrican-idle` (before screen-off) and before suspend.
+
+```
+archfrican-lock
+```
+
+Prefers **gtklock** (login-styled: ext-session-lock, avatar + power bar, themed from ADL
+tokens, wallpaper as backdrop). Falls back to **swaylock** (themed) if gtklock is absent.
+Both authenticate via the guaranteed PAM stack wired by `modules/60-security.sh` — the
+correct password is never refused.
+
+**Locked out?**
+
+```bash
+# Switch to a text TTY (Ctrl+Alt+F3), log in, then:
+loginctl unlock-session
+```
+
+---
+
+## archfrican-quit-app
+
+Closes **every** window of the focused app (`⌘+Q` semantics — quit the whole
+application, not just the frontmost window). **Keyboard shortcut**: `⌘+Q`.
+
+```
+archfrican-quit-app
+```
+
+niri has no native "quit app" action — only `close-window` per window. This command
+queries the niri IPC for every window sharing the focused app-id and closes each one.
+Requires `jq`.
+
+---
+
+## archfrican-keys
+
+Live, never-drifting keybinding cheatsheet. Reads the **actual deployed niri config** (so
+it can never go stale) plus the keyd `⌘→Ctrl` map and shows everything in a fuzzel
+picker. Read-only — selecting an item just closes the picker.
+
+```
+archfrican-keys
+```
+
+**Keyboard shortcut**: `⌘+Shift+K`
+
+Shortcuts are grouped by category header (comment lines in `config.kdl`) so finding a
+binding is fast even as the config grows.
+
+---
+
+## archfrican-a11y
+
+Accessibility hub — screen reader, high-contrast, cursor size, text size.
+
+```
+archfrican-a11y
+```
+
+Interactive fuzzel menu offering:
+
+| Option | What it does |
+|--------|-------------|
+| Screen reader (Orca): toggle | Start/stop Orca via `archfrican-screenreader` |
+| High contrast: on / off | `theme-switch high-contrast` / restore previous theme |
+| Large cursor | `gsettings` cursor size 48 |
+| Normal cursor | Cursor size back to 24 |
+| Larger text | `gsettings` text-scaling-factor 1.3 |
+| Normal text | Text scaling back to 1.0 |
+| Magnifier / sticky keys (info) | Status note (no mature Wayland-native magnifier yet) |
+
+Access via: `⌘+Shift+A → "Accesibilidad"` or run directly.
+
+---
+
+## archfrican-cohesion
+
+Toggle Tier-B app cohesion (opt-in theming for apps that ignore GTK/Qt, such as VS Code
+and Chromium web-apps).
+
+```
+archfrican-cohesion [on|off|status|apply]
+```
+
+| Subcommand | What it does |
+|------------|-------------|
+| `on` | Enable Tier-B cohesion; backs up VS Code settings before the first write |
+| `off` | Disable; restores the VS Code settings backup |
+| `status` | Print whether cohesion is on/off and the staging path |
+| `apply` | Re-apply without toggling (called automatically by `theme-switch`) |
+
+Tier-A (GTK/Qt/fonts/cursor/waybar) is always-on and is NOT governed here.
+
+---
+
+## archfrican-auto-appearance
+
+Toggle automatic light/dark switching by sun position via **darkman**. Off by default
+(it changes your theme by time of day).
+
+```
+archfrican-auto-appearance [on [lat lng]|off|status]
+```
+
+| Subcommand | What it does |
+|------------|-------------|
+| `on` | Enable darkman (geoclue for location, or pinned coordinates) |
+| `on <lat> <lng>` | Pin coordinates so darkman works without a geoclue agent |
+| `off` | Disable and stop darkman |
+| `status` | Show whether darkman is running |
+
+Switches only within the active identity family (ADL dark ↔ light, macOS dark ↔ light).
+A manual `catppuccin` / `tokyo-night` / `high-contrast` pick is left untouched.
+
+---
+
+## archfrican-fingerprint
+
+Enroll a fingerprint (Touch-ID-style) for sudo authentication. Opt-in.
+
+```
+archfrican-fingerprint
+```
+
+Requires `fprintd` and a supported reader. On enroll:
+1. Opens a Ghostty terminal with `fprintd-enroll` (swipe guided by the terminal)
+2. Inserts `pam_fprintd.so sufficient` into `/etc/pam.d/sudo` before the password line
+3. Self-checks the PAM stack (same logic as `lib/fido2.sh` — no-lockout guarantee)
+4. Restores the backup and exits cleanly if the self-check fails
+
+Your password always still works regardless.
+
+---
+
+## archfrican-privacy-indicator
+
+Waybar microphone/camera "in-use" dot, like the macOS menubar indicator.
+
+```
+archfrican-privacy-indicator   # outputs waybar JSON
+```
+
+Reads PipeWire (`pw-dump`) for running capture streams. Outputs
+`{"text":"🎙","class":"mic"}` / `{"text":"📷","class":"cam"}` / empty string (hidden)
+when idle. Add to `~/.config/waybar/config.jsonc`:
+
+```json
+"custom/privacy": {
+  "exec": "archfrican-privacy-indicator",
+  "return-type": "json",
+  "interval": 3
+}
+```
+
+Requires `pw-dump` and `jq`.
+
+---
+
+## archfrican-wallpaper-restore
+
+Restore the saved wallpaper at login. Spawned automatically by niri at startup —
+not meant for direct use.
+
+```
+archfrican-wallpaper-restore
+```
+
+`awww` (the wallpaper daemon) does not persist across reboots. This command reposes the
+image saved to `~/.config/archfrican/wallpaper`, or falls back to a solid backdrop in the
+active theme's background colour — the desktop is never blank.
+
+---
+
+## archfrican-welcome-notify
+
+One-shot first-login welcome notification (stamp-gated — fires only once). Spawned by
+niri at startup.
+
+```
+archfrican-welcome-notify
+```
+
+Sends a clickable `notify-send` notification with three actions:
+
+| Action | What it does |
+|--------|-------------|
+| Configurar el sistema | Opens `archfrican-setup` |
+| Ver el tour | Opens `archfrican-welcome --tour` |
+| Buscar actualizaciones | Runs `archfrican-update` in a terminal |
+
+Stamp: `~/.local/state/archfrican/welcome-shown` — delete it to re-show.

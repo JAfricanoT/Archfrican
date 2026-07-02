@@ -24,8 +24,8 @@ fun display_password (prompt, bullets) {
                                      (Window.GetHeight() / 2) - label.GetHeight() - 8, 10000);
 
     dots = "";
-    for (i = 0; i < bullets; i++) dots += "●";
-    if (dots == "") dots = "·";
+    for (i = 0; i < bullets; i++) dots += "*";
+    if (dots == "") dots = "-";
     entry = Image.Text(dots, @ACCENT_R@, @ACCENT_G@, @ACCENT_B@);
     global.entry_sprite = Sprite(entry);
     global.entry_sprite.SetPosition((Window.GetWidth()  - entry.GetWidth())  / 2,
