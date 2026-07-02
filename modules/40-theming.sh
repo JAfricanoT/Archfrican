@@ -47,7 +47,11 @@ if command -v grub-mkconfig >/dev/null 2>&1 && [ -d /boot/grub ]; then
       inter="$(find /usr/share/fonts -type f \( -iname 'Inter*Regular*.ttf' -o -iname 'Inter*Regular*.otf' \) 2>/dev/null | head -n1 || true)"
       [ -n "$inter" ] || inter="$(find /usr/share/fonts -type f \( -iname 'Inter*.ttf' -o -iname 'Inter*.otf' \) 2>/dev/null | head -n1 || true)"
       if [ -n "$inter" ]; then
-        sudo grub-mkfont --name "Inter Regular 20" -s 20 -o /boot/grub/themes/archfrican/inter.pf2 "$inter" \
+        # stderr silenced: grub-mkfont/FreeType can't parse some of Inter's OpenType GSUB/GPOS
+        # features (ligatures, class kerning) and prints a "WARNING: unsupported font feature
+        # parameters" line per skipped lookup — dozens of them, harmless (the boot menu only
+        # needs plain Latin glyphs, which still rasterise fine). Exit status still gates the warn.
+        sudo grub-mkfont --name "Inter Regular 20" -s 20 -o /boot/grub/themes/archfrican/inter.pf2 "$inter" 2>/dev/null \
           || warn "grub-mkfont failed — GRUB falls back to its built-in font (ADL colours still apply)"
       else
         warn "Inter font not found under /usr/share/fonts — GRUB uses its built-in font (colours still apply)"
