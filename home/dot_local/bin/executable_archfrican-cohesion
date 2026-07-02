@@ -53,6 +53,8 @@ case "${1:-status}" in
   apply)
     [ -e "$FLAG" ] || exit 0             # only act when enabled (theme-switch calls this best-effort)
     apply_vscode ;;
+  toggle)
+    if [ "$("$0" status)" = on ]; then exec "$0" off; else exec "$0" on; fi ;;
   *)
-    echo "usage: archfrican-cohesion on | off | status | apply" >&2; exit 1 ;;
+    echo "usage: archfrican-cohesion on | off | status | apply | toggle" >&2; exit 1 ;;
 esac

@@ -28,6 +28,8 @@ case "${1:-status}" in
     echo "auto light/dark: OFF" ;;
   status)
     if systemctl --user is-enabled --quiet darkman.service 2>/dev/null; then echo on; else echo off; fi ;;
+  toggle)
+    if [ "$("$0" status)" = on ]; then exec "$0" off; else exec "$0" on; fi ;;
   *)
-    echo "usage: archfrican-auto-appearance on [<lat> <lng>] | off | status" >&2; exit 1 ;;
+    echo "usage: archfrican-auto-appearance on [<lat> <lng>] | off | status | toggle" >&2; exit 1 ;;
 esac
