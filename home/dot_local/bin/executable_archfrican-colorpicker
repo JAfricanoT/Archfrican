@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# archfrican-colorpicker — pick any pixel from the screen and copy its hex color
+# Deps (all already in the niri stack): grim, slurp, imagemagick, wl-clipboard
+# Usage: run from Walker ("color"), a keybind, or archfrican-actions
+set -euo pipefail
+
+TMP=/tmp/archfrican-pick.png
+
+if ! command -v grim >/dev/null 2>&1 || ! command -v slurp >/dev/null 2>&1; then
+    notify-send -u critical "archfrican-colorpicker" "Faltan grim o slurp. Instala con: paru -S grim slurp"
+    exit 1
+fi
+
+# slurp -p: click a single pixel → "x,y 1x1"
+region=$(slurp -p 2>/dev/null) || exit 0   # user cancelled → silent exit
+grim -g "$region" "$TMP"
+
+# extract #RRGGBB from the 1×1 PNG via imagemagick txt output
+color=$(convert "$TMP" -depth 8 txt:- 2>/dev/null | awk 'NR==2{ print $3; exit }')
+rm -f "$TMP"
+
+[[ "$color" =~ ^#[0-9A-Fa-f]{6} ]] || { notify-send -u critical "colorpicker" "No se pudo leer el color"; exit 1; }
+
+printf '%s' "$color" | wl-copy
+notify-send --icon=color-picker "Color copiado" "$color" -t 2500
