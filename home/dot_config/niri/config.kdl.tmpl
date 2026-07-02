@@ -147,15 +147,16 @@ binds {
     Mod+Shift+Slash   { show-hotkey-overlay; }
     Mod+Shift+K       { spawn "{{ .chezmoi.homeDir }}/.local/bin/archfrican-keys"; }   // searchable key cheatsheet
 
-    // scrolling navigation (the niri core)
+    // scrolling navigation (the niri core) — Up/Down fall through to workspace switching at the
+    // top/bottom of a column, so they behave like Left/Right (which move across columns).
     Mod+Left          { focus-column-left; }
     Mod+Right         { focus-column-right; }
-    Mod+Up            { focus-window-up; }
-    Mod+Down          { focus-window-down; }
+    Mod+Up            { focus-window-or-workspace-up; }
+    Mod+Down          { focus-window-or-workspace-down; }
     Mod+Shift+Left    { move-column-left; }
     Mod+Shift+Right   { move-column-right; }
-    Mod+Shift+Up      { move-window-up; }
-    Mod+Shift+Down    { move-window-down; }
+    Mod+Shift+Up      { move-window-up-or-to-workspace-up; }
+    Mod+Shift+Down    { move-window-down-or-to-workspace-down; }
     Mod+Home          { focus-column-first; }
     Mod+End           { focus-column-last; }
 
