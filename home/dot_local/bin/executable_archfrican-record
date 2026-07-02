@@ -11,5 +11,9 @@ if pkill -INT -x wf-recorder 2>/dev/null; then
 fi
 out="${XDG_VIDEOS_DIR:-$HOME/Videos}"; mkdir -p "$out"
 file="$out/rec-$(date +%Y%m%d-%H%M%S).mp4"
+# Pin the output explicitly: with 2+ monitors, wf-recorder otherwise prompts interactively for which
+# one to record — a prompt this keybind-spawned process has no terminal to answer, so it just hangs/
+# aborts while the notification below would already have claimed success.
+output="$(niri msg --json focused-output 2>/dev/null | jq -r '.name // empty' 2>/dev/null || true)"
 _notify "Recording started" "$file"
-exec wf-recorder -f "$file"
+exec wf-recorder -f "$file" ${output:+-o "$output"}
