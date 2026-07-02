@@ -38,6 +38,11 @@ do_install() {  # do_install <spec> ; spec = repo:pkgs | aur:pkgs | flatpak:appi
     # wrappers for fast-moving AI CLIs. URL is hardcoded in the table, never user input.
     script)  if have curl; then ghostty -e sh -c "curl -fsSL '$pkg' | bash; printf '\n(enter para cerrar) '; read -r _"
              else note "curl no disponible"; return 1; fi ;;
+    # For services with no native Linux client (e.g. WhatsApp) — wraps archfrican-webapp, the
+    # project's existing answer for this. spec = webapp:Name,https://url (name/url hardcoded in the table).
+    webapp)  if have archfrican-webapp; then local wname="${pkg%%,*}" wurl="${pkg#*,}"
+               ghostty -e sh -c "archfrican-webapp '$wname' '$wurl'; printf '\n(enter para cerrar) '; read -r _"
+             else note "archfrican-webapp no disponible"; return 1; fi ;;
     *) return 1 ;;
   esac
 }
@@ -60,14 +65,16 @@ apply_default() {  # apply_default <desktop-id> <how> [mime...] ; how = browser 
   esac
 }
 
-# category <prompt> <how> <mimes-space-separated> <"Display|desktop-id|install-spec"...>
+# category <prompt> <how> <mimes-space-separated> <"Display|desktop-id|install-spec[|how-override]"...>
+# how-override lets a single category mix check styles (e.g. a CLI tool next to a GUI app) —
+# omit it to just use the category's <how> for that row, like every pre-existing category does.
 category() {
   local prompt="$1" how="$2" targets="$3"; shift 3
-  local rows=("$@") entries=() row disp id spec sel want
+  local rows=("$@") entries=() row disp id spec row_how sel want
   local tgt=(); [ -n "$targets" ] && read -r -a tgt <<<"$targets"
   for row in "${rows[@]}"; do
-    IFS='|' read -r disp id spec <<<"$row"
-    if is_installed "$how" "$id"; then entries+=("$disp"); else entries+=("⤓ Instalar $disp…"); fi
+    IFS='|' read -r disp id spec row_how <<<"$row"; row_how="${row_how:-$how}"
+    if is_installed "$row_how" "$id"; then entries+=("$disp"); else entries+=("⤓ Instalar $disp…"); fi
   done
   [ "$how" = cli ] || entries+=("Otra app instalada…")   # CLIs have no .desktop list to fall back to
   sel="$(printf '%s\n' "${entries[@]}" | fuzzel --dmenu --prompt "$prompt ")" || return 0
@@ -78,21 +85,22 @@ category() {
   fi
   want="${sel#⤓ Instalar }"; want="${want%…}"
   for row in "${rows[@]}"; do
-    IFS='|' read -r disp id spec <<<"$row"
+    IFS='|' read -r disp id spec row_how <<<"$row"; row_how="${row_how:-$how}"
     [ "$disp" = "$want" ] || continue
-    if ! is_installed "$how" "$id"; then
+    if ! is_installed "$row_how" "$id"; then
       do_install "$spec" || return 0
-      if ! is_installed "$how" "$id" && ! pkg_installed "$spec"; then note "$disp no quedó instalado"; return 0; fi
+      if ! is_installed "$row_how" "$id" && ! pkg_installed "$spec"; then note "$disp no quedó instalado"; return 0; fi
     fi
-    if [ "$how" = cli ]; then note "$disp listo ✓"
-    else apply_default "$id" "$how" ${tgt[@]+"${tgt[@]}"}; note "Por defecto: $disp"; fi
+    if [ "$row_how" = cli ] || [ "$row_how" = none ]; then note "$disp listo ✓"
+    else apply_default "$id" "$row_how" ${tgt[@]+"${tgt[@]}"}; note "Por defecto: $disp"; fi
     return 0
   done
 }
 
 cat="$(printf '%s\n' \
   "Navegador web" "Editor / IDE" "IA / agentes (CLI)" "Terminal" "Gestor de archivos" \
-  "Visor de PDF" "Visor de imágenes" "Correo" "Control de versiones · Git…" \
+  "Visor de PDF" "Visor de imágenes" "Correo" "Gestor de contenedores" "Mensajería" \
+  "Control de versiones · Git…" \
   | fuzzel --dmenu --prompt '  app por defecto  ')" || exit 0
 
 case "$cat" in
@@ -148,4 +156,19 @@ case "$cat" in
       "Thunderbird|thunderbird.desktop|repo:thunderbird" \
       "Geary|org.gnome.Geary.desktop|repo:geary" \
       "Evolution|org.gnome.Evolution.desktop|repo:evolution" ;;
+  "Gestor de contenedores")
+    # no hay concepto de "app por defecto" para esto — solo instala y confirma (como IA/agentes).
+    # Docker Desktop conflictúa con docker-compose (ya instalado por el módulo 30-dev); paru te
+    # preguntará antes de tocar nada.
+    category '  contenedores  ' cli '' \
+      "LazyDocker|lazydocker|repo:lazydocker" \
+      "Docker Desktop|docker-desktop.desktop|aur:docker-desktop|none" ;;
+  "Mensajería")
+    # tampoco hay "default" aquí — solo instala y confirma. WhatsApp no tiene cliente nativo de
+    # Linux, así que se resuelve como cualquier otro servicio sin app: archfrican-webapp.
+    category '  mensajería  ' none '' \
+      "Telegram|org.telegram.desktop.desktop|flatpak:org.telegram.desktop" \
+      "Signal|org.signal.Signal.desktop|flatpak:org.signal.Signal" \
+      "Discord|com.discordapp.Discord.desktop|flatpak:com.discordapp.Discord" \
+      "WhatsApp (web app)|archfrican-webapp-whatsapp.desktop|webapp:WhatsApp,https://web.whatsapp.com" ;;
 esac

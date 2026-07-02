@@ -898,12 +898,14 @@ Pings `1.1.1.1` (3 packets) and reports packet loss and average latency.
 ## archfrican-defaults
 
 Set default applications per category (browser, terminal, IDE, PDF viewer, image viewer,
-file manager, email). Smarter than `xdg-settings`: shows only apps you have installed,
-plus install shortcuts for common ones you don't.
+file manager, email, container manager, messaging). Smarter than `xdg-settings`: shows
+only apps you have installed, plus install shortcuts for common ones you don't.
 
 ```
 archfrican-defaults
 ```
 
 Interactive fuzzel menu. Assigns all relevant MIME types for the chosen category at once.
-"Another installed app…" offers the full `xdg-mime` fallback.
+"Another installed app…" offers the full `xdg-mime` fallback. The "Gestor de contenedores"
+(LazyDocker, Docker Desktop) and "Mensajería" (Telegram, Signal, Discord, WhatsApp) categories
+have no MIME/default-handler concept — picking one just installs it and confirms.

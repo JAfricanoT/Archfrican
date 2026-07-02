@@ -14,7 +14,9 @@ org.localsend.localsend_app     # LocalSend — AirDrop-class encrypted LAN file
 # md.obsidian.Obsidian           # Obsidian notes
 # com.spotify.Client             # Spotify
 # org.signal.Signal              # Signal
+# org.telegram.desktop           # Telegram
 # com.discordapp.Discord         # Discord
 # org.libreoffice.LibreOffice    # LibreOffice
 # org.gimp.GIMP                  # GIMP
 # org.videolan.VLC               # VLC media player
+# WhatsApp has no official Linux app — use: archfrican-webapp "WhatsApp" https://web.whatsapp.com

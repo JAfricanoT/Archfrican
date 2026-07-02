@@ -19,3 +19,6 @@ elephant-windows             # `$` open-window switcher (fd)
 elephant-symbols             # `.` symbols / emoji
 elephant-providerlist        # `;` provider switcher
 elephant-menus               # Walker's action / submenu system
+
+# --- optional picks (uncomment what you want, or install via archfrican-defaults) ---
+# docker-desktop               # Docker Desktop GUI — conflicts with docker-compose (already installed); remove it first if you want this
