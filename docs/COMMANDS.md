@@ -778,6 +778,17 @@ Interactive fuzzel menu. Applies changes via `localectl`, `timedatectl`, and `ho
 (the same commands the installer uses). Language and keyboard layout require a re-login
 for full effect.
 
+**Accents on the `us` layout**: niri sets `Right Alt` as a Compose key
+(`home/dot_config/niri/config.kdl.tmpl`), so you can type accents without switching layout:
+
+| Sequence | Result |
+|----------|--------|
+| `Compose` `'` `e` (or a/i/o/u) | é (á/í/ó/ú) |
+| `Compose` `~` `n` | ñ |
+| `Compose` `"` `u` | ü |
+| `Compose` `?` `?` | ¿ |
+| `Compose` `!` `!` | ¡ |
+
 ---
 
 ## archfrican-ime

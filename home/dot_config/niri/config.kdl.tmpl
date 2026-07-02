@@ -6,7 +6,14 @@
 
 input {
     keyboard {
-        xkb { layout "{{ output "sh" "-c" "cat ~/.config/.archfrican-kbd 2>/dev/null || echo us" | trim }}"; }
+        // compose:ralt = Right Alt types accents (é, ñ, ¿, ¡…) without touching the layout itself —
+        // keyd never remaps Right Alt, and "us" doesn't use AltGr for anything, so this is free.
+        // Sequences use the system's default X11 Compose table, e.g.: Compose ' e -> é, Compose ~ n
+        // -> ñ, Compose ? ? -> ¿, Compose ! ! -> ¡, Compose " u -> ü.
+        xkb {
+            layout "{{ output "sh" "-c" "cat ~/.config/.archfrican-kbd 2>/dev/null || echo us" | trim }}"
+            options "compose:ralt"
+        }
     }
     touchpad {
         tap
