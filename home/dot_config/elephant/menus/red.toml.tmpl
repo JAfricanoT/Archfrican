@@ -1,0 +1,16 @@
+name = "red"
+name_pretty = "Red / VPN"
+icon = "network-wireless"
+fixed_order = true
+
+[[entries]]
+text = "VPN (Tailscale/WireGuard)"
+actions = { run = "{{ .chezmoi.homeDir }}/.local/bin/archfrican-vpn" }
+
+[[entries]]
+text = "Mullvad (VPN + Browser)"
+actions = { run = "{{ .chezmoi.homeDir }}/.local/bin/archfrican-mullvad" }
+
+[[entries]]
+text = "Editor de red (NetworkManager)"
+actions = { run = "nm-connection-editor" }

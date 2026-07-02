@@ -1,0 +1,45 @@
+name = "setup"
+name_pretty = "Configuración"
+icon = "preferences-system"
+fixed_order = true
+
+[[entries]]
+text = "Apps por defecto"
+subtext = "navegador, IDE, terminal, PDF, imágenes…"
+submenu = "defaults"
+
+[[entries]]
+text = "Idioma y región"
+async = "sh -c 'printf \"%s / teclado %s\" \"${LANG:-?}\" \"$(cat {{ .chezmoi.homeDir }}/.config/.archfrican-kbd 2>/dev/null || echo us)\"'"
+actions = { run = "{{ .chezmoi.homeDir }}/.local/bin/archfrican-locale" }
+
+[[entries]]
+text = "Pantallas / monitores"
+submenu = "pantallas"
+
+[[entries]]
+text = "Apariencia"
+async = "sh -c 'printf \"tema %s\" \"$(cat {{ .chezmoi.homeDir }}/.config/.archfrican-theme 2>/dev/null || echo adl-dark)\"'"
+submenu = "apariencia"
+
+[[entries]]
+text = "Energía"
+subtext = "perfiles de batería/rendimiento"
+actions = { run = "{{ .chezmoi.homeDir }}/.local/bin/archfrican-power" }
+
+[[entries]]
+text = "Red / VPN"
+submenu = "red"
+
+[[entries]]
+text = "Accesibilidad"
+actions = { run = "{{ .chezmoi.homeDir }}/.local/bin/archfrican-a11y" }
+
+[[entries]]
+text = "Sistema / hardware"
+subtext = "GPU, huella, Secure Boot"
+submenu = "sistema"
+
+[[entries]]
+text = "Privacidad y respaldo"
+submenu = "privacidad"

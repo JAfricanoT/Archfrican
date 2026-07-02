@@ -1,0 +1,21 @@
+name = "sistema"
+name_pretty = "Sistema / hardware"
+icon = "preferences-system"
+fixed_order = true
+
+[[entries]]
+text = "GPU / driver (re-detectar)"
+terminal = true
+actions = { run = "sh -c 'R=\"{{ .chezmoi.homeDir }}/.archfrican\"; env ARCHFRICAN_ROOT=\"$R\" \"$R/install.sh\" 10-gpu; echo; echo \"Si cambió el driver, reinicia.\"; printf \"(enter para cerrar) \"; read -r _'" }
+
+[[entries]]
+text = "Huella digital para sudo"
+actions = { run = "{{ .chezmoi.homeDir }}/.local/bin/archfrican-fingerprint" }
+
+[[entries]]
+text = "Auto-unlock por TPM"
+actions = { run = "{{ .chezmoi.homeDir }}/.local/bin/archfrican-tpm-unlock" }
+
+[[entries]]
+text = "Secure Boot (sbctl)"
+actions = { run = "{{ .chezmoi.homeDir }}/.local/bin/archfrican-secureboot" }

@@ -2,15 +2,20 @@
 # archfrican-setup — the settings assistant ("Asistente de configuración"). A categorized hub over the
 # existing Archfrican helpers + the runtime gaps (language, default IDE/PDF/image/file-manager…).
 # Offered once on first boot (archfrican-welcome-notify) and always from the actions hub (⌘+Shift+A).
-# Gentle + non-blocking like the welcome tour: Escape exits any menu; the top loop runs until "Terminar".
 set -euo pipefail
 B="$HOME/.local/bin"
 have() { command -v "$1" >/dev/null 2>&1; }
 have fuzzel || { echo "fuzzel required" >&2; exit 1; }
-flip() { if [ "$("$1" status 2>/dev/null)" = on ]; then echo off; else echo on; fi; }   # toggle helper
-launch() { if have "$1"; then "$@"; fi; }                                                # run an app if present
+flip() { if [ "$("$1" status 2>/dev/null)" = on ]; then echo off; else echo on; fi; }
+launch() { if have "$1"; then "$@"; fi; }
 theme_now() { cat "$HOME/.config/.archfrican-theme" 2>/dev/null || echo adl-dark; }
 kbd_now()   { cat "$HOME/.config/.archfrican-kbd" 2>/dev/null || echo us; }
+
+# Native menu (menus/setup.toml) when Walker/elephant are up; fuzzel fallback below otherwise.
+if command -v walker >/dev/null 2>&1 \
+   && elephant listproviders 2>/dev/null | grep -q "^desktopapplications$"; then
+  exec walker -m "menus:setup"
+fi
 
 while :; do
   sel="$(printf '%s\n' \

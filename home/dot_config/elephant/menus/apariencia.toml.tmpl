@@ -1,0 +1,20 @@
+name = "apariencia"
+name_pretty = "Apariencia"
+icon = "preferences-desktop-theme"
+fixed_order = true
+
+[[entries]]
+text = "Cambiar tema"
+submenu = "themes"
+
+[[entries]]
+text = "Wallpaper / theming dinámico"
+actions = { run = "{{ .chezmoi.homeDir }}/.local/bin/archfrican-wallpaper" }
+
+[[entries]]
+text = "Auto claro/oscuro (alternar)"
+actions = { run = "{{ .chezmoi.homeDir }}/.local/bin/archfrican-auto-appearance toggle" }
+
+[[entries]]
+text = "Blur (alternar)"
+actions = { run = "{{ .chezmoi.homeDir }}/.local/bin/archfrican-blur toggle" }

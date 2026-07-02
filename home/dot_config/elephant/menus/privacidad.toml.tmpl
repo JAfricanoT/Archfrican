@@ -1,0 +1,12 @@
+name = "privacidad"
+name_pretty = "Privacidad y respaldo"
+icon = "security-high"
+fixed_order = true
+
+[[entries]]
+text = "Privacidad y telemetría"
+actions = { run = "{{ .chezmoi.homeDir }}/.local/bin/archfrican-privacy" }
+
+[[entries]]
+text = "Respaldo de ~ (restic)"
+actions = { run = "{{ .chezmoi.homeDir }}/.local/bin/archfrican-backup" }
