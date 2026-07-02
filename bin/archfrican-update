@@ -34,6 +34,7 @@ for a in "$@"; do case "$a" in
 esac; done
 
 warn_n=0
+CHANGELOG=""    # commit subjects pulled by the last repo_refresh — see print_changelog
 _ok()   { printf '  \e[32m✓\e[0m %s\n' "$*"; }
 _note() { printf '  \e[33m!\e[0m %s\n' "$*"; warn_n=$((warn_n + 1)); }
 _hd()   { printf '\n\e[1m  %s\e[0m\n\n' "$*"; }
@@ -107,10 +108,20 @@ pre_snapshot() {
 repo_refresh() {                 # pull the desired state + run migrations (no package changes)
   if [ -d "$ROOT/.git" ] && command -v git >/dev/null 2>&1; then
     local old new; old="$(git -C "$ROOT" rev-parse --short HEAD 2>/dev/null)"
-    if git -C "$ROOT" fetch --depth 1 origin "$ARCHFRICAN_REF" >/dev/null 2>&1; then
+    # depth 50, not 1: a shallow depth-1 fetch can't reconstruct the old..new commit range for the
+    # changelog below (each fetch would just replace the shallow tip, discarding the history between
+    # them). 50 covers any normal update gap cheaply; a gap wider than that falls back to a compare link.
+    if git -C "$ROOT" fetch --depth 50 origin "$ARCHFRICAN_REF" >/dev/null 2>&1; then
       if git -C "$ROOT" reset --hard FETCH_HEAD >/dev/null 2>&1; then
         new="$(git -C "$ROOT" rev-parse --short HEAD 2>/dev/null)"
-        if [ "$old" != "$new" ]; then _ok "repo $old → $new"; else _ok "repo already current ($new)"; fi
+        if [ "$old" != "$new" ]; then
+          _ok "repo $old → $new"
+          CHANGELOG="$(git -C "$ROOT" log --no-decorate --format='%s' "$old..$new" 2>/dev/null)"
+          if [ -z "$CHANGELOG" ]; then
+            local url; url="$(git -C "$ROOT" remote get-url origin 2>/dev/null | sed -E 's#\.git$##')"
+            CHANGELOG="(older than the local fetch depth — see ${url:-the repo}/compare/$old...$new)"
+          fi
+        else _ok "repo already current ($new)"; fi
       else _note "git reset --hard failed — converging the on-disk repo ($old) as-is"; fi
     else _note "git fetch failed — converging the on-disk repo ($old)"; fi
   fi
@@ -120,6 +131,29 @@ converge_modules() {             # run the freshly-pulled installer; only CHANGE
   ARCHFRICAN_UPDATE=1 bash "$ROOT/install.sh" --update || { _note "converge reported an error — review above"; return 1; }
 }
 converge() { _hd "Converge — re-apply the repo's desired state"; repo_refresh && converge_modules; }
+
+# ---- what changed (conventional-commit subjects, grouped) -------------------
+print_changelog() {
+  [ -n "$CHANGELOG" ] || return 0
+  _hd "What changed"
+  local feat="" fix="" other="" line type rest scope
+  while IFS= read -r line; do
+    [ -n "$line" ] || continue
+    type="${line%%[(:]*}"                  # "feat(niri): ..." / "feat: ..." -> "feat"
+    rest="${line#*: }"                     # drop the "type(scope): " / "type: " prefix
+    case "$line" in
+      *"("*")"*) scope="${line#*(}"; scope="${scope%%)*}"; rest="$scope: $rest" ;;   # keep the scope for context
+    esac
+    case "$type" in
+      feat) feat="$feat    • $rest"$'\n' ;;
+      fix)  fix="$fix    • $rest"$'\n' ;;
+      *)    other="$other    • $line"$'\n' ;;
+    esac
+  done <<< "$CHANGELOG"
+  [ -n "$feat" ]  && printf '  New features:\n%s' "$feat"
+  [ -n "$fix" ]   && printf '  Fixes:\n%s' "$fix"
+  [ -n "$other" ] && printf '  Other changes:\n%s' "$other"
+}
 
 # ---------- opt-in prune (only Archfrican-managed, never your packages) -------
 do_prune() {
@@ -137,6 +171,7 @@ do_prune() {
 
 # ---------- post-update summary ----------------------------------------------
 post_summary() {
+  print_changelog
   _hd "Post-update health"
   "$ROOT/bin/archfrican-doctor" 2>/dev/null || true
   printf '\n  \e[32m✓ Update complete.\e[0m If a kernel changed: sudo systemctl reboot\n\n'
@@ -169,6 +204,7 @@ elif [ "$CONVERGE" = 1 ]; then
   pre_snapshot
   converge || exit 1
   [ "$PRUNE" = 1 ] && do_prune
+  print_changelog
   printf '\n  \e[32m✓ Converge complete\e[0m — config + dotfiles match the repo (no package upgrade; use --run).\n\n'
 
 elif [ "$PRUNE" = 1 ]; then
