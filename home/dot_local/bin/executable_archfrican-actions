@@ -8,6 +8,12 @@ set -euo pipefail
 B="$HOME/.local/bin"
 toggle() { [ "$("$1" status 2>/dev/null)" = on ] && echo off || echo on; }
 
+# Native menu (menus/actions.toml) when Walker/elephant are up; fuzzel fallback below otherwise.
+if command -v walker >/dev/null 2>&1 \
+   && elephant listproviders 2>/dev/null | grep -q "^desktopapplications$"; then
+  exec walker -m "menus:actions"
+fi
+
 sel="$(printf '%s\n' \
   "Asistente de configuración (todo)…" \
   "Cambiar tema…" \

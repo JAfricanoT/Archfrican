@@ -1,0 +1,212 @@
+name = "actions"
+name_pretty = "Acciones"
+icon = "preferences-system"
+fixed_order = true
+
+[[entries]]
+text = "Asistente de configuración (todo)…"
+actions = { run = "{{ .chezmoi.homeDir }}/.local/bin/archfrican-setup" }
+
+[[entries]]
+text = "Cambiar tema…"
+submenu = "themes"
+
+[[entries]]
+text = "Buscar actualizaciones (archfrican-update)"
+terminal = true
+actions = { run = "sh -c '{{ .chezmoi.homeDir }}/.local/bin/archfrican-update; printf \"\\n(enter para cerrar) \"; read -r _'" }
+
+[[entries]]
+text = "Salud del sistema (archfrican-doctor)"
+terminal = true
+actions = { run = "sh -c '{{ .chezmoi.homeDir }}/.local/bin/archfrican-doctor; printf \"\\n(enter para cerrar) \"; read -r _'" }
+
+[[entries]]
+text = "Apps por defecto (navegador/correo)…"
+actions = { run = "{{ .chezmoi.homeDir }}/.local/bin/archfrican-defaults" }
+
+[[entries]]
+text = "Auto claro/oscuro (alternar)"
+actions = { run = "{{ .chezmoi.homeDir }}/.local/bin/archfrican-auto-appearance toggle" }
+
+[[entries]]
+text = "Blur frosted-glass (alternar)"
+actions = { run = "{{ .chezmoi.homeDir }}/.local/bin/archfrican-blur toggle" }
+
+[[entries]]
+text = "Pantallas / monitores"
+submenu = "pantallas"
+
+[[entries]]
+text = "Atajos de teclado"
+actions = { run = "{{ .chezmoi.homeDir }}/.local/bin/archfrican-keys" }
+
+[[entries]]
+text = "Bienvenida / tour"
+actions = { run = "{{ .chezmoi.homeDir }}/.local/bin/archfrican-welcome --tour" }
+
+[[entries]]
+text = "Migrar desde otra máquina…"
+actions = { run = "{{ .chezmoi.homeDir }}/.local/bin/archfrican-migrate" }
+
+[[entries]]
+text = "Layout de ventana…"
+actions = { run = "{{ .chezmoi.homeDir }}/.local/bin/archfrican-layout" }
+
+[[entries]]
+text = "Abrir una sesión/proyecto…"
+actions = { run = "{{ .chezmoi.homeDir }}/.local/bin/archfrican-session" }
+
+[[entries]]
+text = "Modo concentración (alternar)"
+actions = { run = "{{ .chezmoi.homeDir }}/.local/bin/archfrican-focus" }
+
+[[entries]]
+text = "Portapapeles (historial)"
+actions = { run = "walker -m clipboard" }
+
+[[entries]]
+text = "Emoji / símbolos"
+actions = { run = "walker -m symbols" }
+
+[[entries]]
+text = "Calculadora"
+actions = { run = "walker -m calc" }
+
+[[entries]]
+text = "Buscar archivos"
+actions = { run = "walker -m files" }
+
+[[entries]]
+text = "Buscar en la web"
+actions = { run = "walker -m websearch" }
+
+[[entries]]
+text = "Navegador (Brave/Vivaldi)…"
+actions = { run = "{{ .chezmoi.homeDir }}/.local/bin/archfrican-browser" }
+
+[[entries]]
+text = "Tienda de apps (Flatpak)"
+actions = { run = "gnome-software" }
+
+[[entries]]
+text = "Permisos de apps (Flatseal)"
+actions = { run = "flatpak run com.github.tchx84.Flatseal" }
+
+[[entries]]
+text = "Crear web-app…"
+actions = { run = "{{ .chezmoi.homeDir }}/.local/bin/archfrican-webapp" }
+
+[[entries]]
+text = "Git / repositorios (SSH + GitHub)…"
+terminal = true
+actions = { run = "{{ .chezmoi.homeDir }}/.local/bin/archfrican-git" }
+
+[[entries]]
+text = "Nube / SMB…"
+actions = { run = "{{ .chezmoi.homeDir }}/.local/bin/archfrican-cloud" }
+
+[[entries]]
+text = "Centro de control (notificaciones)"
+actions = { run = "swaync-client -t -sw" }
+
+[[entries]]
+text = "No molestar (alternar)"
+actions = { run = "swaync-client -d -sw" }
+
+[[entries]]
+text = "Luz nocturna (alternar)"
+actions = { run = "{{ .chezmoi.homeDir }}/.local/bin/archfrican-nightlight toggle" }
+
+[[entries]]
+text = "VPN (Tailscale/WireGuard)…"
+actions = { run = "{{ .chezmoi.homeDir }}/.local/bin/archfrican-vpn" }
+
+[[entries]]
+text = "Mullvad (VPN + Browser)…"
+actions = { run = "{{ .chezmoi.homeDir }}/.local/bin/archfrican-mullvad" }
+
+[[entries]]
+text = "Audio: efectos / EQ (EasyEffects)"
+actions = { run = "easyeffects" }
+
+[[entries]]
+text = "Audio: patchbay (qpwgraph)"
+actions = { run = "qpwgraph" }
+
+[[entries]]
+text = "Accesibilidad (lector, contraste)…"
+actions = { run = "{{ .chezmoi.homeDir }}/.local/bin/archfrican-a11y" }
+
+[[entries]]
+text = "Lector de pantalla (alternar)"
+actions = { run = "{{ .chezmoi.homeDir }}/.local/bin/archfrican-screenreader" }
+
+[[entries]]
+text = "Método de entrada / IME (CJK)…"
+actions = { run = "{{ .chezmoi.homeDir }}/.local/bin/archfrican-ime" }
+
+[[entries]]
+text = "Energía / batería (laptop)…"
+actions = { run = "{{ .chezmoi.homeDir }}/.local/bin/archfrican-power" }
+
+[[entries]]
+text = "Instalar stack de gaming (Steam)…"
+terminal = true
+actions = { run = "sh -c '{{ .chezmoi.homeDir }}/.archfrican/install.sh 65-gaming yes; printf \"(enter para cerrar) \"; read -r _'" }
+
+[[entries]]
+text = "Continuidad (KDE Connect + LocalSend)…"
+actions = { run = "{{ .chezmoi.homeDir }}/.local/bin/archfrican-continuity" }
+
+[[entries]]
+text = "Respaldo de ~ (Time Machine)…"
+actions = { run = "{{ .chezmoi.homeDir }}/.local/bin/archfrican-backup" }
+
+[[entries]]
+text = "Revertir actualización (rollback)…"
+actions = { run = "{{ .chezmoi.homeDir }}/.local/bin/archfrican-rollback" }
+
+[[entries]]
+text = "Wallpaper / theming dinámico…"
+actions = { run = "{{ .chezmoi.homeDir }}/.local/bin/archfrican-wallpaper" }
+
+[[entries]]
+text = "Cohesión de apps (alternar)"
+actions = { run = "{{ .chezmoi.homeDir }}/.local/bin/archfrican-cohesion toggle" }
+
+[[entries]]
+text = "Huella digital para sudo…"
+actions = { run = "{{ .chezmoi.homeDir }}/.local/bin/archfrican-fingerprint" }
+
+[[entries]]
+text = "Splash de arranque (Plymouth)…"
+actions = { run = "{{ .chezmoi.homeDir }}/.local/bin/archfrican-plymouth" }
+
+[[entries]]
+text = "Cámara (ajustes)"
+actions = { run = "cameractrls" }
+
+[[entries]]
+text = "Auto-unlock por TPM (disco cifrado)…"
+actions = { run = "{{ .chezmoi.homeDir }}/.local/bin/archfrican-tpm-unlock" }
+
+[[entries]]
+text = "Secure Boot (sbctl)…"
+actions = { run = "{{ .chezmoi.homeDir }}/.local/bin/archfrican-secureboot" }
+
+[[entries]]
+text = "Privacidad…"
+actions = { run = "{{ .chezmoi.homeDir }}/.local/bin/archfrican-privacy" }
+
+[[entries]]
+text = "Bluetooth"
+actions = { run = "blueman-manager" }
+
+[[entries]]
+text = "Audio (mezclador)"
+actions = { run = "pavucontrol" }
+
+[[entries]]
+text = "Red / VPN"
+actions = { run = "nm-connection-editor" }
