@@ -36,8 +36,12 @@ if ! have_root_config; then
   fi
 fi
 
-# Non-root reads of snapshots (snapper list, grub-btrfs) need wheel access.
+# Non-root reads of snapshots (snapper list, grub-btrfs) need wheel access. Directory permissions
+# alone are NOT enough: `snapper list` goes through snapper's own D-Bus-backed authorization, which
+# checks the config's ALLOW_USERS/ALLOW_GROUPS, not just Unix perms on /.snapshots (a wheel user with
+# only the chmod/chown below still gets "No permissions." from a bare `snapper -c root list`).
 if [ -d /.snapshots ]; then sudo chmod 750 /.snapshots; sudo chown :wheel /.snapshots; fi
+sudo snapper -c root set-config "ALLOW_GROUPS=wheel" || warn "couldn't grant snapper wheel access — non-root 'snapper list' will need sudo"
 
 # snap-pac snapshots every pacman transaction; grub-btrfsd (the inotify daemon,
 # NOT the obsolete grub-btrfs.path) regenerates the boot menu on snapshot changes.
