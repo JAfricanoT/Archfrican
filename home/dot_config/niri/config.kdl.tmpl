@@ -160,6 +160,20 @@ binds {
     Mod+Home          { focus-column-first; }
     Mod+End           { focus-column-last; }
 
+    // monitors (multi-monitor)
+    Mod+Ctrl+Left          { focus-monitor-left; }   // focus the monitor to the left
+    Mod+Ctrl+Right         { focus-monitor-right; }   // focus the monitor to the right
+    Mod+Ctrl+Up            { focus-monitor-up; }   // focus the monitor above
+    Mod+Ctrl+Down          { focus-monitor-down; }   // focus the monitor below
+    Mod+Ctrl+Shift+Left    { move-column-to-monitor-left; }   // move column to the monitor on the left
+    Mod+Ctrl+Shift+Right   { move-column-to-monitor-right; }   // move column to the monitor on the right
+    Mod+Ctrl+Shift+Up      { move-column-to-monitor-up; }   // move column to the monitor above
+    Mod+Ctrl+Shift+Down    { move-column-to-monitor-down; }   // move column to the monitor below
+    Mod+Ctrl+Alt+Left      { move-workspace-to-monitor-left; }   // move the whole workspace to the monitor on the left
+    Mod+Ctrl+Alt+Right     { move-workspace-to-monitor-right; }   // move the whole workspace to the monitor on the right
+    Mod+Ctrl+Alt+Up        { move-workspace-to-monitor-up; }   // move the whole workspace to the monitor above
+    Mod+Ctrl+Alt+Down      { move-workspace-to-monitor-down; }   // move the whole workspace to the monitor below
+
     // columns / sizing
     Mod+Comma         { consume-window-into-column; }
     Mod+Period        { expel-window-from-column; }
