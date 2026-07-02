@@ -27,9 +27,9 @@
   },
 
   // system stats — click cpu or memory to jump to btop
-  "cpu":    { "format": " {usage}%", "on-click": "ghostty -e btop", "tooltip": false },
-  "memory": { "format": " {}%",      "on-click": "ghostty -e btop", "tooltip": false },
-  "disk":   { "format": " {free}",   "tooltip-format": "{used} / {total} ({percentage_used}%)\n{path}" },
+  "cpu":    { "format": " {usage}%", "on-click": "ghostty -e btop", "tooltip": false },
+  "memory": { "format": " {}%",      "on-click": "ghostty -e btop", "tooltip": false },
+  "disk":   { "format": " {free}",   "tooltip-format": "{used} / {total} ({percentage_used}%)\n{path}" },
 
   "battery": {
     "format": "{icon} {capacity}%",
@@ -49,7 +49,7 @@
 
   "network": {
     "format-wifi":        " {essid}",
-    "format-ethernet":    " wired",
+    "format-ethernet":    " wired",
     "format-disconnected": " off",
     "tooltip-format-ethernet":   "{ifname} · IP {ipaddr}/{cidr}\nGateway {gwaddr}",
     "tooltip-format-wifi":       "{essid} ({signalStrength}%) · IP {ipaddr}/{cidr}\nGateway {gwaddr}",
@@ -63,8 +63,8 @@
     "tooltip": true
   },
   "bluetooth": {
-    "format":           "",
-    "format-disabled":  "",
+    "format":           "",
+    "format-disabled":  "",
     "format-connected": " {num_connections}",
     "tooltip-format": "{controller_alias}\t{status}",
     "on-click": "blueman-manager"
