@@ -152,6 +152,18 @@ To revert to a static theme, just run `theme-switch <name>` again.
 
 See [THEMING.md](THEMING.md) for available themes and how to create a custom one.
 
+**Boot & disk-unlock polish (optional, not installed by default)** — the install does not
+automatically theme the disk-encryption prompt or enroll TPM auto-unlock. Two opt-in commands
+add that, each needing one more reboot of its own to take effect:
+
+```bash
+archfrican-plymouth      # themed boot splash so the LUKS passphrase prompt matches the login/desktop look
+archfrican-tpm-unlock    # enroll the TPM so a correct BIOS/firmware state unlocks the disk with no passphrase
+```
+
+Keep your passphrase on hand for the reboot right after either one — until it's confirmed
+working, that reboot is your only way back in.
+
 ---
 
 ## 6. Configure backups

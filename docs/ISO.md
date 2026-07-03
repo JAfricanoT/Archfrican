@@ -76,12 +76,32 @@ USB boot
                              └─ confirm_wipe (type device name to proceed)
                                     │
                                     └─ run_base_install() → Phase 1 → reboot
+                                           │
+                                           └─ (new disk boots its own kernel for the first time)
+                                                  │
+                                                  └─ archfrican-resume.service (headless, ~20-40 min)
+                                                         Phase 2: desktop/dev modules + dotfiles (chezmoi)
+                                                         │
+                                                         ├─ log in on any console during this window ->
+                                                         │  progress streams automatically (no command
+                                                         │  needed); goes quiet once SDDM is up
+                                                         │
+                                                         └─ finishes -> broadcasts "desktop ready" -> reboot
+                                                                (this is the LAST reboot for the base desktop)
 ```
 
 **Safety gate**: `ARCHFRICAN_ISO_ARMED` defaults to `0`. In that mode the installer
 prints its plan and exits without touching any disk. A real install requires the user
 to either set `ARCHFRICAN_ISO_ARMED=1 ARCHFRICAN_ISO_GO=1` or confirm the wizard's
 `confirm_wipe` prompt interactively (type the bare device name, e.g. `nvme0n1`).
+
+**Two reboots, not one.** The first (end of Phase 1) is a hard Arch requirement — booting the
+freshly-installed kernel/initramfs/GRUB stack for the first time. The second (end of Phase 2)
+gets you onto the fully-configured desktop; it's required for NVIDIA (early-KMS) and is the
+uniform way everyone reaches the newly-enabled login manager. A themed boot/unlock splash and
+TPM auto-unlock are *not* part of either reboot — they're optional, separately-run commands
+(`archfrican-plymouth`, `archfrican-tpm-unlock`) that each need one more reboot of their own to
+take effect; see [FIRST-STEPS.md](FIRST-STEPS.md).
 
 ---
 

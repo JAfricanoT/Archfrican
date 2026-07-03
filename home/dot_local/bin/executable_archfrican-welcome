@@ -36,6 +36,7 @@ while :; do
     "Cambiar el tema" \
     "Fondo de pantalla + theming dinámico" \
     "Huella digital para sudo" \
+    "Pantalla de arranque + desbloqueo sin contraseña (TPM)" \
     "Instalar un navegador (Brave o Vivaldi)" \
     "Tienda de apps (Flatpak)" \
     "Auto claro/oscuro por el sol" \
@@ -54,6 +55,9 @@ while :; do
     "Cambiar"*)               pick_theme ;;
     "Fondo de pantalla"*)     "$B/archfrican-wallpaper" ;;
     "Huella"*)                "$B/archfrican-fingerprint" ;;
+    "Pantalla de arranque"*)  card 'No vienen activados por defecto — cada uno pide un reboot propio para confirmarlo (ten la contraseña a mano):
+archfrican-plymouth      → tema de arranque, la pantalla de desbloqueo combina con el login
+archfrican-tpm-unlock    → desbloqueo automático del disco vía TPM (sin contraseña)' '  arranque y desbloqueo  ' ;;
     "Instalar un navegador"*) "$B/archfrican-browser" ;;
     "Tienda"*)                if command -v gnome-software >/dev/null 2>&1; then gnome-software; else note "tienda no instalada (módulo 35-apps)"; fi ;;
     "Auto"*)                  "$B/archfrican-auto-appearance" on ;;
