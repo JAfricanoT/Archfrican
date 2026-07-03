@@ -10,6 +10,8 @@
 # Usage:
 #   sudo bash build-iso.sh
 #   SOURCE_DATE_EPOCH=$(git log -1 --format=%ct) sudo bash build-iso.sh  # reproducible
+#   sudo ARCHFRICAN_ISO_WORKDIR=/var/tmp/archfrican-iso-work bash build-iso.sh  # /tmp is tmpfs
+#                                                                                # and too small/RAM-tight? use disk
 #
 # Output:  out/archfrican-YYYY.MM.DD-x86_64.iso
 # ============================================================================
@@ -18,7 +20,7 @@ set -euo pipefail
 HERE="$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)"
 RELENG="/usr/share/archiso/configs/releng"
 OUT_DIR="$HERE/out"
-WORK_DIR="/tmp/archfrican-iso-work"
+WORK_DIR="${ARCHFRICAN_ISO_WORKDIR:-/tmp/archfrican-iso-work}"
 
 # ---- preflight ---------------------------------------------------------------
 [ "$EUID" -eq 0 ] || { echo "Run as root:  sudo bash build-iso.sh" >&2; exit 1; }
