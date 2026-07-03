@@ -139,14 +139,17 @@ if [ -f "$ROOT/templates/grub.theme.txt" ] && [ -d /boot/grub/themes/archfrican 
   rm -f "$tmp_grub"
 fi
 
-# GTK / cursors / dark-light
-gsettings set org.gnome.desktop.interface color-scheme "$GTK_SCHEME" 2>/dev/null || true
-gsettings set org.gnome.desktop.interface gtk-theme    "$GTK_THEME"  2>/dev/null || true
-gsettings set org.gnome.desktop.interface icon-theme   "$ICON_THEME" 2>/dev/null || true
-gsettings set org.gnome.desktop.interface font-name           "$FONT_UI $FONT_GTK_SIZE"   2>/dev/null || true
-gsettings set org.gnome.desktop.interface monospace-font-name "$FONT_MONO $FONT_GTK_SIZE" 2>/dev/null || true
-gsettings set org.gnome.desktop.interface cursor-theme        "$CURSOR_THEME" 2>/dev/null || true
-gsettings set org.gnome.desktop.interface cursor-size         "$CURSOR_SIZE"  2>/dev/null || true
+# GTK / cursors / dark-light. `timeout 5`: gsettings needs a session D-Bus — when none is reachable
+# (e.g. the headless first-boot resume, no PAM/logind session) it can HANG instead of failing fast,
+# and `|| true` only catches a nonzero exit, never a hang. A bounded timeout turns that into the
+# fast no-op the comment already expects, instead of freezing the whole install indefinitely.
+timeout 5 gsettings set org.gnome.desktop.interface color-scheme "$GTK_SCHEME" 2>/dev/null || true
+timeout 5 gsettings set org.gnome.desktop.interface gtk-theme    "$GTK_THEME"  2>/dev/null || true
+timeout 5 gsettings set org.gnome.desktop.interface icon-theme   "$ICON_THEME" 2>/dev/null || true
+timeout 5 gsettings set org.gnome.desktop.interface font-name           "$FONT_UI $FONT_GTK_SIZE"   2>/dev/null || true
+timeout 5 gsettings set org.gnome.desktop.interface monospace-font-name "$FONT_MONO $FONT_GTK_SIZE" 2>/dev/null || true
+timeout 5 gsettings set org.gnome.desktop.interface cursor-theme        "$CURSOR_THEME" 2>/dev/null || true
+timeout 5 gsettings set org.gnome.desktop.interface cursor-size         "$CURSOR_SIZE"  2>/dev/null || true
 
 # live reloads (no logout)
 pkill -SIGUSR2 waybar 2>/dev/null || true

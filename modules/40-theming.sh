@@ -9,14 +9,17 @@ substep "installing AUR theme/icons/cursors/SF fonts/nwg-dock (from packages/aur
 aur_install_file "$REPO_ROOT/packages/aur.txt"
 
 substep "applying the macOS GTK look (WhiteSur + McMojave + SF fonts)"
-# gsettings needs a session D-Bus; on a TTY phase-2 run it may legitimately
-# no-op — attempt() makes that visible (warn) instead of silently masking it.
-attempt "gtk-theme"     gsettings set org.gnome.desktop.interface gtk-theme            "WhiteSur-Dark"
-attempt "icon-theme"    gsettings set org.gnome.desktop.interface icon-theme           "WhiteSur-dark"
-attempt "cursor-theme"  gsettings set org.gnome.desktop.interface cursor-theme         "McMojave-cursors"
-attempt "font"          gsettings set org.gnome.desktop.interface font-name            "SF Pro Display 11"
-attempt "mono-font"     gsettings set org.gnome.desktop.interface monospace-font-name  "SF Mono 11"
-attempt "color-scheme"  gsettings set org.gnome.desktop.interface color-scheme         "prefer-dark"
+# gsettings needs a session D-Bus; on a TTY phase-2 run (no PAM/logind session — this is exactly the
+# headless first-boot resume) it can HANG waiting for a bus that will never appear, not just fail —
+# attempt() only catches a nonzero exit, so a hang here freezes the ENTIRE install indefinitely
+# (TimeoutStartSec=infinity on the resume unit). `timeout 5` turns that into the fast no-op this was
+# always meant to be.
+attempt "gtk-theme"     timeout 5 gsettings set org.gnome.desktop.interface gtk-theme            "WhiteSur-Dark"
+attempt "icon-theme"    timeout 5 gsettings set org.gnome.desktop.interface icon-theme           "WhiteSur-dark"
+attempt "cursor-theme"  timeout 5 gsettings set org.gnome.desktop.interface cursor-theme         "McMojave-cursors"
+attempt "font"          timeout 5 gsettings set org.gnome.desktop.interface font-name            "SF Pro Display 11"
+attempt "mono-font"     timeout 5 gsettings set org.gnome.desktop.interface monospace-font-name  "SF Mono 11"
+attempt "color-scheme"  timeout 5 gsettings set org.gnome.desktop.interface color-scheme         "prefer-dark"
 
 # Apply the user's chosen theme — read the staged pick (phase 2 / inject_resume wrote it; chezmoi
 # run_after re-applies it after dotfiles), NOT a hardcoded macos-dark. Hardcoding here silently
