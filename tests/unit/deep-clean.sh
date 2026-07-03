@@ -76,12 +76,27 @@ if [ "$CNT" -eq 0 ]; then _ok "run_deep_clean (unarmed) called zero real command
 else _no "run_deep_clean (unarmed) invoked $CNT real command(s) — dry-run leaked"; fi
 
 # ---- 4. ARCHFRICAN_DEEPCLEAN_ARMED=1 flips DC_GO to 1 inside run_deep_clean ------------------------
+# dc_chroot_config_new's genfstab step is `dc_run_pipe "genfstab -U $DC_NEW_MNT >> .../fstab"` — the
+# `>>` is a shell-level redirect baked into dc_run_pipe's string arg, resolved by dc_run_pipe's own
+# `bash -c` BEFORE genfstab (mocked above) ever runs, so the mock can't intercept it: this is real,
+# unmockable filesystem I/O against whatever DC_NEW_MNT points at. Retarget DC_NEW_MNT/DC_ROOT_MNT at
+# a throwaway scratch dir (etc/ pre-created, since genfstab's append needs it to exist) instead of the
+# real-looking default /mnt/deepclean* paths, so this step lands somewhere harmless either way.
+# `command mkdir` bypasses the mkdir() mock above (a plain shell function in THIS shell too) so the
+# scratch dir is actually created for real.
+scratch="$(mktemp -d)"
+command mkdir -p "$scratch/etc"
+# shellcheck disable=SC2034  # read by dc_* steps in the sourced (source=/dev/null) lib/deep-clean.sh
+DC_NEW_MNT="$scratch"
+# shellcheck disable=SC2034  # read by dc_* steps in the sourced (source=/dev/null) lib/deep-clean.sh
+DC_ROOT_MNT="$scratch"
 # shellcheck disable=SC2034  # read by run_deep_clean in the sourced (source=/dev/null) lib/deep-clean.sh
 ARCHFRICAN_DEEPCLEAN_ARMED=1
 DC_GO=0
 run_deep_clean >/dev/null 2>&1
 if [ "$DC_GO" -eq 1 ]; then _ok "ARCHFRICAN_DEEPCLEAN_ARMED=1 flips DC_GO to 1 inside run_deep_clean"
 else _no "DC_GO did not flip to 1 when ARCHFRICAN_DEEPCLEAN_ARMED=1 (DC_GO=$DC_GO)"; fi
+rm -rf -- "$scratch"
 
 printf '\ndeep-clean unit test: %d passed, %d failed\n' "$P" "$F"
 [ "$F" -eq 0 ]
