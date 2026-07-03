@@ -133,7 +133,9 @@ esac
 if [ -n "$ucode_pkg" ] && ! pacman -Q "$ucode_pkg" &>/dev/null; then
   substep "installing $ucode_pkg (CPU microcode) + regenerating GRUB"
   pac_install "$ucode_pkg"
-  best_effort sudo grub-mkconfig -o /boot/grub/grub.cfg   # GRUB auto-detects the ucode image
+  # timeout: os-prober (if installed via opt-in multi-boot) scans every disk/partition and can hang
+  # on a bad device — same cap modules/55-multiboot.sh already uses.
+  best_effort timeout 300 sudo grub-mkconfig -o /boot/grub/grub.cfg   # GRUB auto-detects the ucode image
 else
   ok "CPU microcode present (or unknown vendor) — skipping"
 fi

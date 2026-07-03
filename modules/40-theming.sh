@@ -62,7 +62,9 @@ if command -v grub-mkconfig >/dev/null 2>&1 && [ -d /boot/grub ]; then
     fi
     set_grub_key GRUB_THEME /boot/grub/themes/archfrican/theme.txt
     set_grub_key GRUB_GFXMODE auto
-    sudo grub-mkconfig -o /boot/grub/grub.cfg >/dev/null 2>&1 \
+    # timeout: os-prober (if installed via opt-in multi-boot) scans every disk/partition and can
+    # hang on a bad device — same cap modules/55-multiboot.sh already uses.
+    timeout 300 sudo grub-mkconfig -o /boot/grub/grub.cfg >/dev/null 2>&1 \
       || warn "grub-mkconfig failed — the current grub.cfg still boots; the theme applies on the next successful regen"
   ) || warn "GRUB theming skipped (non-fatal — the boot menu still works)"
 fi

@@ -50,7 +50,9 @@ pac_install_file "$REPO_ROOT/packages/base.txt"
 substep "installing the dual kernel: linux-cachyos (primary) + linux-lts (safety net)"
 pac_install linux-cachyos linux-cachyos-headers linux-lts linux-lts-headers
 substep "regenerating the GRUB config"
-sudo grub-mkconfig -o /boot/grub/grub.cfg
+# timeout: os-prober (if installed via opt-in multi-boot) scans every disk/partition and can hang
+# on a bad device — same cap modules/55-multiboot.sh already uses.
+timeout 300 sudo grub-mkconfig -o /boot/grub/grub.cfg
 warn "linux-lts stays in the GRUB menu. If a Cachy kernel ever misbehaves with"
 warn "your GPU, just boot LTS and keep working — nothing explodes."
 

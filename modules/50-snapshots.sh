@@ -51,7 +51,9 @@ resilient_enable grub-btrfsd.service
 resilient_enable snapper-timeline.timer
 resilient_enable snapper-cleanup.timer
 substep "regenerating the GRUB config (adds the snapshots submenu)"
-sudo grub-mkconfig -o /boot/grub/grub.cfg
+# timeout: os-prober (if installed via opt-in multi-boot) scans every disk/partition and can hang
+# on a bad device — same cap modules/55-multiboot.sh already uses.
+timeout 300 sudo grub-mkconfig -o /boot/grub/grub.cfg
 
 # Post-condition: claim success only if the config is real and usable.
 if sudo snapper -c root list &>/dev/null; then
