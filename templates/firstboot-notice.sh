@@ -15,8 +15,7 @@ __af_firstboot_notice() {
   elif systemctl is-active --quiet archfrican-resume.service 2>/dev/null \
     || systemctl is-enabled --quiet archfrican-resume.service 2>/dev/null; then
     printf '\n\033[1;36m==> Archfrican is installing your desktop in the background (~20-40 min).\033[0m\n'
-    printf '    Watch live:  journalctl -u archfrican-resume -f\n'
-    printf '    It will broadcast here when it is done; then reboot.\n'
+    printf '    This is expected to be the LAST reboot for the base desktop once it finishes.\n'
     if command -v systemd-detect-virt >/dev/null 2>&1 && systemd-detect-virt --quiet 2>/dev/null \
       && [ ! -e /dev/dri/renderD128 ]; then
       printf '    \033[1;33m[!] This VM has no 3D GPU -> the graphical desktop will be a black screen\033[0m\n'
@@ -31,7 +30,18 @@ __af_firstboot_notice() {
           printf '    \033[1;33m    enable virtio-gpu / 3D accel in your hypervisor.  Details: ~/.archfrican/tests/e2e/README.md\033[0m\n' ;;
       esac
     fi
-    printf '\n'
+    # Stream progress automatically instead of just telling the user to type a command — this IS
+    # the whole point of a login banner. Runs in the foreground (Ctrl+C stops watching, standard
+    # shell behavior; the install itself is a separate systemd unit and keeps running either way).
+    # The completion `wall` broadcast (lib/phase2.sh) writes straight to this tty, so it shows up
+    # inline here too — the user still needs one Ctrl+C once they see it, nothing more.
+    if [ -t 0 ] && [ -t 1 ] && command -v journalctl >/dev/null 2>&1; then
+      printf '    Showing live progress below (Ctrl+C hides it; the install keeps running):\n\n'
+      journalctl -f -u archfrican-resume --no-pager
+      printf '\n'
+    else
+      printf '    Watch live:  journalctl -u archfrican-resume -f\n\n'
+    fi
   fi
 }
 case "$-" in *i*) __af_firstboot_notice ;; esac    # interactive shells only
