@@ -153,6 +153,11 @@ timeout 5 gsettings set org.gnome.desktop.interface cursor-size         "$CURSOR
 
 # live reloads (no logout)
 pkill -SIGUSR2 waybar 2>/dev/null || true
-swaync-client --reload-css 2>/dev/null || true
+# -sw/--skip-wait: without it, swaync-client BLOCKS INDEFINITELY watching D-Bus for swaync's name
+# to appear (confirmed via its own --help / strings) if swaync isn't running yet — exactly the
+# headless first-boot resume case (no compositor, nothing ever started swaync). Every other
+# swaync-client call in this repo already carries -sw; this one was the odd one out. timeout 5
+# on top, same defense-in-depth as the gsettings fix, in case some future flag combo reintroduces a wait.
+timeout 5 swaync-client --reload-css -sw 2>/dev/null || true
 echo "$THEME" > "$CFG/.archfrican-theme"
 echo "switched to $THEME"
