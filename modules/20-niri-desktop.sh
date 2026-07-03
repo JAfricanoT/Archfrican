@@ -63,6 +63,15 @@ resilient_enable_user pipewire.socket
 resilient_enable_user pipewire-pulse.socket
 resilient_enable_user wireplumber.service
 
+# waybar via its OWN shipped systemd --user service (Restart=on-failure), not niri
+# spawn-at-startup — SIGUSR2 reload (theme-switch sends it on every theme change/converge) is a
+# long-standing, well-documented upstream GTK/waybar bug that can segfault the bar
+# (github.com/Alexays/Waybar/issues/2224, #1017, #3126, #307, #433, #3400 — not something we can
+# fix from this repo). Letting systemd own it means a crash auto-restarts the bar instead of
+# leaving it gone until the next login. Never spawn it from BOTH places — that races two instances.
+substep "enabling waybar (auto-restarts if it crashes — a known upstream reload bug)"
+resilient_enable_user waybar.service
+
 substep "configuring keyd (⌘+letter → Ctrl, macOS muscle memory)"
 write_system_file /etc/keyd/default.conf <<'KEYD'
 # Archfrican keyd map. Two layers split ⌘ cleanly between app shortcuts and the WM:
