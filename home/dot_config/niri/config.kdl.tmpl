@@ -157,7 +157,7 @@ binds {
     Mod+Q             { spawn "{{ .chezmoi.homeDir }}/.local/bin/archfrican-quit-app"; }   // ⌘+Q closes ALL windows of the app
     Mod+Shift+E       { quit; }                    // cerrar sesión de niri
     Mod+Shift+Slash   { show-hotkey-overlay; }      // resumen nativo de niri, sin buscador (compara con ⌘+Shift+K)
-    Mod+Shift+K       { spawn "{{ .chezmoi.homeDir }}/.local/bin/archfrican-keys"; }   // searchable key cheatsheet
+    Mod+Shift+K       { spawn "{{ .chezmoi.homeDir }}/.local/bin/archfrican-keys"; }   // atajos de teclado buscables (provider nativo de Walker)
 
     // nota: arriba/abajo caen a cambio de espacio en los extremos de una columna, igual que izquierda/derecha
     // Navegación entre columnas
@@ -233,14 +233,14 @@ binds {
     Mod+Shift+V { spawn "walker" "-m" "clipboard"; }   // historial de portapapeles (provider nativo de Walker)
 
     // Buscadores y paneles
-    Mod+Shift+A { spawn "{{ .chezmoi.homeDir }}/.local/bin/archfrican-actions"; }   // actions / settings hub
+    Mod+Shift+A { spawn "{{ .chezmoi.homeDir }}/.local/bin/archfrican-actions"; }   // acciones y ajustes (provider nativo de Walker)
     Mod+Shift+W { spawn "walker" "-m" "windows"; }    // selector de ventanas (provider nativo de Walker)
     Mod+Shift+C { spawn "walker" "-m" "calc"; }       // calculadora (provider nativo de Walker)
     Mod+Shift+G { spawn "walker" "-m" "files"; }      // buscar archivos (provider nativo de Walker)
 
     // Centro de control y diseño
     Mod+Shift+D { spawn "swaync-client" "-t" "-sw"; }   // toggle control center
-    Mod+Shift+T { spawn "{{ .chezmoi.homeDir }}/.local/bin/archfrican-layout"; }   // tiling layout picker
+    Mod+Shift+T { spawn "{{ .chezmoi.homeDir }}/.local/bin/archfrican-layout"; }   // layout de columnas/ventana (provider nativo de Walker)
 
     // Accesibilidad
     Mod+Alt+S { spawn "{{ .chezmoi.homeDir }}/.local/bin/archfrican-screenreader"; }   // activar/desactivar lector de pantalla Orca
