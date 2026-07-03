@@ -69,7 +69,18 @@ run_phase2() {                # run_phase2 [single-module]
 
   # Single-module shortcut: ./install.sh 30-dev   (or ./install.sh 55-multiboot yes — the 2nd
   # arg is forwarded to the module). Always re-runs it (FORCE), no wizard.
-  if [ $# -gt 0 ]; then FORCE=1 run_module "$1" "${2:-}"; ok "module '$1' done"; return 0; fi
+  if [ $# -gt 0 ]; then
+    FORCE=1 run_module "$1" "${2:-}"
+    # Re-sync the desired-state manifest here too — not just at the end of the full wizard run.
+    # Without this, a package installed via this shortcut (e.g. ./install.sh 55-multiboot yes)
+    # stays invisible to write_manifest/--prune until the next full run, and a --prune in between
+    # could offer to remove what was just installed. Detect the current opt-in from the live
+    # system, same probe UPDATE mode already uses below.
+    local _mb=no
+    grep -q '^GRUB_DISABLE_OS_PROBER=false' /etc/default/grub 2>/dev/null && _mb=yes
+    write_manifest "$_mb"
+    ok "module '$1' done"; return 0
+  fi
 
   pac_install pciutils
   local DETECTED_GPU; DETECTED_GPU="$(detect_gpu)"
