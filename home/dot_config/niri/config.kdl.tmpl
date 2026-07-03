@@ -240,6 +240,7 @@ binds {
 
     // Centro de control y diseño
     Mod+Shift+D { spawn "swaync-client" "-t" "-sw"; }   // toggle control center
+    Mod+Shift+H { spawn "pkill" "-SIGUSR1" "waybar"; }   // mostrar/ocultar waybar (SIGUSR1 = toggle nativo)
     Mod+Shift+T { spawn "{{ .chezmoi.homeDir }}/.local/bin/archfrican-layout"; }   // layout de columnas/ventana (provider nativo de Walker)
 
     // Accesibilidad
