@@ -30,8 +30,13 @@ supply chain** carry the highest blast radius and get extra scrutiny before merg
    (the ISO installer defaults to a dry-run preview), both disk gates (`confirm_wipe` retype + the arming
    opt-in), the FIDO2
    non-exclusive/no-lockout invariant (pam-u2f ≥ 1.3.1), the named-table-never-`flush ruleset` firewall,
-   and the fail-closed CachyOS signing-key fingerprint pin. The CI `iso-safety-gate` + `firewall-ruleset` jobs enforce two
-   of these mechanically.
+   the fail-closed CachyOS signing-key fingerprint pin, `ARCHFRICAN_DEEPCLEAN_ARMED` defaults to `0` (the
+   deep-clean wipe defaults to a dry-run preview, same pattern as `ARCHFRICAN_ISO_ARMED`), the subvolume
+   delete allowlist (`DEEPCLEAN_DELETE_SUBVOLS`) staying a fixed literal — never computed from a live `btrfs
+   subvolume list` — with `@home` never appearing in it, and deep-clean only ever operating at the
+   btrfs-subvolume level, never calling a full-disk reformat verb (`mkfs.btrfs`, `cryptsetup luksFormat`,
+   `wipefs`, `sgdisk`). The CI `iso-safety-gate` + `firewall-ruleset` + `deepclean-safety-gate` jobs enforce
+   several of these mechanically.
 
 ### Releases & versioning
 Semantic-ish tags (`vMAJOR.MINOR`). The commit history is the changelog until the first tagged release;
@@ -67,9 +72,14 @@ cadena de suministro** tienen el mayor radio de impacto y reciben escrutinio ext
 3. **Gates de seguridad intactos** — el PR no puede debilitar: `ARCHFRICAN_ISO_ARMED` por defecto `0` (el
    instalador ISO sale en preview por defecto), los dos gates de disco (`confirm_wipe` + el opt-in de
    armado), el invariante FIDO2
-   no-excluyente/sin-lockout (pam-u2f ≥ 1.3.1), el firewall de tabla-nombrada-nunca-`flush ruleset`, y el
-   pin de la huella de la clave de firma de CachyOS (fail-closed). Los jobs de CI `iso-safety-gate` + `firewall-ruleset` hacen cumplir
-   dos de estos mecánicamente.
+   no-excluyente/sin-lockout (pam-u2f ≥ 1.3.1), el firewall de tabla-nombrada-nunca-`flush ruleset`, el pin
+   de la huella de la clave de firma de CachyOS (fail-closed), `ARCHFRICAN_DEEPCLEAN_ARMED` por defecto `0`
+   (el deep-clean sale en preview por defecto, el mismo patrón que `ARCHFRICAN_ISO_ARMED`), que la lista
+   blanca de subvolúmenes a borrar (`DEEPCLEAN_DELETE_SUBVOLS`) siga siendo un literal fijo — nunca
+   calculado desde un `btrfs subvolume list` en vivo — y que `@home` nunca aparezca en ella, y que el
+   deep-clean solo opere al nivel de subvolumen btrfs, sin llamar jamás a un verbo de reformateo de disco
+   completo (`mkfs.btrfs`, `cryptsetup luksFormat`, `wipefs`, `sgdisk`). Los jobs de CI `iso-safety-gate` +
+   `firewall-ruleset` + `deepclean-safety-gate` hacen cumplir varios de estos mecánicamente.
 
 ### Releases y versionado
 Tags semánticos (`vMAYOR.MENOR`). El historial de commits es el changelog hasta el primer release; después,
