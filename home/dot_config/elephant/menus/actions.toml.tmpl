@@ -156,6 +156,11 @@ terminal = true
 actions = { run = "sh -c '{{ .chezmoi.homeDir }}/.archfrican/install.sh 65-gaming yes; printf \"(enter para cerrar) \"; read -r _'" }
 
 [[entries]]
+text = "Instalar Plasma (sesión de escritorio)…"
+terminal = true
+actions = { run = "sh -c '{{ .chezmoi.homeDir }}/.archfrican/install.sh 25-plasma-desktop yes; printf \"(enter para cerrar) \"; read -r _'" }
+
+[[entries]]
 text = "Continuidad (KDE Connect + LocalSend)…"
 actions = { run = "{{ .chezmoi.homeDir }}/.local/bin/archfrican-continuity" }
 

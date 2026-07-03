@@ -52,6 +52,7 @@ sel="$(printf '%s\n' \
   "Método de entrada / IME (CJK)…" \
   "Energía / batería (laptop)…" \
   "Instalar stack de gaming (Steam)…" \
+  "Instalar Plasma (sesión de escritorio)…" \
   "Continuidad (KDE Connect + LocalSend)…" \
   "Respaldo de ~ (Time Machine)…" \
   "Revertir actualización (rollback)…" \
@@ -115,6 +116,7 @@ case "$sel" in
   "Método de entrada"*)  "$B/archfrican-ime" ;;
   "Energía"*)            "$B/archfrican-power" ;;
   "Instalar stack de gaming"*) ghostty -e sh -c "$HOME/.archfrican/install.sh 65-gaming yes; printf '(enter para cerrar) '; read -r _" ;;
+  "Instalar Plasma"*)    ghostty -e sh -c "$HOME/.archfrican/install.sh 25-plasma-desktop yes; printf '(enter para cerrar) '; read -r _" ;;
   "Continuidad"*)        "$B/archfrican-continuity" ;;
   "Respaldo"*)           "$B/archfrican-backup" ;;
   "Revertir"*)           "$B/archfrican-rollback" ;;
