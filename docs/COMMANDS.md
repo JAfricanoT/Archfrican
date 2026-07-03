@@ -479,6 +479,7 @@ The installer itself can re-run individual modules.
 FORCE=1 ./install.sh          # redo everything regardless of .done stamps
 ./install.sh 55-multiboot yes  # pass an argument to an opt-in module
 ./install.sh 65-gaming yes     # enable gaming module
+./install.sh 25-plasma-desktop yes   # enable the Plasma desktop session (Windows-familiar, opt-in)
 ./install.sh --update          # convergence mode (same as archfrican-update --converge)
 ```
 

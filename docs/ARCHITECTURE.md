@@ -99,8 +99,8 @@ first boot
                          │           exit 3 = opted out (not an error)
                          │           writes new .done stamp on success
                          │
-                         │    00-base → 10-gpu → 20-niri-desktop → 30-dev → 35-apps
-                         │    → 40-theming → 45-print → 50-snapshots → 55-multiboot
+                         │    00-base → 10-gpu → 20-niri-desktop → 25-plasma-desktop → 30-dev
+                         │    → 35-apps → 40-theming → 45-print → 50-snapshots → 55-multiboot
                          │    → 60-security → 65-gaming → 70-hygiene
                          │
                          ├─ chezmoi apply     (dotfiles)
@@ -141,7 +141,7 @@ module_hash(<name>)
 - **Convergence updates**: `archfrican-update --run` re-runs only what changed in the pull
 - **Drift detection**: `archfrican-doctor` reads `.done` stamps without sudo to report drift
 
-**Opt-in modules** (55-multiboot, 65-gaming) use `exit 3` when the opt-in flag is not set.
+**Opt-in modules** (25-plasma-desktop, 55-multiboot, 65-gaming) use `exit 3` when the opt-in flag is not set.
 `run_module` treats exit 3 as "skipped by choice" — not an error, no `.done` stamp written.
 
 ---

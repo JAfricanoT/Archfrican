@@ -1,12 +1,12 @@
 # Archfrican — Module Reference
 
-Phase 2 installs the desktop and dev layer through 12 sequential modules. Each is
+Phase 2 installs the desktop and dev layer through 13 sequential modules. Each is
 content-addressed: it only re-runs when its input files (script + package lists + shared libs)
 change. Re-running a module manually is safe — all operations are idempotent.
 
 ```bash
 ./install.sh <module-name>        # re-run a single module
-./install.sh <module-name> yes    # pass opt-in argument (55-multiboot, 65-gaming)
+./install.sh <module-name> yes    # pass opt-in argument (25-plasma-desktop, 55-multiboot, 65-gaming)
 FORCE=1 ./install.sh              # ignore .done stamps, re-run everything
 ```
 
@@ -19,6 +19,7 @@ FORCE=1 ./install.sh              # ignore .done stamps, re-run everything
 | 00-base | Always | base-devel, zsh, snapper, paru | — |
 | 10-gpu | Always | mesa/nvidia/vulkan (auto-detected) | nvidia-suspend (if NVIDIA) |
 | 20-niri-desktop | Always | niri, ghostty, sddm, waybar, pipewire | sddm, NetworkManager, bluetooth |
+| 25-plasma-desktop | **Opt-in** | plasma-desktop, dolphin, plasma-nm, plasma-pa | — |
 | 30-dev | Always | code, rustup, go, docker, lazygit | docker |
 | 35-apps | Always | flatpak, gnome-software, rclone | — |
 | 40-theming | Always | WhiteSur GTK, SF Pro fonts | — |
@@ -128,6 +129,44 @@ Waybar panel, fuzzel launcher, PipeWire audio, Bluetooth, and all supporting eco
 | User sockets | `pipewire.socket`, `pipewire-pulse.socket`, `wireplumber.service` |
 
 **Re-run**: `./install.sh 20-niri-desktop`
+
+---
+
+## 25-plasma-desktop — Windows-familiar desktop session (opt-in)
+
+**Opt-in.** A MINIMAL KDE Plasma Wayland session, selectable at SDDM login alongside niri —
+for people migrating from Windows who find niri's scrolling-tiling model unfamiliar. niri is
+never touched: this is a genuinely parallel session, not a replacement.
+
+**Enable during install**: Phase 2 wizard asks (defaults to no).
+**Enable post-install**: `./install.sh 25-plasma-desktop yes`
+
+**Packages**
+
+From `packages/plasma-desktop.txt`: `plasma-desktop` (pulls `plasma-workspace`, which brings
+`kwin` + `kde-cli-tools` + `kconfig` along as dependencies), `dolphin` (file manager — not
+auto-pulled), `plasma-nm` (network applet), `plasma-pa` (audio applet),
+`xdg-desktop-portal-kde` (screencast/file-picker portals under Wayland). Deliberately excludes
+Konsole, Kate, and Discover — Plasma reuses ghostty (terminal) and gnome-software (app store),
+already installed by other modules.
+
+**What it does**
+
+1. Installs the package list above (never the whole `plasma` group — that pulls in Discover
+   and other extras this setup intentionally skips).
+2. Confirms the SDDM Wayland session file landed under `/usr/share/wayland-sessions/`.
+3. Paints Plasma's color scheme, icon theme, cursor theme, and fonts from the currently active
+   Archfrican theme (best-effort — `bin/theme-switch` keeps it in sync on every later switch).
+
+**Inside Plasma**: menu, taskbar, and window management are 100% native Plasma (Kickoff, KWin)
+— Archfrican doesn't inject niri's macOS-style keybinds or launcher there. Familiarity with
+Windows depends on Plasma's own components, not Archfrican's.
+
+**Known limitation**: `keyd` remaps `⌘+L`/`⌘+R` → `Ctrl+L`/`Ctrl+R` system-wide (not
+niri-specific), so Win+L (lock) and Win+R (run) won't behave as a Windows user expects inside
+Plasma. Fixing this needs `keyd` to be session-aware — out of scope for this module.
+
+**Re-run**: `./install.sh 25-plasma-desktop yes`
 
 ---
 
