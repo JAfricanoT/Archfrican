@@ -13,9 +13,10 @@
 # │ opt-in — set the env var; never committed as 1. No env ⇒ dry-run.             │
 # │                                                                                │
 # │ Deliberately NAMESPACED away from lib/base-install.sh's run()/run_pipe()/     │
-# │ probe()/AF_GO: every lib/*.sh file is sourced into the SAME shell by          │
-# │ install.sh (see install.sh's helper-loading block), so reusing those generic  │
-# │ names would mean an ISO install's AF_GO=1 (armed via ARCHFRICAN_ISO_ARMED)    │
+# │ probe()/AF_GO: once a later phase wires this file into install.sh's           │
+# │ helper-loading block, it will share a shell with every other lib/*.sh file    │
+# │ install.sh sources — so reusing those generic names would mean an ISO         │
+# │ install's AF_GO=1 (armed via ARCHFRICAN_ISO_ARMED)                            │
 # │ would ALSO arm deep-clean's destructive subvolume ops — two independent       │
 # │ gates would silently collapse into one. dc_run/dc_run_pipe/dc_probe/DC_GO/    │
 # │ ARCHFRICAN_DEEPCLEAN_ARMED share no name with base-install.sh's equivalents,  │
