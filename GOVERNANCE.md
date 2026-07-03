@@ -33,7 +33,9 @@ supply chain** carry the highest blast radius and get extra scrutiny before merg
    the fail-closed CachyOS signing-key fingerprint pin, `ARCHFRICAN_DEEPCLEAN_ARMED` defaults to `0` (the
    deep-clean wipe defaults to a dry-run preview, same pattern as `ARCHFRICAN_ISO_ARMED`), the subvolume
    delete allowlist (`DEEPCLEAN_DELETE_SUBVOLS`) staying a fixed literal — never computed from a live `btrfs
-   subvolume list` — with `@home` never appearing in it, and deep-clean only ever operating at the
+   subvolume list` — with `@home` never appearing in it, enforced both by the literal itself and by a
+   runtime `die` guard (`dc_guard_allowlist`, called at the top of `run_deep_clean` and again inside
+   `dc_wipe_subvolumes`), and deep-clean only ever operating at the
    btrfs-subvolume level, never calling a full-disk reformat verb (`mkfs.btrfs`, `cryptsetup luksFormat`,
    `wipefs`, `sgdisk`). The CI `iso-safety-gate` + `firewall-ruleset` + `deepclean-safety-gate` jobs enforce
    several of these mechanically.
@@ -76,7 +78,9 @@ cadena de suministro** tienen el mayor radio de impacto y reciben escrutinio ext
    de la huella de la clave de firma de CachyOS (fail-closed), `ARCHFRICAN_DEEPCLEAN_ARMED` por defecto `0`
    (el deep-clean sale en preview por defecto, el mismo patrón que `ARCHFRICAN_ISO_ARMED`), que la lista
    blanca de subvolúmenes a borrar (`DEEPCLEAN_DELETE_SUBVOLS`) siga siendo un literal fijo — nunca
-   calculado desde un `btrfs subvolume list` en vivo — y que `@home` nunca aparezca en ella, y que el
+   calculado desde un `btrfs subvolume list` en vivo — y que `@home` nunca aparezca en ella, reforzado tanto
+   por el propio literal como por un guardián `die` en tiempo de ejecución (`dc_guard_allowlist`, invocado al
+   inicio de `run_deep_clean` y de nuevo dentro de `dc_wipe_subvolumes`), y que el
    deep-clean solo opere al nivel de subvolumen btrfs, sin llamar jamás a un verbo de reformateo de disco
    completo (`mkfs.btrfs`, `cryptsetup luksFormat`, `wipefs`, `sgdisk`). Los jobs de CI `iso-safety-gate` +
    `firewall-ruleset` + `deepclean-safety-gate` hacen cumplir varios de estos mecánicamente.
