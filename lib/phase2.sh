@@ -209,6 +209,13 @@ run_phase2() {                # run_phase2 [single-module]
 
   step "Final checks" "verifying every app launcher resolves to a package"
   current_module="verify-spawns"
+  # Hard gate, separate from verify_spawns below: that function treats a missing/unreadable config
+  # as a soft warning (it exists to check spawned BINARIES, not to confirm chezmoi's own output), so
+  # a chezmoi run that reports success without actually placing config.kdl would otherwise sail
+  # through to "Done" with the desktop still on niri's stock defaults. Fail loudly here instead —
+  # ExecStart then exits nonzero, so resume-guard.sh retries on the next boot instead of masking it.
+  [ -r "$HOME/.config/niri/config.kdl" ] \
+    || die "dotfiles did not deploy: $HOME/.config/niri/config.kdl is missing after chezmoi apply. Retry: chezmoi init --apply --force --source $REPO_ROOT/home"
   # Check the chezmoi-RENDERED config (templates + absolute paths resolved), not the source.
   verify_spawns "$HOME/.config/niri/config.kdl"
   current_module=""
