@@ -12,7 +12,7 @@
 # Where run_module writes the per-module stamps (matches lib/phase2.sh::PHASE2_STATE).
 ARCHFRICAN_PHASE2_STATE="${XDG_STATE_HOME:-$HOME/.local/state}/archfrican"
 # Every module the orchestrator knows, in order (for drift scanning).
-ARCHFRICAN_MODULES="00-base 10-gpu 20-niri-desktop 30-dev 35-apps 40-theming 45-print 50-snapshots 55-multiboot 60-security 65-gaming 70-hygiene"
+ARCHFRICAN_MODULES="00-base 10-gpu 20-niri-desktop 25-plasma-desktop 30-dev 35-apps 40-theming 45-print 50-snapshots 55-multiboot 60-security 65-gaming 70-hygiene"
 
 # Repo-relative files whose content defines <name>'s desired state. lib/common.sh is shared by
 # all (a change to it can affect any module); the script + its package list(s) are module-specific.
@@ -25,6 +25,7 @@ module_inputs() {                 # module_inputs <name>
     # bin/theme-switch is seen by drift detection and re-converges the rendered theme (audit H1/M1).
     # module_hash tree-hashes a directory, so the bare dir names cover every file + stay future-proof.
     20-niri-desktop) printf ' packages/niri-desktop.txt templates/sddm.theme.conf assets/sddm/archfrican themes' ;;
+    25-plasma-desktop) printf ' packages/plasma-desktop.txt' ;;
     30-dev)          printf ' packages/dev.txt' ;;
     35-apps)         printf ' packages/apps.txt flatpak/apps.txt' ;;
     40-theming)      printf ' packages/theming.txt packages/aur.txt bin/theme-switch themes templates' ;;

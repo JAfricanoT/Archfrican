@@ -23,6 +23,7 @@ on_err() {
 
 module_label() { case "$1" in
   00-base) echo "Base system";; 10-gpu) echo "GPU drivers";; 20-niri-desktop) echo "Desktop (niri)";;
+  25-plasma-desktop) echo "Plasma desktop";;
   30-dev) echo "Dev toolchains";; 35-apps) echo "Apps & Flatpak";; 40-theming) echo "Theming";;
   45-print) echo "Printing & scanning";; 50-snapshots) echo "Snapshots";;
   55-multiboot) echo "Multi-boot";; 60-security) echo "Security";; 65-gaming) echo "Gaming";; 70-hygiene) echo "Hygiene";;
@@ -31,6 +32,7 @@ module_desc() { case "$1" in
   00-base) echo "CachyOS repos, dual kernel (cachyos + lts), paru";;
   10-gpu) echo "vendor-agnostic drivers for the detected GPU";;
   20-niri-desktop) echo "compositor, SDDM login, keyd, audio";;
+  25-plasma-desktop) echo "KDE Plasma, a second Windows-familiar desktop session (opt-in)";;
   30-dev) echo "editors, language servers, version managers, docker";;
   35-apps) echo "Flatpak + Flathub, software center, cloud/SMB";;
   40-theming) echo "fonts, macOS GTK theme, hot-swap switcher";;
@@ -72,13 +74,14 @@ run_phase2() {                # run_phase2 [single-module]
   if [ $# -gt 0 ]; then
     FORCE=1 run_module "$1" "${2:-}"
     # Re-sync the desired-state manifest here too — not just at the end of the full wizard run.
-    # Without this, a package installed via this shortcut (e.g. ./install.sh 55-multiboot yes)
+    # Without this, a package installed via this shortcut (e.g. ./install.sh 25-plasma-desktop yes)
     # stays invisible to write_manifest/--prune until the next full run, and a --prune in between
-    # could offer to remove what was just installed. Detect the current opt-in from the live
-    # system, same probe UPDATE mode already uses below.
-    local _mb=no
+    # could offer to remove what was just installed. Detect current opt-ins from the live system,
+    # same probes UPDATE mode already uses below.
+    local _mb=no _pl=no
     grep -q '^GRUB_DISABLE_OS_PROBER=false' /etc/default/grub 2>/dev/null && _mb=yes
-    write_manifest "$_mb"
+    pacman -Q plasma-desktop &>/dev/null && _pl=yes
+    write_manifest "$_mb" "$_pl"
     ok "module '$1' done"; return 0
   fi
 
@@ -86,7 +89,7 @@ run_phase2() {                # run_phase2 [single-module]
   local DETECTED_GPU; DETECTED_GPU="$(detect_gpu)"
 
   # ---- defaults from live system (also the non-interactive fallback) --------
-  local HOST USER_NAME USER_PW TZ LOCALE XKB THEME GPU MULTIBOOT=no SSH_ENABLE=no GAMING=no
+  local HOST USER_NAME USER_PW TZ LOCALE XKB THEME GPU MULTIBOOT=no SSH_ENABLE=no GAMING=no PLASMA=no
   HOST="$(hostnamectl --static 2>/dev/null || echo archfrican)"
   USER_NAME="$USER"; USER_PW=""
   TZ="$(timedatectl show -p Timezone --value 2>/dev/null || echo America/New_York)"
@@ -127,6 +130,11 @@ run_phase2() {                # run_phase2 [single-module]
     if ui_confirm_default_no "Install the gaming stack (Steam, gamescope, Proton-GE)?"; then
       GAMING=yes
     fi
+    # Plasma desktop (opt-in, default NO): a second, Windows-familiar session at SDDM login,
+    # in parallel to niri — native Plasma keybinds/launcher, nothing of niri's touched.
+    if ui_confirm_default_no "Install KDE Plasma as an additional desktop session (Windows-familiar, opt-in)?"; then
+      PLASMA=yes
+    fi
     # FIDO2 physical-key mode (opt-in; needs a plugged key). Enroll the touch(es) now;
     # modules/60-security.sh wires PAM. Non-exclusive: your password ALWAYS still works.
     if ui_confirm "Enable a hardware security key? (touch = sudo/login; password still works)"; then
@@ -161,6 +169,7 @@ run_phase2() {                # run_phase2 [single-module]
     systemctl is-enabled --quiet sshd.service 2>/dev/null && SSH_ENABLE=yes
     grep -q '^GRUB_DISABLE_OS_PROBER=false' /etc/default/grub 2>/dev/null && MULTIBOOT=yes
     pacman -Q steam &>/dev/null && GAMING=yes
+    pacman -Q plasma-desktop &>/dev/null && PLASMA=yes
   fi
   log "GPU profile: $GPU"
 
@@ -168,7 +177,7 @@ run_phase2() {                # run_phase2 [single-module]
   # Update/converge skips the "Applying your choices" step below (identity is set once, at
   # install) — one step() call fewer than a fresh install, so the total must match or the
   # banner can never reach its own total (stuck at [14/15] forever).
-  if [ "$UPDATE" = 1 ]; then step_total 14; else step_total 15; fi
+  if [ "$UPDATE" = 1 ]; then step_total 15; else step_total 16; fi
 
   # ---- apply host/user BEFORE the modules (idempotent) ----------------------
   # Update/converge skips identity: hostname/user/tz/locale/theme are set ONCE at install, and
@@ -193,6 +202,7 @@ run_phase2() {                # run_phase2 [single-module]
   ensure_login_shell "$USER_NAME"   # zsh exists now (base.txt) — make the resume's pre-created bash user use it
   run_module 10-gpu "$GPU"
   run_module 20-niri-desktop
+  run_module 25-plasma-desktop "$PLASMA"
   run_module 30-dev
   run_module 35-apps
   run_module 40-theming
@@ -243,7 +253,7 @@ run_phase2() {                # run_phase2 [single-module]
 
   # Record the desired-state manifest (drives drift detection + safe `--prune`). Done on every run so
   # a fresh install also has a baseline; opt-ins (multiboot) are reflected so prune respects them.
-  write_manifest "$MULTIBOOT"
+  write_manifest "$MULTIBOOT" "$PLASMA"
   # Fresh install (incl. the ISO first-boot resume): stamp the migration version current so the new
   # machine never re-runs historical migrations. In update mode archfrican-update already ran them.
   [ "$UPDATE" = 1 ] || mig_mark_latest

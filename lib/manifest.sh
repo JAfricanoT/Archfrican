@@ -17,21 +17,22 @@ ARCHFRICAN_MANAGED="$ARCHFRICAN_STATE_DIR/managed.txt"
 # The package lists that apply, given the run's opt-in choices. The always-on layers plus the
 # opt-in ones only when enabled. (GPU/snapshots/hygiene declare no list — their packages are
 # computed and intentionally NOT prune-managed, so a needed driver is never a removal candidate.)
-_manifest_lists() {               # _manifest_lists <multiboot yes|no>
+_manifest_lists() {               # _manifest_lists <multiboot yes|no> <plasma yes|no>
   printf '%s\n' base niri-desktop dev theming security aur
   [ "${1:-no}" = yes ] && printf '%s\n' multiboot
+  [ "${2:-no}" = yes ] && printf '%s\n' plasma-desktop
 }
 
 # Write manifest.txt (current desired set) + fold it into managed.txt (cumulative). Called at the
 # end of every converge so drift/prune always reflect the latest applied state.
-write_manifest() {                # write_manifest <multiboot yes|no>
-  local mb="${1:-no}" l pkgs tmp
+write_manifest() {                # write_manifest <multiboot yes|no> <plasma yes|no>
+  local mb="${1:-no}" plasma="${2:-no}" l pkgs tmp
   tmp="$(mktemp)"
   while IFS= read -r l; do
     [ -r "$REPO_ROOT/packages/$l.txt" ] || continue
     read_pkg_list "$REPO_ROOT/packages/$l.txt" pkgs
     printf '%s\n' "${pkgs[@]}"
-  done < <(_manifest_lists "$mb") | LC_ALL=C sort -u > "$tmp"
+  done < <(_manifest_lists "$mb" "$plasma") | LC_ALL=C sort -u > "$tmp"
   sudo install -d -m 0755 "$ARCHFRICAN_STATE_DIR"
   sudo install -m 0644 "$tmp" "$ARCHFRICAN_MANIFEST"
   # managed.txt must be world-readable: prune_candidates reads it WITHOUT sudo. Write it with an

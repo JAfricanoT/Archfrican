@@ -49,7 +49,24 @@ write_manifest no >/dev/null 2>&1
 if grep -qxF 'old-package' "$ARCHFRICAN_STATE_DIR/managed.txt"; then _ok "managed.txt stays cumulative (old entry preserved)"; else _no "managed.txt lost a previously-managed package"; fi
 if grep -qxF 'git' "$ARCHFRICAN_STATE_DIR/managed.txt"; then _ok "managed.txt includes the current manifest's packages"; else _no "managed.txt missing a current package"; fi
 
-# ---- 3. prune_candidates: comm must run under LC_ALL=C, not just its inputs -----------------------
+# ---- 3. write_manifest's 2nd (plasma) param: opt-in package list included only when yes -----------
+printf 'plasma-desktop\ndolphin\n' > "$WORK/repo/packages/plasma-desktop.txt"
+rm -rf "$ARCHFRICAN_STATE_DIR"
+write_manifest no >/dev/null 2>&1                 # 1-arg call (as tests above + the pre-2nd-param
+                                                   # call site used) must still default plasma to "no"
+if grep -qxF 'plasma-desktop' "$ARCHFRICAN_STATE_DIR/manifest.txt"; then
+  _no "1-arg write_manifest wrongly included plasma-desktop (2nd param should default to no)"
+else
+  _ok "1-arg write_manifest omits plasma-desktop (backward-compatible default)"
+fi
+write_manifest no yes >/dev/null 2>&1
+if grep -qxF 'plasma-desktop' "$ARCHFRICAN_STATE_DIR/manifest.txt" && grep -qxF 'dolphin' "$ARCHFRICAN_STATE_DIR/manifest.txt"; then
+  _ok "write_manifest no yes includes plasma-desktop's packages in manifest.txt"
+else
+  _no "write_manifest no yes did NOT include plasma-desktop's packages"
+fi
+
+# ---- 4. prune_candidates: comm must run under LC_ALL=C, not just its inputs -----------------------
 # Fixture proven to actually flip order between C (byte value: 'Z' < 'a') and en_US.UTF-8 (case-folded:
 # 'a' < 'Z') collation — under the bug this makes comm misparse the stream and WRONGLY include "apple"
 # (a package that's still desired) as a prune candidate, i.e. a false candidate for removal.

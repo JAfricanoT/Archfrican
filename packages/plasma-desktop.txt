@@ -1,0 +1,18 @@
+# KDE Plasma desktop session (opt-in; installed by modules/25-plasma-desktop.sh). A MINIMAL Wayland
+# Plasma shell selectable at SDDM login alongside niri — native keybinds/launcher/window management,
+# no Archfrican conventions injected (Windows-familiarity depends on Plasma's OWN components, not
+# ours). Never install via `pacman -S plasma` (the ~75-pkg group pulls Discover/Konsole-adjacent
+# extras) — every package below is listed individually on purpose.
+plasma-desktop           # the shell: Wayland session, panel, Kickoff start menu, window management.
+                         # pulls plasma-workspace (dependency), which brings kwin + kde-cli-tools +
+                         # kconfig (kwriteconfig6/kreadconfig6) along for free — none listed below.
+dolphin                  # file manager — in the kde-applications/kde-system groups, not the plasma
+                         # group; confirmed NOT auto-pulled by plasma-desktop, must be explicit.
+plasma-nm                # native NetworkManager applet for the Plasma panel
+plasma-pa                # native PipeWire/PulseAudio volume applet for the Plasma panel
+xdg-desktop-portal-kde   # correct screencast + file-picker portals under Wayland (KDE-native)
+#
+# Deliberately excluded — reuse what Archfrican already installs instead of duplicating:
+#   konsole   -> ghostty stays the default terminal
+#   kate      -> no bundled editor duplicated inside Plasma
+#   discover  -> gnome-software (already installed) is reused as the app store
