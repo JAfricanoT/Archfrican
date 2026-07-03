@@ -62,6 +62,22 @@ jobs:
             || { echo "::error::lib/base-install.sh must DEFAULT ARCHFRICAN_ISO_ARMED to 0 (env-overridable; never hardcode =1) — docs/STAGE2-VALIDATION.md"; exit 1; }
           echo "iso-safety: installer defaults to dry-run (real install is a runtime opt-in)"
 
+  deepclean-safety-gate:
+    runs-on: ubuntu-latest        # the wipe of deep-clean must ship DISABLED and never reformat
+    steps:
+      - uses: actions/checkout@v4
+      - name: deep-clean defaults to dry-run + never reformats (subvolume-only)
+        run: |
+          set -euo pipefail
+          grep -qE '^ARCHFRICAN_DEEPCLEAN_ARMED="\$\{ARCHFRICAN_DEEPCLEAN_ARMED:-0\}"$' lib/deep-clean.sh \
+            || { echo "::error::lib/deep-clean.sh must DEFAULT ARCHFRICAN_DEEPCLEAN_ARMED to 0 (env-overridable; never hardcode =1)"; exit 1; }
+          grep -qF 'DEEPCLEAN_DELETE_SUBVOLS=(@ @log @pkg @.snapshots)' lib/deep-clean.sh \
+            || { echo "::error::lib/deep-clean.sh must define the FIXED subvolume delete allowlist verbatim (never computed)"; exit 1; }
+          if grep -qE 'mkfs\.btrfs|cryptsetup luksFormat|wipefs|sgdisk' lib/deep-clean.sh; then
+            echo "::error::lib/deep-clean.sh must NEVER reformat — found a full-disk-wipe verb (mkfs.btrfs/luksFormat/wipefs/sgdisk)"; exit 1
+          fi
+          echo "deepclean-safety: dry-run default OK, fixed allowlist OK, no full-disk-wipe verbs"
+
   migrations-idempotent:
     runs-on: ubuntu-latest        # the converge update path: migrations must be fresh-safe + idempotent
     steps:
@@ -311,6 +327,8 @@ jobs:
         run: sudo apt-get update -qq && sudo apt-get install -y -qq jq && bash tests/unit/displays.sh
       - name: manifest — write_manifest fresh-state + prune_candidates locale robustness
         run: bash tests/unit/manifest.sh
+      - name: deep-clean allowlist — fixed, never computed; @home guard; dry-run-by-default
+        run: bash tests/unit/deep-clean.sh
 
   keyd-config:
     runs-on: ubuntu-latest        # keyd is AUR (not in CI repos); validate the ⌘→Ctrl map STRUCTURALLY
