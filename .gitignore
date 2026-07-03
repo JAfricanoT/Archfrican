@@ -3,5 +3,7 @@ tests/e2e/answers.env
 *.log
 *.zip
 .DS_Store
-out/                  # built ISOs (build-iso.sh output)
-.claude/              # Claude Code worktrees/session state (harness-managed, not repo content)
+# built ISOs (build-iso.sh output)
+out/
+# Claude Code worktrees/session state (harness-managed, not repo content)
+.claude/
