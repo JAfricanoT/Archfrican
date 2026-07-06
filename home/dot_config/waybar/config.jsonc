@@ -9,13 +9,20 @@
   "modules-left": ["niri/workspaces", "niri/window"],
   // center island: weather pill (left) + clock anchor (right)
   "modules-center": ["custom/weather", "clock"],
-  "modules-right": [
-    "custom/privacy",
-    "pulseaudio", "bluetooth", "custom/connectivity", "network",
-    "cpu", "memory", "disk",
-    "power-profiles-daemon", "battery",
-    "custom/caffeine", "custom/health", "custom/notification", "tray"
-  ],
+  "modules-right": ["pulseaudio", "group/system", "group/connectivity", "group/status"],
+
+  "group/system": {
+    "orientation": "horizontal",
+    "modules": ["cpu", "memory", "disk", "power-profiles-daemon", "battery"]
+  },
+  "group/connectivity": {
+    "orientation": "horizontal",
+    "modules": ["network", "bluetooth", "custom/connectivity"]
+  },
+  "group/status": {
+    "orientation": "horizontal",
+    "modules": ["custom/health", "custom/notification", "custom/caffeine", "custom/privacy", "tray"]
+  },
 
   "niri/workspaces": { "format": "{icon}" },
 
@@ -123,8 +130,10 @@
   },
 
   "pulseaudio": {
-    "format": "{icon}  {volume}%",
+    "format": "{icon}",
+    "format-muted": "",
     "format-icons": { "default": ["", "", ""] },
+    "tooltip-format": "{volume}% — {desc}",
     "on-click": "pavucontrol"
   },
   "tray": { "spacing": 8 }
