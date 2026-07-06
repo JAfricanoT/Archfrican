@@ -89,11 +89,17 @@ Nuevo módulo en `home/dot_config/waybar/config.jsonc`, agregado al final de `mo
 
 ```jsonc
 "custom/power": {
-  "format": "",
+  "format": "<nf-fa-power-off, U+F011>",
   "tooltip-format": "Energía / sistema",
   "on-click": "$HOME/.local/bin/archfrican-actions"
 }
 ```
+
+`<nf-fa-power-off, U+F011>` es un marcador de este documento, no literal: el glyph real es un
+carácter de Área de Uso Privado (Font Awesome) que no sobrevive de forma confiable si se retipea a
+mano — la primera vez que se escribió este spec, el carácter se perdió y el `format` quedó vacío
+(bug ya corregido acá). El icono debe generarse con bytes verificados, no tipeado directo — ver
+la Tarea de waybar en el plan de implementación para el comando exacto.
 
 Sin `interval`/`exec` — es un botón estático (icono fijo), no un módulo con estado que haga
 polling, igual que otros botones de acción pura ya en el bar (aunque hoy todos los `custom/*`
