@@ -29,6 +29,8 @@ lazygit
 github-cli                 # gh — used by archfrican-git to log in + upload the SSH key to GitHub
 docker
 docker-compose
+postgresql             # psql/pg_dump/createdb/etc. — Arch bundles client+server in one package;
+                       # this repo never enables postgresql.service, so it's client-only in practice
 # lazydocker             # TUI for docker/compose — now in [extra]; or pick via archfrican-defaults
 direnv
 starship

@@ -183,6 +183,8 @@ Plasma. Fixing this needs `keyd` to be session-aware — out of scope for this m
 - **Language servers**: `gopls`, `rust-analyzer`, `pyright`, `ruff`, `typescript-language-server`, `clang`, `lldb`
 - **CLI tools**: `ripgrep`, `fd`, `fzf`, `bat`, `eza`, `zoxide`, `jq`, `lazygit`, `github-cli`, `direnv`, `starship`
 - **Containers**: `docker`, `docker-compose`
+- **Database clients**: `postgresql` (`psql`/`pg_dump`/etc. — Arch bundles client+server in one
+  package; `postgresql.service` is never enabled by this repo, so it's client-only in practice)
 
 **What it does after package install**
 
