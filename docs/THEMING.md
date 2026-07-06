@@ -53,6 +53,9 @@ archfrican-wallpaper /path/to/photo.jpg     # apply image + extract palette
 archfrican-wallpaper                        # interactive path prompt
 ```
 
+The command ships with five curated Archfrican wallpapers pre-installed in `/usr/share/backgrounds/archfrican/` 
+and selectable from the picker out of the box, alongside custom images from your Pictures/Downloads folders.
+
 The process:
 1. Sets the wallpaper via awww
 2. Extracts a Material You palette from the image (matugen)

@@ -125,6 +125,7 @@ Waybar panel, fuzzel launcher, PipeWire audio, Bluetooth, and all supporting eco
 | `/etc/keyd/default.conf` | macOS-style keyboard: `Meta` → `Ctrl`, `Meta+Shift` → `Ctrl+Shift` |
 | `/etc/bluetooth/main.conf.d/10-archfrican.conf` | Bluetooth auto-power-on |
 | `~/.config/code-flags.conf` | VS Code Wayland native rendering |
+| `/usr/share/backgrounds/archfrican/` | Curated Archfrican wallpapers (pickable in the install wizard) |
 | Services enabled | `sddm`, `NetworkManager`, `bluetooth`, `power-profiles-daemon`, `keyd` |
 | User sockets | `pipewire.socket`, `pipewire-pulse.socket`, `wireplumber.service` |
 
@@ -235,6 +236,7 @@ wires up the `theme-switch` binary.
 - `gsettings` → `font-name = "SF Pro Display 11"`, `monospace-font-name = "SF Mono 11"`
 - `gsettings` → `color-scheme = prefer-dark`
 - Runs `theme-switch` with the theme selected in the wizard (stored in `~/.config/.archfrican-theme`)
+- Applies the wallpaper selected in the wizard via `archfrican-wallpaper` (five curated options available out of the box)
 - Sets cohesion on (VS Code + web-app theme injection); user can toggle with `archfrican-cohesion off`
 
 See [docs/THEMING.md](THEMING.md) for the full theming guide.

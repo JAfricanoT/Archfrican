@@ -277,7 +277,8 @@ Sends a desktop notification on each toggle.
 
 Set a wallpaper and re-tint the entire shell palette from its colors using
 Material You (matugen). The generated palette is user state — it never causes
-convergence drift.
+convergence drift. Five curated Archfrican wallpapers ship on-disk in 
+`/usr/share/backgrounds/archfrican/` and are immediately pickable out of the box.
 
 ```
 archfrican-wallpaper [/path/to/image.jpg]
@@ -285,7 +286,7 @@ archfrican-wallpaper [/path/to/image.jpg]
 
 | Arg | Behavior |
 |-----|----------|
-| *(no args)* | Interactive image picker via fuzzel |
+| *(no args)* | Interactive image picker via fuzzel (shows bundled wallpapers + user images) |
 | `<path>` | Apply image directly |
 
 **Process**: sets wallpaper (awww) → extracts palette (matugen) → writes
