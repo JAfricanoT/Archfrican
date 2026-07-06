@@ -89,7 +89,7 @@ run_phase2() {                # run_phase2 [single-module]
   local DETECTED_GPU; DETECTED_GPU="$(detect_gpu)"
 
   # ---- defaults from live system (also the non-interactive fallback) --------
-  local HOST USER_NAME USER_PW TZ LOCALE XKB THEME GPU MULTIBOOT=no SSH_ENABLE=no GAMING=no PLASMA=no
+  local HOST USER_NAME USER_PW TZ LOCALE XKB THEME GPU MULTIBOOT=no SSH_ENABLE=no GAMING=no PLASMA=no WALLPAPER=none
   HOST="$(hostnamectl --static 2>/dev/null || echo archfrican)"
   USER_NAME="$USER"; USER_PW=""
   TZ="$(timedatectl show -p Timezone --value 2>/dev/null || echo America/New_York)"
@@ -110,6 +110,7 @@ run_phase2() {                # run_phase2 [single-module]
     LOCALE="$(ui_input 'Locale (LANG)' "$LOCALE")"
     XKB="$(ui_input 'Keyboard layout (xkb: us, latam, es, ...)' "$XKB")"
     THEME="$(ui_choose 'Initial theme' archfrican-dark archfrican-light catppuccin-mocha tokyo-night high-contrast)"
+    WALLPAPER="$(ui_choose 'Wallpaper' none Blue Cross Cube CubeTwo Curve)"
     GPU="${ARCHFRICAN_GPU:-$DETECTED_GPU}"   # auto-detected; the installer picks the driver (no mis-pick)
     ui_note "GPU: $GPU (auto-detectada — el instalador elige el driver. Override: ARCHFRICAN_GPU=vm|nvidia|amd|intel)"
     # Multi-boot: enable os-prober so an already-installed OS shows up in the GRUB menu (keeps the
@@ -192,7 +193,13 @@ run_phase2() {                # run_phase2 [single-module]
     mkdir -p "$HOME/.config"
     printf '%s\n' "$THEME" > "$HOME/.config/.archfrican-theme"   # chezmoi run_after applies it last
     printf '%s\n' "$XKB"   > "$HOME/.config/.archfrican-kbd"     # niri config.kdl template reads it
-    ok "staged theme=$THEME, niri keyboard=$XKB"
+    # Wallpaper (opt-in, default "none" = keep the solid-color fallback exactly as before). Written
+    # to the SAME file archfrican-wallpaper-restore already reads at every login -- no new mechanism.
+    if [ "$WALLPAPER" != none ]; then
+      mkdir -p "$HOME/.config/archfrican"
+      printf '%s\n' "/usr/share/backgrounds/archfrican/Archfrican-$WALLPAPER.jpg" > "$HOME/.config/archfrican/wallpaper"
+    fi
+    ok "staged theme=$THEME, niri keyboard=$XKB, wallpaper=$WALLPAPER"
   fi
 
   # ---- the existing phase-2 orchestration (resumable via .done checkpoints) --
