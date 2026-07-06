@@ -7,3 +7,4 @@ tests/e2e/answers.env
 out/
 # Claude Code worktrees/session state (harness-managed, not repo content)
 .claude/
+.superpowers/
