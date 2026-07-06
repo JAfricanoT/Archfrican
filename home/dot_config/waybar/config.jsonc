@@ -9,7 +9,7 @@
   "modules-left": ["niri/workspaces", "niri/window"],
   // center island: weather pill (left) + clock anchor (right)
   "modules-center": ["custom/weather", "clock"],
-  "modules-right": ["pulseaudio", "group/system", "group/connectivity", "group/status"],
+  "modules-right": ["pulseaudio", "group/system", "group/connectivity", "group/status", "custom/power"],
 
   "group/system": {
     "orientation": "horizontal",
@@ -136,5 +136,11 @@
     "tooltip-format": "{volume}% — {desc}",
     "on-click": "pavucontrol"
   },
-  "tray": { "spacing": 8 }
+  "tray": { "spacing": 8 },
+  // power/system menu — nf-fa-power-off, U+F011 (see docs/superpowers/specs/2026-07-06-waybar-power-menu-design.md)
+  "custom/power": {
+    "format": "",
+    "tooltip-format": "Energía / sistema",
+    "on-click": "$HOME/.local/bin/archfrican-actions"
+  }
 }
