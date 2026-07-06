@@ -79,4 +79,29 @@ substep "installing the archfrican-update command to /usr/local/bin"
 chmod +x "$REPO_ROOT/bin/archfrican-update"
 sudo ln -sf "$REPO_ROOT/bin/archfrican-update" /usr/local/bin/archfrican-update
 
-ok "hygiene module done — timers scheduled, weekly health check armed, archfrican-update ready"
+# --- hourly repo-update check: a USER timer so it can notify-send to the session ---
+# Separate from archfrican-health above (that's a local config/system health report; this is
+# purely "does origin have commits we don't" — a fast, silent git fetch --depth 1 unless there's
+# something to show). Clicking the notification's "Update now" action runs archfrican-update --run.
+substep "arming the hourly repo-update check (archfrican-update --notify)"
+cat > "$udir/archfrican-update-check.service" <<'SVC'
+[Unit]
+Description=Archfrican repo-update check
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/archfrican-update --notify
+SVC
+cat > "$udir/archfrican-update-check.timer" <<'TMR'
+[Unit]
+Description=Check hourly for new Archfrican commits
+[Timer]
+OnCalendar=hourly
+Persistent=true
+RandomizedDelaySec=5min
+[Install]
+WantedBy=timers.target
+TMR
+best_effort systemctl --user daemon-reload
+best_effort systemctl --user enable archfrican-update-check.timer
+
+ok "hygiene module done — timers scheduled, weekly health check + hourly update check armed, archfrican-update ready"

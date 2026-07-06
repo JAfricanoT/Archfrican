@@ -151,7 +151,7 @@ check_foreign() {
 
 check_timers() {
   _h_have systemctl || { _h_skip "maintenance timers"; return; }
-  local want="paccache.timer fstrim.timer btrfs-scrub@-.timer archfrican-health.timer" t off=""
+  local want="paccache.timer fstrim.timer btrfs-scrub@-.timer archfrican-health.timer archfrican-update-check.timer" t off=""
   for t in $want; do
     systemctl list-unit-files --no-legend "$t" 2>/dev/null | grep -q . || continue   # unit absent -> skip
     systemctl is-enabled "$t" >/dev/null 2>&1 || off="$off $t"

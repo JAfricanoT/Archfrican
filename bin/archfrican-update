@@ -8,6 +8,8 @@
 #   archfrican-update --prune      offer to remove Archfrican-managed pkgs no longer in the repo
 #                                  (interactive; your own hand-installed packages are NEVER listed)
 #   archfrican-update --no-aur     skip the AUR phase in --run
+#   archfrican-update --notify     silent unless origin has new commits; sends a notification whose
+#                                  "Update now" action runs --run (meant for a periodic timer)
 # Never --noconfirm. Nothing is auto-removed. An AUR build failure never blocks the system upgrade.
 set -uo pipefail
 self="$(readlink -f "$0" 2>/dev/null || echo "$0")"
@@ -23,13 +25,14 @@ source "$ROOT/lib/migrate.sh"       # run_migrations/pending_migrations
 set +e +u +o pipefail               # interactive flow: many probes exit non-zero on the healthy path
 
 ARCHFRICAN_REF="${ARCHFRICAN_REF:-main}"
-RUN=0; CONVERGE=0; PRUNE=0; NO_AUR=0
+RUN=0; CONVERGE=0; PRUNE=0; NO_AUR=0; NOTIFY=0
 for a in "$@"; do case "$a" in
   --run)      RUN=1 ;;
   --converge) CONVERGE=1 ;;
   --prune)    PRUNE=1 ;;
   --no-aur)   NO_AUR=1 ;;
-  -h|--help)  sed -n '2,12p' "$self"; exit 0 ;;
+  --notify)   NOTIFY=1 ;;
+  -h|--help)  sed -n '2,13p' "$self"; exit 0 ;;
   *) printf 'archfrican-update: unknown flag %q (see --help)\n' "$a" >&2; exit 2 ;;
 esac; done
 
@@ -173,6 +176,28 @@ print_changelog() {
   [ -n "$other" ] && printf '  Other changes:\n%s' "$other"
 }
 
+# ---------- desktop notification when origin has new commits -----------------
+# Meant for a periodic USER timer (modules/70-hygiene.sh), not interactive use: silent when
+# there's nothing new, one notification with a clickable action when there is.
+do_notify() {
+  { [ -d "$ROOT/.git" ] && command -v git >/dev/null 2>&1; } || exit 0
+  git -C "$ROOT" fetch --depth 1 origin "$ARCHFRICAN_REF" >/dev/null 2>&1 || exit 0
+  local behind; behind="$(git -C "$ROOT" rev-list --count HEAD..FETCH_HEAD 2>/dev/null)"
+  [ "${behind:-0}" -gt 0 ] || exit 0
+  command -v notify-send >/dev/null 2>&1 || exit 0
+  # -A implies --wait: blocks until the user clicks a button, or the notification times out/closes
+  # (empty/absent action either way — nothing runs). The chosen action's NAME prints to stdout.
+  local action
+  action="$(notify-send -A "update=Update now" -A "later=Later" \
+    "Archfrican" "$behind new commit(s) available. Click to update." 2>/dev/null)"
+  [ "$action" = "update" ] || exit 0
+  if command -v ghostty >/dev/null 2>&1; then
+    ghostty -e sh -c "archfrican-update --run; printf '\n(enter to close) '; read -r _"
+  else
+    archfrican-update --run
+  fi
+}
+
 # ---------- opt-in prune (only Archfrican-managed, never your packages) -------
 do_prune() {
   _hd "Prune — Archfrican-managed packages no longer in the repo"
@@ -228,6 +253,9 @@ elif [ "$CONVERGE" = 1 ]; then
 
 elif [ "$PRUNE" = 1 ]; then
   do_prune                                  # prune against the last recorded manifest
+
+elif [ "$NOTIFY" = 1 ]; then
+  do_notify
 
 else
   precheck
