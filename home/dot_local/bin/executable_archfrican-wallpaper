@@ -14,8 +14,8 @@ if [ -z "$img" ]; then
   # A real picker, not a blind "type a path": fuzzel.ini sets exit-immediately-if-empty=yes
   # (for archfrican-spotlight), which ALSO makes an empty-stdin dmenu close instantly with no
   # UI at all, `--prompt-only` included — there's no CLI override for that ini setting, so this
-  # sidesteps it by giving fuzzel real content instead of fighting it. Scans common wallpaper
-  # spots for images the user can actually browse/fuzzy-search.
+  # sidesteps it by giving the picker real content instead of fighting it. Scans common
+  # wallpaper spots for images the user can actually browse/fuzzy-search.
   pics="$(xdg-user-dir PICTURES 2>/dev/null)"; dls="$(xdg-user-dir DOWNLOAD 2>/dev/null)"
   candidates=()
   # while+read, not `arr=($(find ...))`: filenames with spaces (e.g. "Screenshot from ....png",
@@ -26,7 +26,16 @@ if [ -z "$img" ]; then
       -maxdepth 3 -type f \( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' -o -iname '*.webp' \) \
       2>/dev/null | sort -u)
   [ "${#candidates[@]}" -gt 0 ] || { note "no se encontraron imágenes en $pics, $dls o /usr/share/backgrounds"; exit 1; }
-  img="$(printf '%s\n' "${candidates[@]}" | fuzzel --dmenu --prompt 'fondo de pantalla:  ')" || exit 0
+  # Walker's own dmenu frontend (not a native elephant menu — out of scope per
+  # docs/superpowers/specs/2026-07-02-walker-menu-integration-design.md, since this list is
+  # filesystem-dependent, not a fixed menu), so this LOOKS like the rest of the launcher instead
+  # of a separate fuzzel popup. Same stdin-list/stdout-selection contract as fuzzel --dmenu.
+  # Falls back to fuzzel if walker/elephant aren't responding, so this never goes fully dark.
+  if command -v walker >/dev/null 2>&1 && elephant listproviders >/dev/null 2>&1; then
+    img="$(printf '%s\n' "${candidates[@]}" | walker --dmenu --placeholder 'fondo de pantalla:')" || exit 0
+  else
+    img="$(printf '%s\n' "${candidates[@]}" | fuzzel --dmenu --prompt 'fondo de pantalla:  ')" || exit 0
+  fi
 fi
 [ -r "$img" ] || { note "no existe la imagen: $img"; exit 1; }
 
