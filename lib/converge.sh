@@ -24,7 +24,7 @@ module_inputs() {                 # module_inputs <name>
     # theming inputs include the palettes (themes/) + the switcher/templates so editing a palette or
     # bin/theme-switch is seen by drift detection and re-converges the rendered theme (audit H1/M1).
     # module_hash tree-hashes a directory, so the bare dir names cover every file + stay future-proof.
-    20-niri-desktop) printf ' packages/niri-desktop.txt templates/sddm.theme.conf assets/sddm/archfrican themes' ;;
+    20-niri-desktop) printf ' packages/niri-desktop.txt templates/sddm.theme.conf assets/sddm/archfrican assets/wallpapers themes' ;;
     25-plasma-desktop) printf ' packages/plasma-desktop.txt' ;;
     30-dev)          printf ' packages/dev.txt' ;;
     35-apps)         printf ' packages/apps.txt flatpak/apps.txt' ;;
