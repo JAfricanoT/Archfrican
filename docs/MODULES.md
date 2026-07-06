@@ -400,6 +400,7 @@ key OR password always works (no lockout risk). See [docs/FIDO2-RECOVERY.md](FID
 | `smartd.service` | Continuous | — | SMART disk health monitoring |
 | `fwupd-refresh.timer` | System default | — | Firmware metadata refresh |
 | `archfrican-health.timer` | Weekly | Persistent | Runs `archfrican-doctor --notify` |
+| `archfrican-update-check.timer` | Hourly | Persistent, +5min jitter | Runs `archfrican-update --notify` — silent unless origin has new commits, otherwise a notification whose "Update now" action runs `archfrican-update --run` |
 
 **Reflector** (opt-in): `ARCHFRICAN_ENABLE_REFLECTOR=1` enables weekly mirror auto-ranking
 (HTTPS mirrors, 20 candidates, sorted by rate, max 12h age).

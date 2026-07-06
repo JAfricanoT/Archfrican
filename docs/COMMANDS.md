@@ -10,7 +10,7 @@ most are interactive (fuzzel menu) by default and accept subcommands for scripti
 Bring the system to desired state and upgrade packages under a pre-snapshot.
 
 ```
-archfrican-update [--run] [--converge] [--prune] [--no-aur] [-h]
+archfrican-update [--run] [--converge] [--prune] [--no-aur] [--notify] [-h]
 ```
 
 | Mode | What it does |
@@ -20,6 +20,7 @@ archfrican-update [--run] [--converge] [--prune] [--no-aur] [-h]
 | `--converge` | Re-apply config/dotfiles only (no package upgrade, no snapshot) |
 | `--prune` | Offer to remove Archfrican-managed packages no longer in the repo |
 | `--no-aur` | Skip AUR phase when combined with `--run` |
+| `--notify` | Silent unless origin has new commits; sends a notification whose "Update now" action runs `--run` (meant for `archfrican-update-check.timer`, hourly) |
 
 **Environment variables**
 
