@@ -35,7 +35,7 @@ window#waybar {
 #custom-privacy, #pulseaudio, #bluetooth, #network,
 #cpu, #memory, #disk, #power-profiles-daemon, #battery,
 #custom-caffeine, #custom-weather, #custom-connectivity,
-#custom-health, #custom-notification, #tray {
+#custom-health, #custom-notification, #custom-power, #tray {
   padding: 2px 7px;
   margin: 3px 1px;
   color: @fg;
@@ -77,7 +77,7 @@ window#waybar {
 #cpu:hover, #memory:hover, #disk:hover,
 #power-profiles-daemon:hover, #battery:hover,
 #custom-caffeine:hover, #custom-weather:hover,
-#custom-health:hover, #custom-notification:hover {
+#custom-health:hover, #custom-notification:hover, #custom-power:hover {
   background: alpha(@fg_dim, 0.12);
 }
 
