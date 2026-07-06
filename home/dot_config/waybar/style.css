@@ -41,6 +41,14 @@ window#waybar {
   color: @fg;
   background: transparent;
   border-radius: 11px;
+  font-family: "JetBrainsMono Nerd Font";
+}
+
+/* right island: divider between volume | system | connectivity | status */
+#pulseaudio, #system, #connectivity {
+  border-right: 1px solid alpha(@fg_dim, 0.20);
+  padding-right: 10px;
+  margin-right: 2px;
 }
 
 /* workspaces — accent pill on the focused one */
