@@ -14,6 +14,13 @@ pac_install_file "$REPO_ROOT/packages/niri-desktop.txt"
 substep "installing the SDDM theme (archfrican)"
 sudo install -d -m 0755 /usr/share/sddm/themes/archfrican
 sudo cp -a "$REPO_ROOT/assets/sddm/archfrican/." /usr/share/sddm/themes/archfrican/
+
+# Curated wallpapers — dropped where archfrican-wallpaper's own directory scan (find ...
+# /usr/share/backgrounds ...) already looks, so they're pickable with ZERO changes to that
+# script. Same install-d + cp -a idempotent-copy pattern as the SDDM theme assets above.
+substep "installing curated Archfrican wallpapers"
+sudo install -d -m 0755 /usr/share/backgrounds/archfrican
+sudo cp -a "$REPO_ROOT/assets/wallpapers/." /usr/share/backgrounds/archfrican/
 # Paint the theme from the user's current palette (themes/<name>/colors.sh via the token template).
 substep "theming the login from the active palette"
 THEME_NOW="$(cat "$HOME/.config/.archfrican-theme" 2>/dev/null || echo archfrican-dark)"
