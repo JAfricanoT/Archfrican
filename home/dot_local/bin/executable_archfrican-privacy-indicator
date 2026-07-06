@@ -3,6 +3,7 @@
 # Reads PipeWire (pw-dump + jq) for RUNNING capture streams; prints an empty
 # string when idle (waybar then hides the module). No extra daemon.
 set -uo pipefail
+DOT=$'\xef\x84\x91'   # nf-fa-circle  U+F111 — same glyph unifying every status dot in the bar
 if ! command -v pw-dump >/dev/null 2>&1 || ! command -v jq >/dev/null 2>&1; then
   printf '{"text":""}\n'; exit 0
 fi
@@ -26,7 +27,7 @@ parts=""
 # macOS-style: a single warm recording dot when the mic/camera is live; the
 # tooltip says which. A plain ● renders in any font (no Nerd-Font dependency).
 if [ -n "$parts" ]; then
-  printf '{"text":"●","class":"privacy","tooltip":"%s en uso"}\n' "$parts"
+  printf '{"text":"%s","class":"privacy","tooltip":"%s en uso"}\n' "$DOT" "$parts"
 else
   printf '{"text":""}\n'
 fi

@@ -3,6 +3,7 @@
 # a coloured dot via JSON: online (stable) · unstable (packet loss or high latency) · offline.
 # The network module only knows if the interface is up; THIS knows if the internet actually works.
 set -uo pipefail
+DOT=$'\xef\x84\x91'   # nf-fa-circle  U+F111 — same glyph unifying every status dot in the bar
 host="1.1.1.1"
 out="$(ping -c 3 -w 3 "$host" 2>/dev/null)"
 loss="$(printf '%s\n' "$out" | sed -nE 's/.* ([0-9]+)% packet loss.*/\1/p' | head -1)"
@@ -10,11 +11,11 @@ avg="$(printf '%s\n'  "$out" | sed -nE 's#.*= [0-9.]+/([0-9.]+)/.*#\1#p'   | hea
 loss="${loss:-100}"
 
 if [ "$loss" -ge 100 ]; then
-  printf '{"text":"●","class":"offline","tooltip":"Sin conexión a Internet"}\n'
+  printf '{"text":"%s","class":"offline","tooltip":"Sin conexión a Internet"}\n' "$DOT"
 elif [ "$loss" -gt 0 ]; then
-  printf '{"text":"●","class":"unstable","tooltip":"Conexión inestable — %s%% de pérdida%s"}\n' "$loss" "${avg:+, ${avg} ms}"
+  printf '{"text":"%s","class":"unstable","tooltip":"Conexión inestable — %s%% de pérdida%s"}\n' "$DOT" "$loss" "${avg:+, ${avg} ms}"
 elif [ -n "$avg" ] && awk -v a="$avg" 'BEGIN{exit !(a>150)}'; then
-  printf '{"text":"●","class":"unstable","tooltip":"Conexión lenta — %s ms"}\n' "$avg"
+  printf '{"text":"%s","class":"unstable","tooltip":"Conexión lenta — %s ms"}\n' "$DOT" "$avg"
 else
-  printf '{"text":"●","class":"online","tooltip":"Internet estable%s"}\n' "${avg:+ — ${avg} ms}"
+  printf '{"text":"%s","class":"online","tooltip":"Internet estable%s"}\n' "$DOT" "${avg:+ — ${avg} ms}"
 fi
