@@ -52,12 +52,12 @@ result=$(printf '%s\n' "$raw" | python3 -c '
 import sys, json
 
 ICONS = {
-    "sunny": "", "clear": "", "partly": "",
-    "cloud": "", "overcast": "󰖐",
-    "rain": "", "drizzle": "", "shower": "",
-    "snow": "", "blizzard": "", "sleet": "",
-    "thunder": "", "lightning": "",
-    "mist": "", "fog": "", "haze": "",
+    "sunny": "", "clear": "", "partly": "",
+    "cloud": "", "overcast": "",
+    "rain": "", "drizzle": "", "shower": "",
+    "snow": "", "blizzard": "", "sleet": "",
+    "thunder": "", "lightning": "",
+    "mist": "", "fog": "", "haze": "",
 }
 
 try:
