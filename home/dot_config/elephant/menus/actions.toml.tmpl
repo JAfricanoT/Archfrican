@@ -4,6 +4,26 @@ icon = "preferences-system"
 fixed_order = true
 
 [[entries]]
+text = "Bloquear pantalla"
+actions = { run = "{{ .chezmoi.homeDir }}/.local/bin/archfrican-lock" }
+
+[[entries]]
+text = "Cerrar sesión"
+actions = { run = "sh -c 'c=$(printf \"Sí, cerrar sesión\\nCancelar\\n\" | fuzzel --dmenu --prompt \"  confirmar  \"); case \"$c\" in \"Sí,\"*) niri msg action quit ;; esac'" }
+
+[[entries]]
+text = "Suspender"
+actions = { run = "systemctl suspend" }
+
+[[entries]]
+text = "Reiniciar"
+actions = { run = "sh -c 'c=$(printf \"Sí, reiniciar ahora\\nCancelar\\n\" | fuzzel --dmenu --prompt \"  confirmar  \"); case \"$c\" in \"Sí,\"*) systemctl reboot ;; esac'" }
+
+[[entries]]
+text = "Apagar"
+actions = { run = "sh -c 'c=$(printf \"Sí, apagar ahora\\nCancelar\\n\" | fuzzel --dmenu --prompt \"  confirmar  \"); case \"$c\" in \"Sí,\"*) systemctl poweroff ;; esac'" }
+
+[[entries]]
 text = "Asistente de configuración (todo)…"
 actions = { run = "{{ .chezmoi.homeDir }}/.local/bin/archfrican-setup" }
 
