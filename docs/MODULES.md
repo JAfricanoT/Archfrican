@@ -236,7 +236,7 @@ wires up the `theme-switch` binary.
 - `gsettings` → `font-name = "SF Pro Display 11"`, `monospace-font-name = "SF Mono 11"`
 - `gsettings` → `color-scheme = prefer-dark`
 - Runs `theme-switch` with the theme selected in the wizard (stored in `~/.config/.archfrican-theme`)
-- Applies the wallpaper selected in the wizard via `archfrican-wallpaper` (five curated options available out of the box)
+- Stages the wallpaper selected in the wizard into `~/.config/archfrican/wallpaper`, applied at first login by `archfrican-wallpaper-restore` (five curated options available out of the box)
 - Sets cohesion on (VS Code + web-app theme injection); user can toggle with `archfrican-cohesion off`
 
 See [docs/THEMING.md](THEMING.md) for the full theming guide.
