@@ -178,6 +178,7 @@ Plasma. Fixing this needs `keyd` to be session-aware — out of scope for this m
 
 - **Editors**: `code` (VS Code OSS), `neovim`
 - **Language toolchains**: `rustup`, `go`, `uv` (Python), `fnm` (Node.js)
+- **JS runtime + package managers**: `bun`, `pnpm` (standalone binaries, independent of fnm's node version)
 - **Language servers**: `gopls`, `rust-analyzer`, `pyright`, `ruff`, `typescript-language-server`, `clang`, `lldb`
 - **CLI tools**: `ripgrep`, `fd`, `fzf`, `bat`, `eza`, `zoxide`, `jq`, `lazygit`, `github-cli`, `direnv`, `starship`
 - **Containers**: `docker`, `docker-compose`

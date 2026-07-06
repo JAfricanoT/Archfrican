@@ -5,7 +5,10 @@ neovim                 # always handy as a fallback editor
 rustup                 # -> rust-analyzer
 go                     # -> gopls
 uv                     # python toolchain + venvs
-fnm                    # node version manager
+fnm                    # node version manager (modules/30-dev.sh bootstraps the LTS build)
+# JS runtime + package managers (standalone binaries, not tied to fnm's node version)
+bun
+pnpm
 # language servers (system-level, editor-independent)
 gopls
 rust-analyzer
