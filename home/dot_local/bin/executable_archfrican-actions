@@ -7,6 +7,11 @@
 set -euo pipefail
 B="$HOME/.local/bin"
 toggle() { [ "$("$1" status 2>/dev/null)" = on ] && echo off || echo on; }
+confirm() {   # confirm "reiniciar ahora" -> 0 si el usuario confirma, 1 si cancela/Escape
+  local c
+  c="$(printf 'Sí, %s\nCancelar\n' "$1" | fuzzel --dmenu --prompt '  confirmar  ')" || return 1
+  case "$c" in "Sí,"*) return 0 ;; *) return 1 ;; esac
+}
 
 # Native menu (menus/actions.toml) when Walker/elephant are up; fuzzel fallback below otherwise.
 if command -v walker >/dev/null 2>&1 \
@@ -15,6 +20,11 @@ if command -v walker >/dev/null 2>&1 \
 fi
 
 sel="$(printf '%s\n' \
+  "Bloquear pantalla" \
+  "Cerrar sesión" \
+  "Suspender" \
+  "Reiniciar" \
+  "Apagar" \
   "Asistente de configuración (todo)…" \
   "Cambiar tema…" \
   "Buscar actualizaciones (archfrican-update)" \
@@ -70,6 +80,11 @@ sel="$(printf '%s\n' \
   | fuzzel --dmenu --prompt '  acciones  ')" || exit 0
 
 case "$sel" in
+  "Bloquear pantalla"*)  "$B/archfrican-lock" ;;
+  "Cerrar sesión"*)      confirm "cerrar sesión" && niri msg action quit ;;
+  "Suspender"*)          systemctl suspend ;;
+  "Reiniciar"*)          confirm "reiniciar ahora" && systemctl reboot ;;
+  "Apagar"*)             confirm "apagar ahora" && systemctl poweroff ;;
   "Asistente"*)          "$B/archfrican-setup" ;;
   "Cambiar tema"*)
     t="$(for d in "$HOME"/.archfrican/themes/*/; do [ -d "$d" ] && basename "$d"; done \
