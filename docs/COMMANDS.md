@@ -1076,9 +1076,9 @@ Waybar microphone/camera "in-use" dot, like the macOS menubar indicator.
 archfrican-privacy-indicator   # outputs waybar JSON
 ```
 
-Reads PipeWire (`pw-dump`) for running capture streams. Outputs
-`{"text":"🎙","class":"mic"}` / `{"text":"📷","class":"cam"}` / empty string (hidden)
-when idle. Add to `~/.config/waybar/config.jsonc`:
+Reads PipeWire (`pw-dump`) for running capture streams. Outputs a single dot
+with tooltip when mic/camera is in use (`{"text":"●","class":"privacy","tooltip":"Micrófono|Cámara|... en uso"}`),
+or empty string (hidden) when idle. Add to `~/.config/waybar/config.jsonc`:
 
 ```json
 "custom/privacy": {

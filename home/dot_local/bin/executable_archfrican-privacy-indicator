@@ -25,7 +25,8 @@ parts=""
 [ "$cam" = 1 ] && parts="${parts:+$parts · }Cámara"
 
 # macOS-style: a single warm recording dot when the mic/camera is live; the
-# tooltip says which. A plain ● renders in any font (no Nerd-Font dependency).
+# tooltip says which. Uses the same Nerd Font glyph (fa-circle) as every other
+# status dot in the bar, for visual consistency.
 if [ -n "$parts" ]; then
   printf '{"text":"%s","class":"privacy","tooltip":"%s en uso"}\n' "$DOT" "$parts"
 else
