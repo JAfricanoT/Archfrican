@@ -761,8 +761,13 @@ archfrican-git
 
 1. Sets git global `user.name` and `user.email`
 2. Generates an `ed25519` SSH key (never overwrites an existing one)
-3. For GitHub: installs the `gh` CLI, runs `gh auth login`, uploads the key
-4. For other hosts: shows the public key for manual upload + tests the connection with `ssh -T`
+3. Loads the key into the running `ssh-agent` (enabled by default — see `modules/60-security.sh`)
+   and tells you clearly if that failed, instead of failing silently later
+4. For GitHub: installs the `gh` CLI, runs `gh auth login`, uploads the key
+5. For other hosts: shows the public key for manual upload + tests the connection with `ssh -T`
+
+Option 5 ("Estado actual") also reports whether the SSH agent is active and whether your key is
+currently loaded in it.
 
 Idempotent — safe to re-run.
 
