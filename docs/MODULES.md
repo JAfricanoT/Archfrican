@@ -114,7 +114,7 @@ Waybar panel, fuzzel launcher, PipeWire audio, Bluetooth, and all supporting eco
 - **Continuity**: `kdeconnect`, `restic`, `fprintd`, `libfprint`
 - **Theming runtime**: `matugen`, `darkman`, `geoclue`, `colord`
 - **Qt compatibility**: `qt5-wayland`, `qt6-wayland`, `qt5ct`, `qt6ct`
-- **Portals**: `xdg-desktop-portal`, `xdg-desktop-portal-gnome`, `polkit-gnome`, `gnome-keyring`
+- **Portals**: `xdg-desktop-portal`, `xdg-desktop-portal-gnome`, `xdg-desktop-portal-wlr`, `polkit-gnome`, `gnome-keyring`
 
 **What it configures**
 
@@ -124,6 +124,7 @@ Waybar panel, fuzzel launcher, PipeWire audio, Bluetooth, and all supporting eco
 | `/etc/sddm.conf.d/10-archfrican.conf` | Wayland session, remember last user |
 | `/etc/keyd/default.conf` | macOS-style keyboard: `Meta` → `Ctrl`, `Meta+Shift` → `Ctrl+Shift` |
 | `/etc/bluetooth/main.conf.d/10-archfrican.conf` | Bluetooth auto-power-on |
+| `/etc/xdg-desktop-portal/niri-portals.conf` | Routes the `ScreenCast` portal to `-wlr` (RustDesk/AnyDesk/browser/OBS screen-share) — niri's own packaged default sends it to `-gnome`, which needs mutter's D-Bus API and can't work under niri |
 | `~/.config/code-flags.conf` | VS Code Wayland native rendering |
 | `/usr/share/backgrounds/archfrican/` | Curated Archfrican wallpapers (pickable in the install wizard) |
 | Services enabled | `sddm`, `NetworkManager`, `bluetooth`, `power-profiles-daemon`, `keyd` |

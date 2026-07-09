@@ -24,7 +24,10 @@ pipewire-alsa
 wireplumber
 xdg-desktop-portal
 xdg-desktop-portal-gtk
-xdg-desktop-portal-gnome   # screencast portal that works well with niri
+xdg-desktop-portal-gnome   # FileChooser/Notification/etc. — NOT ScreenCast (see -wlr below + niri-portals.conf)
+xdg-desktop-portal-wlr     # ScreenCast (RustDesk, browser/OBS screen-share, …) — niri isn't GNOME, so
+                           # -gnome's screencast backend needs mutter's own D-Bus API and can't work here;
+                           # this is the wlroots-protocol (wlr-screencopy) backend niri actually supports
 polkit-gnome
 gnome-keyring
 network-manager-applet

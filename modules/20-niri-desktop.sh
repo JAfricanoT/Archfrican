@@ -6,6 +6,26 @@ source "$(dirname "$0")/../lib/common.sh"
 substep "installing the niri desktop + Wayland utilities"
 pac_install_file "$REPO_ROOT/packages/niri-desktop.txt"
 
+# --- screen-share portal: route ScreenCast to -wlr, not niri's packaged default of gnome/gtk ----
+# niri ships /usr/share/xdg-desktop-portal/niri-portals.conf with `default=gnome;gtk;` and no
+# per-interface override — so ScreenCast (used by RustDesk/AnyDesk, browser tab/screen sharing,
+# OBS's portal capture, etc.) goes to xdg-desktop-portal-gnome, whose ScreenCast implementation
+# calls into GNOME Shell/mutter's own D-Bus API (org.gnome.Mutter.ScreenCast) — which doesn't
+# exist under niri, so every screen-share request fails (confirmed live: RustDesk reported
+# "failed to create capturer for display 0"). xdg-desktop-portal-wlr implements ScreenCast via
+# wlr-screencopy, the same protocol niri already supports for grim/wf-recorder — an /etc override
+# (higher precedence than niri's own /usr/share default, see portals.conf(5)) routes just that one
+# interface there while leaving gnome/gtk as-is for everything else (FileChooser, Notification, …).
+substep "routing the ScreenCast portal to xdg-desktop-portal-wlr (screen-share over niri)"
+write_system_file /etc/xdg-desktop-portal/niri-portals.conf <<'PORTAL'
+[preferred]
+default=gnome;gtk;
+org.freedesktop.impl.portal.ScreenCast=wlr;
+PORTAL
+# Apply now on a re-converge of an already-running desktop (a fresh install has no --user session
+# yet at this point, so this is a harmless no-op there — the config is simply in place for first login).
+best_effort systemctl --user restart xdg-desktop-portal.service xdg-desktop-portal-gnome.service xdg-desktop-portal-wlr.service
+
 # --- graphical login: SDDM + the Archfrican theme (macOS, themed from the active palette) ----
 # SDDM lists Wayland sessions from /usr/share/wayland-sessions/*.desktop (niri ships niri.desktop),
 # so the session command (niri-session) is NOT hardcoded. The greeter renders on Wayland via weston
