@@ -169,6 +169,12 @@ category_data() {   # category_data <slug> ; sets HOW, TARGETS, ROWS (global, fo
         "Discord|com.discordapp.Discord.desktop|flatpak:com.discordapp.Discord"
         "WhatsApp (web app)|archfrican-webapp-whatsapp.desktop|webapp:WhatsApp,https://web.whatsapp.com"
       ) ;;
+    remoto)
+      HOW=none; TARGETS=''
+      ROWS=(
+        "RustDesk|rustdesk.desktop|aur:rustdesk-bin"
+        "AnyDesk|anydesk.desktop|aur:anydesk-bin"
+      ) ;;
     *) return 1 ;;
   esac
 }
@@ -202,7 +208,7 @@ apply_category() {   # apply_category <slug> <display> ; same dispatch category(
 CATEGORY_LABELS=(
   "browser|Navegador web" "editor|Editor / IDE" "ia-cli|IA / agentes (CLI)" "terminal|Terminal"
   "archivos|Gestor de archivos" "pdf|Visor de PDF" "imagenes|Visor de imágenes" "correo|Correo"
-  "contenedores|Gestor de contenedores" "mensajeria|Mensajería"
+  "contenedores|Gestor de contenedores" "mensajeria|Mensajería" "remoto|Acceso remoto"
 )
 
 case "${1:-}" in
@@ -216,7 +222,7 @@ case "${1:-}" in
     cat="$(printf '%s\n' \
       "Navegador web" "Editor / IDE" "IA / agentes (CLI)" "Terminal" "Gestor de archivos" \
       "Visor de PDF" "Visor de imágenes" "Correo" "Gestor de contenedores" "Mensajería" \
-      "Control de versiones · Git…" \
+      "Acceso remoto" "Control de versiones · Git…" \
       | fuzzel --dmenu --prompt '  app por defecto  ')" || exit 0
     slug=""
     case "$cat" in
@@ -231,6 +237,7 @@ case "${1:-}" in
       "Correo") slug=correo ;;
       "Gestor de contenedores") slug=contenedores ;;
       "Mensajería") slug=mensajeria ;;
+      "Acceso remoto") slug=remoto ;;
     esac
     [ -n "$slug" ] || exit 0
     category_data "$slug"
