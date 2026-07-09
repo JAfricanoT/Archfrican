@@ -24,6 +24,7 @@ fzf
 bat
 eza
 zoxide
+atuin                  # shell history: fuzzy search + sync — wired into .zshrc's `atuin init zsh`
 jq
 lazygit
 github-cli                 # gh — used by archfrican-git to log in + upload the SSH key to GitHub
