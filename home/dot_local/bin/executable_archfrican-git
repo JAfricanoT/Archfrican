@@ -35,6 +35,33 @@ setup_identity() {
   echo "✓ Identidad y defaults guardados (~/.gitconfig)."
 }
 
+# Loads $KEY into the running agent and reports clearly whether it worked — this used to be a
+# silent `ssh-add ... || true`, which left you stuck at "Permission denied (publickey)" later
+# with zero indication why (no agent, or no SSH_AUTH_SOCK, or a wrong passphrase all looked
+# identical: nothing happened). SSH_AUTH_SOCK is normally already exported (systemd's
+# ssh-agent.socket, enabled by modules/60-security.sh, + ~/.config/environment.d/20-ssh-agent.conf)
+# — the fallback below only matters for a session that hasn't logged out/in since that config landed.
+agent_load_key() {
+  : "${SSH_AUTH_SOCK:=$XDG_RUNTIME_DIR/ssh-agent.socket}"
+  if [ ! -S "$SSH_AUTH_SOCK" ]; then
+    echo "⚠ No hay un agente SSH activo en esta sesión — cierra sesión y vuelve a entrar (arranca"
+    echo "  solo la próxima vez). Mientras tanto, git te pedirá la passphrase en cada uso de la llave."
+    return 1
+  fi
+  export SSH_AUTH_SOCK
+  local fp; fp="$(ssh-keygen -lf "$KEY.pub" 2>/dev/null | awk '{print $2}')"
+  if [ -n "$fp" ] && ssh-add -l 2>/dev/null | grep -qF "$fp"; then
+    echo "✓ La llave ya estaba cargada en el agente."
+    return 0
+  fi
+  if ssh-add "$KEY"; then
+    echo "✓ Llave cargada en el agente (no te pedirá la passphrase de nuevo esta sesión)."
+  else
+    echo "⚠ No pude cargar la llave en el agente (¿cancelaste la passphrase?). Reintenta con: ssh-add $KEY"
+    return 1
+  fi
+}
+
 ensure_ssh_key() {
   if [ -f "$KEY" ]; then
     echo "✓ Ya tienes una llave SSH ed25519."
@@ -45,8 +72,7 @@ ensure_ssh_key() {
     echo "Te pedirá una passphrase: pon una para más seguridad, o déjala vacía para comodidad."
     ssh-keygen -t ed25519 -C "$e" -f "$KEY" || { echo "✗ ssh-keygen cancelado"; return 1; }
   fi
-  # add to the running agent if there is one (so a passphrase is asked once, not every push)
-  ssh-add "$KEY" >/dev/null 2>&1 || true
+  agent_load_key || true   # a missing/failed agent shouldn't block the rest of the wizard
   echo; echo "Tu llave PÚBLICA (esto es lo que se pega en el host, nunca el archivo sin .pub):"; hr
   cat "$KEY.pub"; hr
   if have wl-copy; then wl-copy < "$KEY.pub" && echo "📋 copiada al portapapeles (⌘+V para pegarla)."; fi
@@ -103,6 +129,13 @@ show_status() {
   echo "nombre:  $(git config --global user.name  2>/dev/null || echo '— sin configurar')"
   echo "correo:  $(git config --global user.email 2>/dev/null || echo '— sin configurar')"
   echo "llave SSH: $([ -f "$KEY.pub" ] && echo 'sí (~/.ssh/id_ed25519.pub)' || echo 'NO — créala con la opción 4')"
+  echo "agente SSH: $(
+    : "${SSH_AUTH_SOCK:=$XDG_RUNTIME_DIR/ssh-agent.socket}"
+    if [ ! -S "$SSH_AUTH_SOCK" ]; then echo 'NO activo — cierra sesión y vuelve a entrar'
+    elif ssh-add -l >/dev/null 2>&1; then echo 'activo, con llave(s) cargada(s)'
+    else echo 'activo, sin llaves cargadas — opción 4 la carga'
+    fi
+  )"
   have gh && { echo; gh auth status 2>&1 | head -4; }
   hr
 }

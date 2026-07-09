@@ -62,6 +62,16 @@ else
   ok "SSH server left OFF (opt-in: the wizard toggle, or ARCHFRICAN_ENABLE_SSH=1)"
 fi
 
+# ---- ssh-agent (ALWAYS ON — outbound: YOUR key, for git/GitHub/GitLab, unrelated to the
+# inbound server above). A passphrase-protected key (archfrican-git invites you to set one) is
+# useless without a running agent to hold the decrypted key: without this, every git/ssh over
+# SSH silently fails with "Permission denied (publickey)" and no clue why. systemd ships this
+# socket ready to go; it just needs enabling. SSH_AUTH_SOCK itself is exported session-wide by
+# home/dot_config/environment.d/20-ssh-agent.conf (takes effect next login, same caveat as
+# PATH's 10-path.conf in that same directory).
+substep "enabling ssh-agent.socket (outbound: your own SSH key for git/GitHub/GitLab)"
+resilient_enable_user ssh-agent.socket
+
 # ---- sysctl: dev-safe hardening ---------------------------------------------
 substep "writing dev-safe sysctl hardening (gdb/strace/perf/eBPF/containers preserved)"
 write_system_file /etc/sysctl.d/99-archfrican-hardening.conf 0644 <<'SYSCTL'
