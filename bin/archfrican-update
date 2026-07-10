@@ -186,9 +186,13 @@ do_notify() {
   [ "${behind:-0}" -gt 0 ] || exit 0
   command -v notify-send >/dev/null 2>&1 || exit 0
   # -A implies --wait: blocks until the user clicks a button, or the notification times out/closes
-  # (empty/absent action either way — nothing runs). The chosen action's NAME prints to stdout.
+  # (empty/absent action either way — nothing runs). -t bounds that wait — the calling unit
+  # (archfrican-update-check.service) is Type=oneshot with no timeout override, so without this the
+  # DefaultTimeoutStartUSec (90s) SIGKILLs the process from outside if the user hasn't acted yet,
+  # marking the unit "failed" and making archfrican-doctor report a recurring, self-inflicted AMBER.
+  # The chosen action's NAME prints to stdout.
   local action
-  action="$(notify-send -A "update=Update now" -A "later=Later" \
+  action="$(notify-send -t 25000 -A "update=Update now" -A "later=Later" \
     "Archfrican" "$behind new commit(s) available. Click to update." 2>/dev/null)"
   [ "$action" = "update" ] || exit 0
   if command -v ghostty >/dev/null 2>&1; then
