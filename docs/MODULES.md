@@ -1,6 +1,6 @@
 # Archfrican — Module Reference
 
-Phase 2 installs the desktop and dev layer through 13 sequential modules. Each is
+Phase 2 installs the desktop and dev layer through 14 sequential modules. Each is
 content-addressed: it only re-runs when its input files (script + package lists + shared libs)
 change. Re-running a module manually is safe — all operations are idempotent.
 
