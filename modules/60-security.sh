@@ -35,7 +35,21 @@ table inet filter {
         udp sport 547 udp dport 546 accept
         udp dport 5353 accept
     }
-    chain forward { type filter hook forward priority filter; policy accept; }
+    chain forward {
+        type filter hook forward priority filter; policy drop;
+        ct state established,related accept
+        ct state invalid drop
+        # Docker/podman/libvirt route container/VM traffic through this hook — a container's first
+        # outbound packet is ct state "new", not yet "established", so without this a strict drop
+        # policy breaks basic outbound networking for every container/VM. Scoped to known bridge
+        # interfaces only (not "accept everything new"), verified live: Docker's default bridge
+        # (docker0) plus this scoping still let a container reach the internet.
+        ct state new iifname "docker0" accept
+        ct state new iifname "br-*" accept
+        ct state new iifname "podman0" accept
+        ct state new iifname "podman1" accept
+        ct state new iifname "virbr*" accept
+    }
     chain output  { type filter hook output  priority filter; policy accept; }
 }
 include "/etc/nftables.d/archfrican-allows.nft"
