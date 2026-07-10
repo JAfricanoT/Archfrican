@@ -36,6 +36,19 @@ for a in "$@"; do case "$a" in
   *) printf 'archfrican-update: unknown flag %q (see --help)\n' "$a" >&2; exit 2 ;;
 esac; done
 
+# ---------- single-instance lock ----------------------------------------------
+# --run/--converge/--prune mutate shared state (git reset --hard, module .done stamps, the pacman
+# DB) — two overlapping invocations corrupt any of them. The likely collision: --notify's "Update
+# now" action launches a fresh --run while a manual --run (or the periodic timer's own --run) is
+# already mid-flight. Acquired before precheck so a blocked second instance fails fast and cleanly,
+# instead of interleaving its own precheck/snapshot output with the first instance's live progress.
+# Held via the fd itself (exec {lock_fd}>...) — no trap/cleanup needed, it drops on any exit path.
+if [ "$RUN" = 1 ] || [ "$CONVERGE" = 1 ] || [ "$PRUNE" = 1 ]; then
+  LOCKFILE="${XDG_RUNTIME_DIR:-/tmp}/archfrican-update.lock"
+  exec {lock_fd}>"$LOCKFILE"
+  flock -n "$lock_fd" || die "ya hay un archfrican-update corriendo — esperá a que termine e intentá de nuevo"
+fi
+
 warn_n=0
 CHANGELOG=""    # commit subjects pulled by the last repo_refresh — see print_changelog
 _ok()   { printf '  \e[32m✓\e[0m %s\n' "$*"; }
