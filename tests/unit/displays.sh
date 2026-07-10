@@ -5,7 +5,8 @@
 #      managed markers; the disabled output is omitted and surrounding config is preserved.
 #   2. validate-or-revert: a config `niri validate` rejects is rolled back to the last-good version
 #      (a malformed nested KDL block would otherwise silently disable the whole niri config).
-#   3. restore: re-splices the saved sidecar after the template re-renders (the run_after path).
+#   3. restore: re-splices the profile matching the CURRENTLY connected outputs (the run_after path).
+#   4. restore: a fingerprint that was never saved is a safe no-op, not a wrong guess.
 set -uo pipefail
 HERE="$(cd -- "$(dirname -- "${BASH_SOURCE[0]:-$0}")" && pwd)"
 ROOT="$(cd -- "$HERE/../.." && pwd)"
@@ -64,10 +65,26 @@ NIRI_VALIDATE_RC=1 bash "$SCRIPT" save >/dev/null 2>&1
 if [ "$(cat "$KDL")" = "$good" ]; then _ok "validate fail: config.kdl rolled back (no x=9999 written)"; else _no "validate fail: config.kdl NOT reverted"; fi
 hasnt "$KDL" 'x=9999' "validate fail: the rejected position never persisted"
 
-# ---- 3. restore: re-splice the saved sidecar after a fresh template render -----------------------
+# ---- 3. restore: re-splice the profile matching the CURRENTLY connected outputs -------------------
+# restore is keyed by fingerprint now (docked/undocked/etc. each get their own profile) — it must see
+# the SAME outputs as step 1's successful save (eDP-1+DP-3) to find that profile again; step 2 left
+# $NIRI_OUTPUTS on its single-DP-3 rejected fixture, a different fingerprint with no saved profile.
+cat > "$NIRI_OUTPUTS" <<'JSON'
+{ "eDP-1": {"modes":[{"width":2560,"height":1600,"refresh_rate":60000}],"current_mode":0,"vrr_enabled":false,"logical":{"x":0,"y":0,"scale":1.5,"transform":"Normal"}},
+  "DP-3":  {"modes":[{"width":3840,"height":2160,"refresh_rate":59997}],"current_mode":0,"vrr_enabled":true,"logical":{"x":1707,"y":0,"scale":1.0,"transform":"Normal"}} }
+JSON
 printf 'input {}\n// ARCHFRICAN-DISPLAYS-START (managed)\n// ARCHFRICAN-DISPLAYS-END\n' > "$KDL"
 NIRI_VALIDATE_RC=0 bash "$SCRIPT" restore >/dev/null 2>&1
 has "$KDL" 'output "eDP-1"' "restore: re-splices the saved layout after a re-render"
+
+# ---- 4. restore: a fingerprint that was never saved is a safe no-op -------------------------------
+cat > "$NIRI_OUTPUTS" <<'JSON'
+{ "HDMI-A-1": {"modes":[{"width":1920,"height":1080,"refresh_rate":60000}],"current_mode":0,"vrr_enabled":false,"logical":{"x":0,"y":0,"scale":1.0,"transform":"Normal"}} }
+JSON
+printf 'input {}\n// ARCHFRICAN-DISPLAYS-START (managed)\n// ARCHFRICAN-DISPLAYS-END\n' > "$KDL"
+before="$(cat "$KDL")"
+NIRI_VALIDATE_RC=0 bash "$SCRIPT" restore >/dev/null 2>&1
+if [ "$(cat "$KDL")" = "$before" ]; then _ok "restore: unknown fingerprint (HDMI-A-1 alone) left config.kdl untouched"; else _no "restore: guessed wrong for an unsaved fingerprint"; fi
 
 rm -rf "$WORK"
 printf '\ndisplays unit test: %d passed, %d failed\n' "$P" "$F"
