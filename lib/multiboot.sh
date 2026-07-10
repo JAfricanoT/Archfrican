@@ -66,15 +66,28 @@ detect_other_os() {
   local line NAME PKNAME FSTYPE PARTTYPE MOUNTPOINT d os m
   local ntfs_disks=" " esp_unread=" " found=0
   local -a mounts=() hits=()
+  # Captures NAME/PKNAME/FSTYPE/PARTTYPE from one `lsblk -P` line — all four are kernel/filesystem-
+  # derived (a device basename, an fs-type string, a GPT type GUID), never attacker-influenced text,
+  # so a plain regex capture (never `eval`) is safe. Pattern lives in a variable, not inline after
+  # `=~` — bash's own backslash handling on an inline regex literal is a well-known footgun.
+  local field_pattern='^NAME="([^"]*)" PKNAME="([^"]*)" FSTYPE="([^"]*)" PARTTYPE="([^"]*)"'
 
-  # lsblk -P = key="value" pairs (robust to empty fields, unlike space-split raw output).
+  # lsblk -P = key="value" pairs (robust to empty fields, unlike space-split raw output). MOUNTPOINT
+  # is deliberately NOT requested here and never parsed from this line: it is the one field a
+  # malicious removable-drive LABEL can influence (via gvfs/udisks2 automount, e.g.
+  # /run/media/$USER/<LABEL>), so it used to reach `eval "$line"` unsanitized — a command-injection
+  # primitive in root context, triggerable just by plugging in a crafted USB drive. It's now fetched
+  # by itself, per-device, via a plain `lsblk -no MOUNTPOINT` call whose output is only ever read
+  # into a variable (`read`/command substitution), never evaluated as code.
   while IFS= read -r line; do
-    NAME=""; PKNAME=""; FSTYPE=""; PARTTYPE=""; MOUNTPOINT=""
-    eval "$line"
+    NAME=""; PKNAME=""; FSTYPE=""; PARTTYPE=""
+    [[ $line =~ $field_pattern ]] || continue
+    NAME="${BASH_REMATCH[1]}"; PKNAME="${BASH_REMATCH[2]}"; FSTYPE="${BASH_REMATCH[3]}"; PARTTYPE="${BASH_REMATCH[4]}"
     [ -n "$PKNAME" ] || continue                         # partitions only (whole disks have empty PKNAME)
     case "$excl" in *" $PKNAME "*) continue;; esac        # skip excluded disks
     [ "$FSTYPE" = ntfs ] && ntfs_disks+="$PKNAME "        # remember NTFS for the BitLocker soft-hint
     [ "$PARTTYPE" = "$_AF_ESP_GUID" ] || continue         # only ESPs past here (lsblk emits the GUID lowercase)
+    MOUNTPOINT="$(lsblk -no MOUNTPOINT "/dev/$NAME" 2>/dev/null)"
     case "$MOUNTPOINT" in /boot|/boot/*|/mnt/boot|/mnt/boot/*) continue;; esac  # our own ESP
     d="$(mktemp -d 2>/dev/null)" || continue
     if ! _af_mount_ro "/dev/$NAME" "$d"; then rmdir "$d" 2>/dev/null; esp_unread+="$PKNAME "; continue; fi
@@ -85,7 +98,7 @@ detect_other_os() {
     hits+=("$os@$PKNAME")
     printf '%s on /dev/%s\n' "$os" "$PKNAME"
     found=1
-  done < <(lsblk -Pno NAME,PKNAME,FSTYPE,PARTTYPE,MOUNTPOINT 2>/dev/null)
+  done < <(lsblk -Pno NAME,PKNAME,FSTYPE,PARTTYPE 2>/dev/null)
 
   # Soft hint: a disk with NTFS whose ESP we could NOT read (e.g. an oddly-laid-out / locked ESP) and
   # that we did not already name as Windows. Narrow on purpose — a bare NTFS data disk has no ESP, so
