@@ -715,17 +715,27 @@ flags to the script after verifying your GPU supports VAAPI.
 
 ## archfrican-displays
 
-Persist your monitor layout across reboots and `chezmoi apply` runs.
+Persist your monitor layout across reboots and `chezmoi apply` runs — with one saved
+layout **per set of connected monitors** (docked / undocked / any combination), not a
+single global layout.
 
 ```
 archfrican-displays edit        # open nwg-displays, auto-save layout when it closes
-archfrican-displays save        # snapshot current live layout → config.kdl + sidecar
-archfrican-displays restore     # re-apply saved layout (called by chezmoi run_after)
+archfrican-displays save        # snapshot current live layout → config.kdl + this monitor set's profile
+archfrican-displays restore     # re-apply the profile matching the CURRENTLY connected monitors
 ```
 
 `nwg-displays` arranges monitors live via niri IPC but does not write the config — this
 command snapshots the layout into `~/.config/niri/config.kdl` between managed markers.
 Backs up and validates with `niri validate` before saving; auto-reverts on failure.
+
+**Profiles**: each layout is keyed by its "fingerprint" — the sorted, `+`-joined set of
+connected output names (e.g. `eDP-1` alone vs. `eDP-1+DP-1` when docked) — stored under
+`~/.config/archfrican/displays/<fingerprint>.kdl`. `restore` computes today's fingerprint
+and re-splices whichever profile matches; if this exact monitor set was never saved, it's
+a safe no-op (`config.kdl` is left as-is) rather than guessing. A pre-existing single-layout
+install (the old `~/.config/.archfrican-displays.kdl`) is adopted as the first profile
+automatically, with no manual migration step.
 
 ---
 

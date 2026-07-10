@@ -1,16 +1,22 @@
 #!/usr/bin/env bash
-# archfrican-displays — make your niri monitor layout PERSIST across reboots and chezmoi updates.
+# archfrican-displays — make your niri monitor layout PERSIST across reboots and chezmoi updates,
+# with one saved layout PER set of connected monitors (docked/undocked/desktop-dual-monitor/…),
+# auto-selected by which outputs are actually connected right now.
 #
 # nwg-displays arranges your monitors LIVE (via `niri msg`) but does NOT write the layout into niri's
 # config, so a reboot loses it. This snapshots the CURRENT live layout into ~/.config/niri/config.kdl
-# (between managed markers) and saves a sidecar that run_after re-applies after every `chezmoi apply`.
+# (between managed markers) and saves a profile — keyed by the sorted, joined set of connected output
+# names (its "fingerprint") — that run_after re-applies after every `chezmoi apply`. Plugging in (or
+# unplugging) a monitor changes the fingerprint, so the same run_after trigger picks the RIGHT saved
+# profile for whatever is connected at that moment, instead of always re-splicing a single global layout.
 #
 # SAFE BY DESIGN: backs up config.kdl and rolls back if `niri validate` rejects the result — a
 # malformed nested KDL block would otherwise make niri silently ignore the whole config.
 #
 #   archfrican-displays edit              open nwg-displays, then auto-save the layout when it closes
-#   archfrican-displays save              snapshot the current live layout -> config.kdl + sidecar
-#   archfrican-displays restore           re-splice the saved sidecar into config.kdl (used by run_after)
+#   archfrican-displays save              snapshot the current live layout -> config.kdl + this fingerprint's profile
+#   archfrican-displays restore           re-splice the profile matching the CURRENTLY connected outputs
+#                                         (used by run_after; a no-op if this exact set was never saved)
 #   archfrican-displays save --debug      print the generated block (for reporting a validate failure)
 set -euo pipefail
 source "$(dirname "$0")/../lib/archfrican-common.sh"
@@ -20,10 +26,18 @@ wm_validate()     { niri validate; }
 
 CFG="${XDG_CONFIG_HOME:-$HOME/.config}"
 KDL="$CFG/niri/config.kdl"
-SIDE="$CFG/.archfrican-displays.kdl"
+PROFILES_DIR="$CFG/archfrican/displays"
+OLD_SIDE="$CFG/.archfrican-displays.kdl"    # pre-fingerprint single-layout sidecar — read-only, migrated on first restore/save
 BAK="$KDL.archfrican-displays.bak"
 START="// ARCHFRICAN-DISPLAYS-START (managed by archfrican-displays — edit via nwg-displays + 'archfrican-displays save')"
 END="// ARCHFRICAN-DISPLAYS-END"
+
+# fingerprint — the sorted, "+"-joined set of currently connected (enabled) output names. Two
+# machines/moments with the exact same monitors attached always get the same fingerprint, regardless
+# of connector order — this is the profile key (docked ≠ undocked ≠ desktop-dual-monitor, automatically).
+fingerprint() {
+  wm_outputs_json | jq -r '[to_entries[] | select(.value.logical != null) | .key] | sort | join("+")'
+}
 
 # gen_blocks — turn the live `niri msg --json outputs` into niri `output { … }` blocks.
 # Only enabled outputs (logical != null). Captures mode/scale/position/VRR (rotation is left to niri's
@@ -42,11 +56,13 @@ gen_blocks() {
   '
 }
 
-# apply_to_config — splice $SIDE (which carries its own START/END markers) into config.kdl, then
-# validate-or-revert. Replaces the existing managed region, or appends one if the markers are absent.
+# apply_to_config <profile-file> — splice a profile (which carries its own START/END markers) into
+# config.kdl, then validate-or-revert. Replaces the existing managed region, or appends one if the
+# markers are absent.
 apply_to_config() {
-  [ -f "$KDL" ]  || { note "no existe $KDL — ¿niri instalado?"; return 1; }
-  [ -f "$SIDE" ] || return 0
+  local profile="$1"
+  [ -f "$KDL" ]     || { note "no existe $KDL — ¿niri instalado?"; return 1; }
+  [ -f "$profile" ] || return 0
   cp -f "$KDL" "$BAK"
   local tmp; tmp="$(mktemp)"
   if grep -qF 'ARCHFRICAN-DISPLAYS-START' "$KDL" && grep -qF 'ARCHFRICAN-DISPLAYS-END' "$KDL"; then
@@ -56,11 +72,11 @@ apply_to_config() {
               /ARCHFRICAN-DISPLAYS-START/{printf "%s", blk; skip=1; next}
               /ARCHFRICAN-DISPLAYS-END/{skip=0; next}
               !skip{print}
-              END{ exit (skip ? 1 : 0) }' "$SIDE" "$KDL" > "$tmp"; then
+              END{ exit (skip ? 1 : 0) }' "$profile" "$KDL" > "$tmp"; then
       rm -f "$tmp"; note "marcadores DISPLAYS desbalanceados — dejé config.kdl sin tocar"; return 1
     fi
   else
-    { cat "$KDL"; printf '\n'; cat "$SIDE"; } > "$tmp"   # no markers yet: append a managed block
+    { cat "$KDL"; printf '\n'; cat "$profile"; } > "$tmp"   # no markers yet: append a managed block
   fi
   mv -f "$tmp" "$KDL"
   # Verify-or-revert: a block niri can't parse would silently disable the whole config.
@@ -80,22 +96,36 @@ case "$cmd" in
     blocks="$(gen_blocks)" || { note "no pude leer 'niri msg --json outputs'"; exit 1; }
     [ -n "$blocks" ] || { note "niri no reporta ninguna salida activa"; exit 1; }
     if [ "${2:-}" = "--debug" ]; then printf '%s\n%s\n%s\n' "$START" "$blocks" "$END"; exit 0; fi
-    # Stash the previous sidecar so a validate failure rolls BOTH config.kdl AND the sidecar back —
+    fp="$(fingerprint)"; [ -n "$fp" ] || { note "no pude identificar las salidas conectadas"; exit 1; }
+    mkdir -p "$PROFILES_DIR"
+    profile="$PROFILES_DIR/$fp.kdl"
+    # Stash the previous profile so a validate failure rolls BOTH config.kdl AND the profile back —
     # otherwise a later `restore` would re-apply a layout niri already rejected.
-    if [ -f "$SIDE" ]; then cp -f "$SIDE" "$SIDE.prev"; else rm -f "$SIDE.prev"; fi
-    printf '%s\n%s\n%s\n' "$START" "$blocks" "$END" > "$SIDE"
-    if apply_to_config; then
-      rm -f "$SIDE.prev"
-      note "Layout de pantallas guardado ✓ — sobrevive reinicios y updates."
+    if [ -f "$profile" ]; then cp -f "$profile" "$profile.prev"; else rm -f "$profile.prev"; fi
+    printf '%s\n%s\n%s\n' "$START" "$blocks" "$END" > "$profile"
+    if apply_to_config "$profile"; then
+      rm -f "$profile.prev"
+      note "Layout de pantallas guardado ✓ (perfil: $fp) — sobrevive reinicios y updates."
     else
-      if [ -f "$SIDE.prev" ]; then mv -f "$SIDE.prev" "$SIDE"; else rm -f "$SIDE"; fi
+      if [ -f "$profile.prev" ]; then mv -f "$profile.prev" "$profile"; else rm -f "$profile"; fi
       exit 1
     fi
     ;;
   restore)
-    # used by chezmoi run_after: re-splice the saved layout after the template re-renders config.kdl
-    [ -f "$SIDE" ] || exit 0
-    apply_to_config || true
+    # used by chezmoi run_after: re-splice the profile matching whatever is connected RIGHT NOW.
+    have niri || exit 0
+    have jq   || exit 0
+    fp="$(fingerprint)"; [ -n "$fp" ] || exit 0
+    profile="$PROFILES_DIR/$fp.kdl"
+    if [ ! -f "$profile" ] && [ -f "$OLD_SIDE" ]; then
+      # One-time migration: a pre-fingerprint install only ever had one global sidecar. Adopt it as
+      # this fingerprint's profile — restore only fires with a monitor set that was actually in use
+      # right before the reboot/apply, so "the old single layout belongs to today's fingerprint" holds.
+      mkdir -p "$PROFILES_DIR"
+      cp -f "$OLD_SIDE" "$profile"
+    fi
+    [ -f "$profile" ] || exit 0   # this exact monitor set was never saved — leave config.kdl as-is
+    apply_to_config "$profile" || true
     ;;
   edit)
     # One-step GUI flow: arrange in nwg-displays (it applies live), then auto-persist whatever you
