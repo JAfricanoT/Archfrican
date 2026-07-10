@@ -4,7 +4,7 @@
 # Offered once on first boot (archfrican-welcome-notify) and always from the actions hub (⌘+Shift+A).
 set -euo pipefail
 B="$HOME/.local/bin"
-have() { command -v "$1" >/dev/null 2>&1; }
+source "$(dirname "$0")/../lib/archfrican-common.sh"
 have fuzzel || { echo "fuzzel required" >&2; exit 1; }
 flip() { if [ "$("$1" status 2>/dev/null)" = on ]; then echo off; else echo on; fi; }
 launch() { if have "$1"; then "$@"; fi; }

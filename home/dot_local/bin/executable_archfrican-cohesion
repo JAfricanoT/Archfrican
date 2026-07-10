@@ -5,8 +5,7 @@
 # Tier A (GTK/Qt/fonts/cursor) is always-on in theme-switch and is NOT governed here.
 #   archfrican-cohesion on | off | status | apply
 set -euo pipefail
-have() { command -v "$1" >/dev/null 2>&1; }
-note() { if have notify-send; then notify-send "Archfrican" "$1"; else echo "$1"; fi; }
+source "$(dirname "$0")/../lib/archfrican-common.sh"
 
 CFG="$HOME/.config"
 ADIR="$CFG/archfrican"

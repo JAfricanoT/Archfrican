@@ -4,8 +4,7 @@
 # It does NOT flip Secure Boot on — you do that in firmware AFTER `sbctl verify` is clean. If a boot
 # ever fails: disable Secure Boot in firmware (not a brick). ⚠️ Validate in a VM first.
 set -euo pipefail
-have() { command -v "$1" >/dev/null 2>&1; }
-note() { have notify-send && notify-send "Archfrican" "$1" || echo "$1"; }
+source "$(dirname "$0")/../lib/archfrican-common.sh"
 have sbctl || sudo pacman -S --needed --noconfirm sbctl || { note "instala sbctl"; exit 1; }
 
 if ! sbctl status 2>/dev/null | grep -qiE 'setup mode:.*(enabled|✓|true)'; then
@@ -13,8 +12,7 @@ if ! sbctl status 2>/dev/null | grep -qiE 'setup mode:.*(enabled|✓|true)'; the
   exit 1
 fi
 if [ -d /var/lib/sbctl/keys ] || [ -d /usr/share/secureboot/keys ]; then
-  c="$(printf 'Sí, sobrescribir las claves sbctl existentes\nCancelar\n' | fuzzel --dmenu --prompt '  ya hay claves sbctl  ')" || exit 0
-  case "$c" in "Sí,"*) ;; *) exit 0 ;; esac
+  confirm "sobrescribir las claves sbctl existentes" "ya hay claves sbctl" || exit 0
 fi
 
 ghostty -e sh -c "set -e

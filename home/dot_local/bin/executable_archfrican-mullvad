@@ -6,8 +6,7 @@
 #   archfrican-mullvad            # menu
 #   archfrican-mullvad both       # or: vpn | browser
 set -euo pipefail
-have() { command -v "$1" >/dev/null 2>&1; }
-note() { have notify-send && notify-send "Archfrican" "$1" || echo "$1"; }
+source "$(dirname "$0")/../lib/archfrican-common.sh"
 have paru    || { note "paru (capa AUR) no disponible"; exit 1; }
 have ghostty || { note "ghostty no disponible"; exit 1; }
 

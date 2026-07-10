@@ -3,8 +3,7 @@
 # few app-level opt-outs worth having. (DO_NOT_TRACK=1 is already set in the session; it's honored by a
 # growing set of modern tools, not all of them.)
 set -euo pipefail
-have() { command -v "$1" >/dev/null 2>&1; }
-note() { have notify-send && notify-send "Archfrican" "$1" || echo "$1"; }
+source "$(dirname "$0")/../lib/archfrican-common.sh"
 sel="$(printf '%s\n' \
   "Ver la postura de privacidad (docs/PRIVACY.md)" \
   "Desactivar telemetría de VS Code (Code-OSS)" \

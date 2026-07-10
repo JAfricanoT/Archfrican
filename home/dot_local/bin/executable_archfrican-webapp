@@ -4,8 +4,7 @@
 # (browser-agnostic — see archfrican-browser).
 #   archfrican-webapp "Gmail" https://mail.google.com      (or run with no args for prompts)
 set -euo pipefail
-have() { command -v "$1" >/dev/null 2>&1; }
-note() { have notify-send && notify-send "Archfrican" "$1" || echo "$1"; }
+source "$(dirname "$0")/../lib/archfrican-common.sh"
 
 BROWSER=""
 for b in vivaldi-stable vivaldi brave brave-browser chromium google-chrome-stable; do

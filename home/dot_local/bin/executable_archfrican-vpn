@@ -3,8 +3,7 @@
 # tailscaled is enabled on first connect (opt-in), never at install. Tailscale connect opens a
 # terminal so you can see/authorize the login URL.
 set -euo pipefail
-have() { command -v "$1" >/dev/null 2>&1; }
-note() { have notify-send && notify-send "Archfrican" "$1" || echo "$1"; }
+source "$(dirname "$0")/../lib/archfrican-common.sh"
 
 sel="$(printf '%s\n' \
   "Tailscale: conectar" \

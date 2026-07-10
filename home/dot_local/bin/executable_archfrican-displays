@@ -13,8 +13,7 @@
 #   archfrican-displays restore           re-splice the saved sidecar into config.kdl (used by run_after)
 #   archfrican-displays save --debug      print the generated block (for reporting a validate failure)
 set -euo pipefail
-have() { command -v "$1" >/dev/null 2>&1; }
-note() { if have notify-send; then notify-send "Archfrican" "$1"; else echo "$1"; fi; }
+source "$(dirname "$0")/../lib/archfrican-common.sh"
 # ── WM seam (niri): all compositor IPC in this file routes through here — one place to port. docs/WM-INTEGRATION.md
 wm_outputs_json() { niri msg --json outputs; }
 wm_validate()     { niri validate; }

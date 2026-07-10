@@ -3,7 +3,7 @@
 # back to restore them. A lightweight focus session without leaving niri.
 set -euo pipefail
 state="${XDG_RUNTIME_DIR:-/tmp}/archfrican-focus"
-note() { if command -v notify-send >/dev/null 2>&1; then notify-send "Archfrican" "$1" || true; fi; }
+source "$(dirname "$0")/../lib/archfrican-common.sh"
 if [ -e "$state" ]; then
   rm -f "$state"
   setsid waybar >/dev/null 2>&1 &

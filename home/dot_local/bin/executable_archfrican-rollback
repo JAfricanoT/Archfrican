@@ -4,8 +4,7 @@
 # their descriptions (archfrican-update labels each with the repo commit); the chosen one becomes
 # the next boot.
 set -euo pipefail
-have() { command -v "$1" >/dev/null 2>&1; }
-note() { have notify-send && notify-send "Archfrican" "$1" || echo "$1"; }
+source "$(dirname "$0")/../lib/archfrican-common.sh"
 have snapper || { note "snapper no está (módulo 50-snapshots)"; exit 1; }
 
 # snapper list columns: number | type | pre# | date | user | cleanup | description | userdata
@@ -17,8 +16,7 @@ line="$(sudo snapper -c root list 2>/dev/null \
 num="$(printf '%s' "$line" | awk '{print $1}')"
 case "$num" in ''|*[!0-9]*) exit 0 ;; esac
 
-confirm="$(printf 'Sí, revertir al snapshot %s (requiere reiniciar)\nCancelar\n' "$num" | fuzzel --dmenu --prompt '  confirmar  ')" || exit 0
-case "$confirm" in "Sí,"*) ;; *) exit 0 ;; esac
+confirm "revertir al snapshot $num (requiere reiniciar)" || exit 0
 
 if sudo snapper -c root rollback "$num"; then
   reboot="$(printf 'Reiniciar ahora\nMás tarde\n' | fuzzel --dmenu --prompt '  reiniciar  ')" || exit 0

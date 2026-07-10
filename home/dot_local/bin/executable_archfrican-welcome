@@ -7,7 +7,7 @@ set -euo pipefail
 B="$HOME/.local/bin"
 ROOT="${ARCHFRICAN_ROOT:-$HOME/.archfrican}"
 state="${XDG_STATE_HOME:-$HOME/.local/state}/archfrican"; mkdir -p "$state"
-note() { command -v notify-send >/dev/null 2>&1 && notify-send "Archfrican" "$1" || echo "$1"; }
+source "$(dirname "$0")/../lib/archfrican-common.sh"
 card() { printf '%s\n' "$1" | fuzzel --dmenu --prompt "$2" >/dev/null 2>&1 || true; }
 
 cur="$(git -C "$ROOT" rev-parse --short HEAD 2>/dev/null || echo unknown)"

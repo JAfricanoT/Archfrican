@@ -4,8 +4,7 @@
 # timedatectl/hostnamectl logic the installer uses (lib/host-config.sh). Language + keyboard need a
 # re-login for full effect (niri and most apps read locale/xkb at session start).
 set -euo pipefail
-have() { command -v "$1" >/dev/null 2>&1; }
-note() { have notify-send && notify-send "Archfrican" "$1" || echo "$1"; }
+source "$(dirname "$0")/../lib/archfrican-common.sh"
 have fuzzel || { echo "fuzzel required" >&2; exit 1; }
 have ghostty || { note "ghostty no disponible"; exit 1; }
 kbdfile="$HOME/.config/.archfrican-kbd"

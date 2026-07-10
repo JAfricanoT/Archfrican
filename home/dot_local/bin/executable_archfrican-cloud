@@ -2,8 +2,7 @@
 # archfrican-cloud — connect cloud storage (Google Drive/Dropbox/OneDrive…) via rclone, or browse a
 # Windows/SMB share in Files. Credentials stay in YOUR config (~/.config/rclone), never the repo.
 set -euo pipefail
-have() { command -v "$1" >/dev/null 2>&1; }
-note() { have notify-send && notify-send "Archfrican" "$1" || echo "$1"; }
+source "$(dirname "$0")/../lib/archfrican-common.sh"
 
 choice="$(printf '%s\n' \
   "Configurar un remoto de nube (rclone config)" \

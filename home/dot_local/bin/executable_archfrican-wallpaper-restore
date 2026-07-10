@@ -3,7 +3,7 @@
 # desktop comes up as an empty black void. Reposes the saved wallpaper, or falls back to a solid
 # backdrop in the active theme's background colour — the desktop is never blank. Spawned by niri.
 set -uo pipefail
-have() { command -v "$1" >/dev/null 2>&1; }
+source "$(dirname "$0")/../lib/archfrican-common.sh"
 have awww || exit 0
 
 # wait for the daemon (spawned alongside us) to be ready

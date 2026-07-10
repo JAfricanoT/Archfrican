@@ -5,13 +5,9 @@
 # verb (same spirit as the bin/ tools), so the keyboard-driven system stays
 # discoverable instead of memorized.
 set -euo pipefail
+source "$(dirname "$0")/../lib/archfrican-common.sh"
 B="$HOME/.local/bin"
 toggle() { [ "$("$1" status 2>/dev/null)" = on ] && echo off || echo on; }
-confirm() {   # confirm "reiniciar ahora" -> 0 si el usuario confirma, 1 si cancela/Escape
-  local c
-  c="$(printf 'Sí, %s\nCancelar\n' "$1" | fuzzel --dmenu --prompt '  confirmar  ')" || return 1
-  case "$c" in "Sí,"*) return 0 ;; *) return 1 ;; esac
-}
 
 # Native menu (menus/actions.toml) when Walker/elephant are up; fuzzel fallback below otherwise.
 if command -v walker >/dev/null 2>&1 \

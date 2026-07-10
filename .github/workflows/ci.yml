@@ -17,8 +17,8 @@ jobs:
       - name: shellcheck all shell scripts
         run: |
           shellcheck -x -e SC1091 \
-            install.sh lib/*.sh modules/*.sh bin/* home/dot_local/bin/executable_* tests/e2e/*.sh \
-            migrations/*.sh templates/firstboot-notice.sh build-iso.sh
+            install.sh lib/*.sh modules/*.sh bin/* home/dot_local/bin/executable_* home/dot_local/lib/*.sh \
+            tests/e2e/*.sh migrations/*.sh templates/firstboot-notice.sh build-iso.sh
 
   bashn:
     runs-on: ubuntu-latest
@@ -27,7 +27,7 @@ jobs:
       - name: bash -n (syntax)
         run: |
           for f in install.sh lib/*.sh modules/*.sh bin/* home/dot_local/bin/executable_* \
-                   themes/tokens.defaults.sh themes/*/colors.sh themes/*/tokens.sh \
+                   home/dot_local/lib/*.sh themes/tokens.defaults.sh themes/*/colors.sh themes/*/tokens.sh \
                    tests/e2e/*.sh migrations/*.sh build-iso.sh; do bash -n "$f"; done
 
   firewall-ruleset:

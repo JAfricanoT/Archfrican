@@ -7,7 +7,7 @@
 #   · testing the connection so you KNOW it works before you clone
 # Safe + idempotent: never overwrites an existing key, only writes config you confirm, nothing destructive.
 set -uo pipefail            # NOT -e: this is interactive, and `ssh -T <git-host>` exits 1 even on success
-have() { command -v "$1" >/dev/null 2>&1; }
+source "$(dirname "$0")/../lib/archfrican-common.sh"
 
 # Launched from the GUI (no terminal attached)? Pop a terminal — this is an interactive wizard.
 if [ ! -t 0 ]; then

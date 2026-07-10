@@ -6,8 +6,7 @@
 # first (docs/STAGE2-VALIDATION.md). Recovery if boot misbehaves: pick linux-lts or a Btrfs snapshot in
 # GRUB. Backs up + restores HOOKS on mkinitcpio failure; a bad theme degrades to the plain text prompt.
 set -euo pipefail
-have() { command -v "$1" >/dev/null 2>&1; }
-note() { have notify-send && notify-send "Archfrican" "$1" || echo "$1"; }
+source "$(dirname "$0")/../lib/archfrican-common.sh"
 ROOT="${ARCHFRICAN_ROOT:-$HOME/.archfrican}"
 
 # build_theme <palette.sh> <out.script> <template.in> — render the Plymouth script from the palette,
@@ -30,8 +29,7 @@ build_theme() {
         "$3" > "$2" )
 }
 
-confirm="$(printf 'Sí, instalar el splash de arranque\nCancelar\n' | fuzzel --dmenu --prompt '  Plymouth (toca initramfs)  ')" || exit 0
-case "$confirm" in "Sí,"*) ;; *) exit 0 ;; esac
+confirm "instalar el splash de arranque" "Plymouth (toca initramfs)" || exit 0
 sudo pacman -S --needed --noconfirm plymouth || { note "no pude instalar plymouth"; exit 1; }
 
 # ── install the Archfrican theme (from the active palette); fall back to the stock spinner on any gap ──

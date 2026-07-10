@@ -3,8 +3,7 @@
 # switch to TLP (deeper battery control, mutually exclusive with PPD) and add thermald on Intel.
 # Nothing changes unless you choose it.
 set -euo pipefail
-have() { command -v "$1" >/dev/null 2>&1; }
-note() { have notify-send && notify-send "Archfrican" "$1" || echo "$1"; }
+source "$(dirname "$0")/../lib/archfrican-common.sh"
 
 sel="$(printf '%s\n' \
   "Perfiles de energía (PPD) — equilibrado, por defecto" \

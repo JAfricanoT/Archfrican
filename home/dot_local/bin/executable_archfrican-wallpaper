@@ -4,8 +4,7 @@
 # The generated palette lives in user state (~/.config/archfrican), NOT in themes/, so it never causes
 # convergence drift.
 set -euo pipefail
-have() { command -v "$1" >/dev/null 2>&1; }
-note() { have notify-send && notify-send "Archfrican" "$1" || echo "$1"; }
+source "$(dirname "$0")/../lib/archfrican-common.sh"
 have matugen || { note "instala matugen"; exit 1; }
 have jq || { note "instala jq"; exit 1; }
 

@@ -3,8 +3,7 @@
 # user service. Wayland-native apps get input via text-input-v3 (no env needed); for XWayland apps,
 # add `export XMODIFIERS=@im=fcitx` to your shell. Configure engines with fcitx5-configtool.
 set -euo pipefail
-have() { command -v "$1" >/dev/null 2>&1; }
-note() { have notify-send && notify-send "Archfrican" "$1" || echo "$1"; }
+source "$(dirname "$0")/../lib/archfrican-common.sh"
 
 case "${1:-install}" in
   install)

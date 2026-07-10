@@ -6,7 +6,7 @@
 #
 # Locked out? Switch to a text console (Ctrl+Alt+F3), log in, and run:  loginctl unlock-session
 set -euo pipefail
-have() { command -v "$1" >/dev/null 2>&1; }
+source "$(dirname "$0")/../lib/archfrican-common.sh"
 CFG="${XDG_CONFIG_HOME:-$HOME/.config}"
 
 # Current wallpaper (archfrican-wallpaper state) as the lock backdrop, if we can resolve a real file.

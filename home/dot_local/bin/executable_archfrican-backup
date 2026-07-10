@@ -4,8 +4,7 @@
 # deduplicated, encrypted, to a local dir, a USB, or any rclone remote. The repo password lives in
 # ~/.config/archfrican (chmod 600), NEVER in the repo.
 set -euo pipefail
-have() { command -v "$1" >/dev/null 2>&1; }
-note() { have notify-send && notify-send "Archfrican" "$1" || echo "$1"; }
+source "$(dirname "$0")/../lib/archfrican-common.sh"
 cfg="${XDG_CONFIG_HOME:-$HOME/.config}/archfrican"; mkdir -p "$cfg"
 repofile="$cfg/restic-repo"; passfile="$cfg/restic-pass"
 have restic || { note "instala restic"; exit 1; }

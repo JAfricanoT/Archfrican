@@ -7,8 +7,7 @@
 # backup + restore-on-fail. Boot-critical: VM-validate, and reboot immediately with the passphrase in hand
 # (it stays valid — a mismatched PCR just falls back to the themed passphrase prompt).
 set -euo pipefail
-have() { command -v "$1" >/dev/null 2>&1; }
-note() { have notify-send && notify-send "Archfrican" "$1" || echo "$1"; }
+source "$(dirname "$0")/../lib/archfrican-common.sh"
 
 have systemd-cryptenroll || { note "systemd-cryptenroll no disponible"; exit 1; }
 pacman -Q tpm2-tss >/dev/null 2>&1 || sudo pacman -S --needed --noconfirm tpm2-tss >/dev/null 2>&1 || true
@@ -26,8 +25,7 @@ sudo cryptsetup luksDump "$dev" 2>/dev/null | grep -qiE 'version:[[:space:]]*2' 
 if ! bootctl status 2>/dev/null | grep -qiE 'secure boot:[[:space:]]*enabled'; then
   note "Aviso: Secure Boot NO está activo — el auto-unlock por TPM es DÉBIL sin él. Corre 'archfrican-secureboot' y actívalo antes (tu passphrase sigue funcionando igual)."
 fi
-confirm="$(printf 'Sí, enrolar TPM2 (mi passphrase seguirá funcionando)\nCancelar\n' | fuzzel --dmenu --prompt "  TPM2 en $dev  ")" || exit 0
-case "$confirm" in "Sí,"*) ;; *) exit 0 ;; esac
+confirm "enrolar TPM2 (mi passphrase seguirá funcionando)" "TPM2 en $dev" || exit 0
 
 target="/dev/disk/by-uuid/$uuid"; [ -n "$uuid" ] || target="$dev"
 

@@ -5,8 +5,7 @@
 #   archfrican-browser            # menu
 #   archfrican-browser brave      # or: vivaldi
 set -euo pipefail
-have() { command -v "$1" >/dev/null 2>&1; }
-note() { have notify-send && notify-send "Archfrican" "$1" || echo "$1"; }
+source "$(dirname "$0")/../lib/archfrican-common.sh"
 
 sel="${1:-}"
 [ -n "$sel" ] || sel="$(printf '%s\n' \

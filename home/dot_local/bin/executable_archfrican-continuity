@@ -4,8 +4,7 @@
 # LAN file transfer). Opens the needed firewall ports and starts the KDE Connect daemon. Nothing is
 # exposed until you run this.
 set -euo pipefail
-have() { command -v "$1" >/dev/null 2>&1; }
-note() { have notify-send && notify-send "Archfrican" "$1" || echo "$1"; }
+source "$(dirname "$0")/../lib/archfrican-common.sh"
 FW=/etc/nftables.d/archfrican-allows.nft
 
 # LAN-scoped allow. Continuity services (KDE Connect / LocalSend) are LAN-only, so restrict inbound to

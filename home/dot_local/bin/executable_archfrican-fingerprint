@@ -3,8 +3,7 @@
 # the password, so your password ALWAYS still works (no lockout). Fail-open, mirroring the FIDO2 wiring:
 # enroll, back up the PAM file, insert, self-check, and restore on any doubt.
 set -euo pipefail
-have() { command -v "$1" >/dev/null 2>&1; }
-note() { have notify-send && notify-send "Archfrican" "$1" || echo "$1"; }
+source "$(dirname "$0")/../lib/archfrican-common.sh"
 have fprintd-enroll || { note "instala fprintd"; exit 1; }
 
 note "enrolando huella — sigue las instrucciones en la terminal."
