@@ -28,7 +28,7 @@ module_inputs() {                 # module_inputs <name>
     25-plasma-desktop) printf ' packages/plasma-desktop.txt' ;;
     30-dev)          printf ' packages/dev.txt' ;;
     35-apps)         printf ' packages/apps.txt flatpak/apps.txt' ;;
-    40-theming)      printf ' packages/theming.txt packages/aur.txt bin/theme-switch themes templates' ;;
+    40-theming)      printf ' packages/theming.txt packages/aur.txt bin/theme-switch themes templates lib/grub.sh' ;;
     45-print)        printf ' packages/print.txt' ;;
     55-multiboot)    printf ' packages/multiboot.txt lib/grub.sh' ;;
     60-security)     printf ' packages/security.txt lib/security.sh lib/fido2.sh' ;;
