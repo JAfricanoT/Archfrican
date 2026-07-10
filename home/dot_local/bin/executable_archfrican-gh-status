@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+# archfrican-gh-status — GitHub attention badge for waybar: review requests, CI activity, and
+# mentions across every repo you participate in. Reads GitHub's own /notifications endpoint
+# (participating=true) instead of a hand-picked repo list, so it respects whatever notification
+# settings you already have on github.com — no per-repo config here to fall out of sync.
+# Requires: gh (packages/dev.txt, opt-in), authenticated via `gh auth login`.
+set -uo pipefail
+source "$(dirname "$0")/../lib/archfrican-common.sh"
+ICON=$'\xef\x82\x9b'   # nf-fa-github  U+F09B
+
+hidden() { printf '{"text":"","tooltip":"%s"}\n' "$1"; exit 0; }
+
+have gh || hidden "gh no está instalado (opcional: modules/30-dev.sh)"
+gh auth status >/dev/null 2>&1 || hidden "gh no autenticado — corre: gh auth login"
+
+mapfile -t vals < <(timeout 10 gh api "notifications?participating=true" \
+  --jq '[.[].reason]
+        | (map(select(.=="review_requested"))|length),
+          (map(select(.=="mention" or .=="team_mention"))|length),
+          (map(select(.=="ci_activity"))|length),
+          length' \
+  2>/dev/null)
+[ "${#vals[@]}" -eq 4 ] || hidden "no se pudo consultar GitHub (revisá tu conexión o gh auth status)"
+
+review="${vals[0]}"; mention="${vals[1]}"; ci="${vals[2]}"; total="${vals[3]}"
+
+if [ "$total" -eq 0 ]; then
+  printf '{"text":"%s","class":"clear","tooltip":"GitHub: todo al día"}\n' "$ICON"
+  exit 0
+fi
+
+tip="$total notificación(es) sin leer"
+[ "$review"  -gt 0 ] && tip="$tip\n  revisión pendiente: $review"
+[ "$mention" -gt 0 ] && tip="$tip\n  mención: $mention"
+[ "$ci"      -gt 0 ] && tip="$tip\n  CI: $ci"
+printf '{"text":"%s %s","class":"attention","tooltip":"%s"}\n' "$ICON" "$total" "$tip"

@@ -21,7 +21,7 @@
   },
   "group/status": {
     "orientation": "horizontal",
-    "modules": ["custom/health", "custom/notification", "custom/caffeine", "custom/privacy", "tray"]
+    "modules": ["custom/health", "custom/github", "custom/notification", "custom/caffeine", "custom/privacy", "tray"]
   },
 
   "niri/workspaces": { "format": "{icon}" },
@@ -87,6 +87,16 @@
     "interval": 1800,
     "exec": "archfrican-doctor --json",
     "on-click": "ghostty -e sh -c 'archfrican-doctor; echo; echo \"(enter para cerrar)\"; read -r _'",
+    "tooltip": true
+  },
+  // 300s: gh's authenticated API allows 5000 req/h, so this is far under budget; empty text +
+  // "hidden" tooltip when gh isn't installed/authenticated — the module just visually disappears.
+  "custom/github": {
+    "format": "{}",
+    "return-type": "json",
+    "interval": 300,
+    "exec": "$HOME/.local/bin/archfrican-gh-status",
+    "on-click": "xdg-open 'https://github.com/notifications?query=is%3Aunread'",
     "tooltip": true
   },
   "custom/privacy": {

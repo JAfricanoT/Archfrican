@@ -35,7 +35,7 @@ window#waybar {
 #custom-privacy, #pulseaudio, #bluetooth, #network,
 #cpu, #memory, #disk, #power-profiles-daemon, #battery,
 #custom-caffeine, #custom-weather, #custom-connectivity,
-#custom-health, #custom-notification, #custom-power, #tray {
+#custom-health, #custom-github, #custom-notification, #custom-power, #tray {
   padding: 2px 7px;
   margin: 3px 1px;
   color: @fg;
@@ -77,11 +77,15 @@ window#waybar {
 #cpu:hover, #memory:hover, #disk:hover,
 #power-profiles-daemon:hover, #battery:hover,
 #custom-caffeine:hover, #custom-weather:hover,
-#custom-health:hover, #custom-notification:hover, #custom-power:hover {
+#custom-health:hover, #custom-github:hover, #custom-notification:hover, #custom-power:hover {
   background: alpha(@fg_dim, 0.12);
 }
 
 #custom-notification { color: @accent; }
+
+/* GitHub attention badge: dim when caught up, amber when something needs you */
+#custom-github.clear     { color: @fg_dim; }
+#custom-github.attention { color: #f5c451; }
 
 /* internet reachability dot: green stable · amber unstable · red offline */
 #custom-connectivity { font-size: 10px; }

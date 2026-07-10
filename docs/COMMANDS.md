@@ -72,7 +72,7 @@ archfrican-doctor [--json] [--notify] [--fix]
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `ARCHFRICAN_HEALTH_TTL` | `900` | Cache duration for `--json` output (seconds; 0 disables) |
+| `ARCHFRICAN_HEALTH_TTL` | `3600` | Cache duration for `--json` output (seconds; 0 disables) |
 
 **Waybar integration** — add to `~/.config/waybar/config.jsonc`:
 
@@ -80,7 +80,7 @@ archfrican-doctor [--json] [--notify] [--fix]
 "custom/health": {
   "exec": "archfrican-doctor --json",
   "return-type": "json",
-  "interval": 900,
+  "interval": 1800,
   "on-click": "ghostty -e archfrican-doctor"
 }
 ```
@@ -912,7 +912,33 @@ Pings `1.1.1.1` (3 packets) and reports packet loss and average latency.
 "custom/net": {
   "exec": "archfrican-net-status",
   "return-type": "json",
-  "interval": 30
+  "interval": 60
+}
+```
+
+---
+
+## archfrican-gh-status
+
+GitHub attention badge for waybar: review requests, CI activity, and mentions across
+every repo you participate in. Reads GitHub's `/notifications` endpoint
+(`participating=true`) rather than a hand-picked repo list, so it follows whatever
+notification settings you already have on github.com. Requires `gh` (opt-in,
+`packages/dev.txt`), authenticated via `gh auth login`; hides itself (empty text) if `gh`
+isn't installed or isn't authenticated.
+
+```
+archfrican-gh-status
+```
+
+**Waybar integration** — add to `~/.config/waybar/config.jsonc`:
+
+```json
+"custom/github": {
+  "exec": "archfrican-gh-status",
+  "return-type": "json",
+  "interval": 300,
+  "on-click": "xdg-open 'https://github.com/notifications?query=is%3Aunread'"
 }
 ```
 
