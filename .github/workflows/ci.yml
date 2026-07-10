@@ -330,6 +330,38 @@ jobs:
       - name: deep-clean allowlist — fixed, never computed; @home guard; dry-run-by-default
         run: bash tests/unit/deep-clean.sh
 
+  modules-list-consistency:
+    runs-on: ubuntu-latest        # 5 independent lists of module names must stay in sync, or drift silently
+    steps:
+      - uses: actions/checkout@v4
+      - name: ARCHFRICAN_MODULES / module_label / module_desc / run_module dispatch / modules/*.sh all agree
+        run: |
+          set -euo pipefail
+          modules_txt="$(grep -oE '^ARCHFRICAN_MODULES="[^"]*"' lib/converge.sh | sed -E 's/^ARCHFRICAN_MODULES="//; s/"$//' | tr ' ' '\n' | sort -u)"
+          label_txt="$(awk '/^module_label\(\)/,/^}/' lib/phase2.sh | grep -oE '[0-9]{2}-[a-z]+(-[a-z]+)*\)' | tr -d ')' | sort -u)"
+          desc_txt="$(awk '/^module_desc\(\)/,/^}/' lib/phase2.sh | grep -oE '[0-9]{2}-[a-z]+(-[a-z]+)*\)' | tr -d ')' | sort -u)"
+          run_txt="$(grep -oE '^\s*run_module [0-9]{2}-[a-z-]+' lib/phase2.sh | awk '{print $2}' | sort -u)"
+          files_txt="$(ls modules/*.sh | xargs -n1 basename | sed 's/\.sh$//' | sort -u)"
+
+          [ "$modules_txt" = "$label_txt" ] \
+            || { echo "::error::ARCHFRICAN_MODULES and module_label() disagree: $(diff <(echo "$modules_txt") <(echo "$label_txt") | tr '\n' ' ')"; exit 1; }
+          [ "$modules_txt" = "$desc_txt" ] \
+            || { echo "::error::ARCHFRICAN_MODULES and module_desc() disagree: $(diff <(echo "$modules_txt") <(echo "$desc_txt") | tr '\n' ' ')"; exit 1; }
+          [ "$modules_txt" = "$run_txt" ] \
+            || { echo "::error::ARCHFRICAN_MODULES and run_module() dispatch disagree: $(diff <(echo "$modules_txt") <(echo "$run_txt") | tr '\n' ' ')"; exit 1; }
+          [ "$modules_txt" = "$files_txt" ] \
+            || { echo "::error::ARCHFRICAN_MODULES and modules/*.sh on disk disagree: $(diff <(echo "$modules_txt") <(echo "$files_txt") | tr '\n' ' ')"; exit 1; }
+
+          # module_inputs()'s case arms don't need to cover every module — one with no extra inputs
+          # beyond its own script + lib/common.sh simply has no case arm (e.g. 50-snapshots installs
+          # no dedicated package list) — but every arm that DOES exist must name a real module, catching
+          # a stale/typo'd name if a module is ever renamed.
+          inputs_txt="$(awk '/^module_inputs\(\)/,/^}/' lib/converge.sh | grep -oE '[0-9]{2}-[a-z]+(-[a-z]+)*\)' | tr -d ')' | sort -u)"
+          bad="$(comm -23 <(echo "$inputs_txt") <(echo "$modules_txt"))"
+          [ -z "$bad" ] || { echo "::error::module_inputs() case has an entry that is not a real module: $(echo "$bad" | tr '\n' ' ')"; exit 1; }
+
+          echo "modules-list-consistency: ARCHFRICAN_MODULES/module_label/module_desc/run_module/modules-on-disk all agree; module_inputs() has no stale entries"
+
   keyd-config:
     runs-on: ubuntu-latest        # keyd is AUR (not in CI repos); validate the ⌘→Ctrl map STRUCTURALLY
     steps:
