@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# archfrican-project — project-jumper: a fuzzel picker over zoxide's frecency DB, for jumping to ANY
+# directory zoxide already knows about (ad-hoc, zero-config) — distinct from archfrican-session's
+# curated, hand-authored multi-app sessions. Opens a new terminal there. Keybind: Mod+Shift+O.
+# Requires: zoxide (packages/dev.txt, opt-in).
+set -uo pipefail
+source "$(dirname "$0")/../lib/archfrican-common.sh"
+
+have zoxide || { note "zoxide no está instalado (opcional: modules/30-dev.sh)"; exit 0; }
+
+dirs="$(zoxide query -l 2>/dev/null)"   # already frecency-sorted, most-visited first
+[ -n "$dirs" ] || { note "zoxide no tiene directorios aún — navegá con cd un rato primero"; exit 0; }
+
+sel="$(printf '%s\n' "$dirs" | fuzzel --dmenu --prompt '  proyecto  ')" || exit 0
+[ -n "$sel" ] && [ -d "$sel" ] || exit 0
+
+setsid ghostty --working-directory="$sel" >/dev/null 2>&1 &

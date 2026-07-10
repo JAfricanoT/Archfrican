@@ -259,6 +259,22 @@ See `~/.config/archfrican/sessions/dev.session.example` for a complete example.
 
 ---
 
+## archfrican-project
+
+Project-jumper: an ad-hoc, zero-config counterpart to `archfrican-session` — a fuzzel
+picker over zoxide's frecency database (whatever directories you've actually `cd`'d
+into), not a hand-authored session file. Opens a new `ghostty` terminal there.
+**Keyboard shortcut**: `⌘+Shift+O`.
+
+```
+archfrican-project
+```
+
+Requires `zoxide` (opt-in, `packages/dev.txt`). If zoxide isn't installed, or hasn't
+learned any directories yet, it notifies and exits instead of showing an empty picker.
+
+---
+
 ## archfrican-focus
 
 Toggle distraction-free mode: hide waybar and nwg-dock for a clean single-app view.

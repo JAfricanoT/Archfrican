@@ -242,6 +242,7 @@ binds {
     Mod+Shift+W { spawn "walker" "-m" "windows"; }    // selector de ventanas (provider nativo de Walker)
     Mod+Shift+C { spawn "walker" "-m" "calc"; }       // calculadora (provider nativo de Walker)
     Mod+Shift+G { spawn "walker" "-m" "files"; }      // buscar archivos (provider nativo de Walker)
+    Mod+Shift+O { spawn "{{ .chezmoi.homeDir }}/.local/bin/archfrican-project"; }   // project-jumper: saltar a un directorio por frecencia (zoxide)
 
     // Centro de control y diseño
     Mod+Shift+D { spawn "swaync-client" "-t" "-sw"; }   // toggle control center
