@@ -62,10 +62,13 @@
     "tooltip-format-wifi":       "{essid} ({signalStrength}%) · IP {ipaddr}/{cidr}\nGateway {gwaddr}",
     "tooltip-format-disconnected": "Sin red"
   },
+  // 60s, not 10s: up to 3 ICMP round-trips + up to 3s blocked per tick — at 10s that's ~8640
+  // pings/day forever, enough to keep a laptop's WiFi radio from power-saving. Still catches a
+  // real outage within a minute.
   "custom/connectivity": {
     "format": "{}",
     "return-type": "json",
-    "interval": 10,
+    "interval": 60,
     "exec": "$HOME/.local/bin/archfrican-net-status",
     "tooltip": true
   },
