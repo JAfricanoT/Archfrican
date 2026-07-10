@@ -12,7 +12,7 @@ pac_install_file "$REPO_ROOT/packages/apps.txt"
 # Flathub, system-wide + idempotent. System scope = available to every user and kept on persistent
 # storage (/var), so installed apps survive package upgrades and snapshot rollbacks.
 substep "adding the Flathub remote (system-wide)"
-best_effort sudo flatpak remote-add --system --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+best_effort timeout 60 sudo flatpak remote-add --system --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
 
 # Curated catalog: install each declared app-id if missing. NON-FATAL (network/runtime download), like
 # the AUR layer — a Flatpak that fails to install must never abort the desktop install.
@@ -24,7 +24,7 @@ if [ -r "$catalog" ]; then
     [ -n "$app" ] || continue
     if flatpak info "$app" >/dev/null 2>&1; then ok "flatpak present: $app"; continue; fi
     substep "flatpak install: $app"
-    best_effort sudo flatpak install --system -y --noninteractive flathub "$app"
+    best_effort timeout 900 sudo flatpak install --system -y --noninteractive flathub "$app"
   done < "$catalog"
 fi
 

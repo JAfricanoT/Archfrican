@@ -210,7 +210,9 @@ aur_install() {           # aur_install pkg1 pkg2 ...  — per-package + NON-FAT
   for p in "$@"; do
     pacman -Q "$p" &>/dev/null && continue
     substep "building/installing AUR package: $p"
-    paru -S --needed --noconfirm "$p" || { warn "AUR build failed (continuing): $p"; failed+=("$p"); }
+    # timeout: an AUR build is network (source fetch) + compile — 30min is generous for either, and
+    # a genuinely-stuck build fails exactly like any other build failure here (warn + continue).
+    timeout 1800 paru -S --needed --noconfirm "$p" || { warn "AUR build failed (continuing): $p"; failed+=("$p"); }
   done
   [ ${#failed[@]} -eq 0 ] && { ok "AUR layer OK"; return 0; }
   warn "AUR package(s) that did NOT build: ${failed[*]} — the desktop still works."

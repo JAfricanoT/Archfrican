@@ -6,7 +6,11 @@ substep "adding the CachyOS repository (optimized packages + linux-cachyos)"
 if ! grep -q '\[cachyos\]' /etc/pacman.conf; then
   tmp="$(mktemp -d)"; cd "$tmp" || die "could not enter temp dir $tmp"
   substep "downloading the CachyOS repo bootstrap (HTTPS)"
-  curl -fL --proto '=https' --tlsv1.2 https://mirror.cachyos.org/cachyos-repo.tar.xz -o repo.tar.xz
+  # --connect-timeout/--max-time: curl has NO default timeout, so a stalled connection here hangs
+  # the headless first-boot resume indefinitely (TimeoutStartSec=infinity on that unit) — same class
+  # of bug already fixed for gsettings/grub-mkconfig elsewhere in this repo.
+  curl -fL --proto '=https' --tlsv1.2 --connect-timeout 10 --max-time 120 \
+    https://mirror.cachyos.org/cachyos-repo.tar.xz -o repo.tar.xz
   # TRUST MODEL: CachyOS publishes NO detached signature for the bootstrap tarball — that .sig URL serves
   # an HTML page, and CachyOS's own installer doesn't verify one. Instead we PIN CachyOS's signing-key
   # FINGERPRINT and import + locally-sign it into pacman's keyring FIRST, so every CachyOS package the
