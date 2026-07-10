@@ -16,6 +16,9 @@ if [ -r "$ZINIT_HOME/zinit.zsh" ]; then
     atinit"zicompinit; zicdreplay" zdharma-continuum/fast-syntax-highlighting \
     atload"_zsh_autosuggest_start"  zsh-users/zsh-autosuggestions \
                                     zsh-users/zsh-completions
+  # zsh-defer itself loads eagerly (it's tiny and IS the deferral mechanism — the tool-init evals
+  # below use it, not zinit's own "wait" turbo, which is built for plugin loads, not raw snippets).
+  zinit light romkatv/zsh-defer
 fi
 
 # ---- history / options ----------------------------------------------------
@@ -27,10 +30,23 @@ alias ls='eza --icons --group-directories-first'
 alias ll='eza -la --icons --git'
 alias cat='bat -pp'
 alias cd='z'
-command -v zoxide  &>/dev/null && eval "$(zoxide init zsh)"
-command -v fnm     &>/dev/null && eval "$(fnm env --use-on-cd)"
-command -v direnv  &>/dev/null && eval "$(direnv hook zsh)"
-command -v atuin   &>/dev/null && eval "$(atuin init zsh)"
+# zoxide/fnm/direnv/atuin only matter once you actually cd/run a command — deferring them (via
+# zsh-defer, loaded above) means the first prompt doesn't wait on their combined ~60-80ms; they
+# finish loading the moment zle goes idle, in practice before you've typed anything. Falls back to
+# eager loading if zsh-defer didn't load (e.g. offline first login, no zinit clone yet) so these
+# tools still work, just without the deferral. starship stays eager below — it OWNS the prompt
+# itself, so deferring it would flash the plain zsh prompt first.
+if command -v zsh-defer &>/dev/null; then
+  command -v zoxide &>/dev/null && zsh-defer -c 'eval "$(zoxide init zsh)"'
+  command -v fnm    &>/dev/null && zsh-defer -c 'eval "$(fnm env --use-on-cd)"'
+  command -v direnv &>/dev/null && zsh-defer -c 'eval "$(direnv hook zsh)"'
+  command -v atuin  &>/dev/null && zsh-defer -c 'eval "$(atuin init zsh)"'
+else
+  command -v zoxide &>/dev/null && eval "$(zoxide init zsh)"
+  command -v fnm    &>/dev/null && eval "$(fnm env --use-on-cd)"
+  command -v direnv &>/dev/null && eval "$(direnv hook zsh)"
+  command -v atuin  &>/dev/null && eval "$(atuin init zsh)"
+fi
 
 # ---- prompt (cross-shell, portable) ---------------------------------------
 command -v starship &>/dev/null && eval "$(starship init zsh)"
