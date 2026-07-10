@@ -180,7 +180,7 @@ run_phase2() {                # run_phase2 [single-module]
   # Update/converge skips the "Applying your choices" step below (identity is set once, at
   # install) — one step() call fewer than a fresh install, so the total must match or the
   # banner can never reach its own total (stuck at [14/15] forever).
-  if [ "$UPDATE" = 1 ]; then step_total 15; else step_total 16; fi
+  if [ "$UPDATE" = 1 ]; then step_total 16; else step_total 17; fi
 
   # ---- apply host/user BEFORE the modules (idempotent) ----------------------
   # Update/converge skips identity: hostname/user/tz/locale/theme are set ONCE at install, and
