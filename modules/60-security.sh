@@ -49,6 +49,18 @@ table inet filter {
         ct state new iifname "podman0" accept
         ct state new iifname "podman1" accept
         ct state new iifname "virbr*" accept
+        # The other direction: a published port (docker run -p / podman run -p) is reached from
+        # OUTSIDE via Docker's own prerouting DNAT, which rewrites the destination to the container
+        # BEFORE this hook runs — the packet arrives here with oifname = the bridge, not iifname. Without
+        # this, "policy drop" would silently break every published port reachable from the LAN/another
+        # host (loopback-only access from the same machine isn't affected — that never reaches forward).
+        # Safe to scope the same way: DNAT already decided this connection is a container/VM Docker or
+        # podman explicitly exposed, nothing reaches these bridges' subnets without it.
+        ct state new oifname "docker0" accept
+        ct state new oifname "br-*" accept
+        ct state new oifname "podman0" accept
+        ct state new oifname "podman1" accept
+        ct state new oifname "virbr*" accept
     }
     chain output  { type filter hook output  priority filter; policy accept; }
 }
