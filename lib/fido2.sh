@@ -40,7 +40,10 @@ fido2_enroll() {                   # fido2_enroll <username>
     warn "no backup key — if you lose this key you fall back to your PASSWORD (which still works)."
   fi
   printf '%s\n' "$line" | sudo tee "$FIDO2_AUTHFILE" >/dev/null
-  sudo chmod 0644 "$FIDO2_AUTHFILE"
+  # 0600, not 0644: this file maps usernames to their FIDO2 key handles/pubkeys — no reason for
+  # every local account to be able to read who has a key enrolled. pam_u2f itself always runs
+  # inside a privileged auth process (sudo/login/sddm), which already reads it as root.
+  sudo chmod 0600 "$FIDO2_AUTHFILE"
   ok "registered $(printf '%s' "$line" | awk -F: '{print NF-1}') key(s) for $user in $FIDO2_AUTHFILE"
 }
 
