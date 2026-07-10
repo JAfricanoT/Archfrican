@@ -133,10 +133,13 @@ environment {
 // ARCHFRICAN-DISPLAYS-START (managed by archfrican-displays — edit via nwg-displays + 'archfrican-displays save')
 // ARCHFRICAN-DISPLAYS-END
 
-// waybar is NOT spawned here — it runs as its own systemd --user service (enabled by
-// modules/20-niri-desktop.sh) so a crash (known upstream SIGUSR2-reload bug) auto-restarts it
-// instead of leaving it gone until next login. Spawning it here TOO would race two instances.
-spawn-at-startup "swaync"
+// waybar and swaync are NOT spawned here — both run as their own systemd --user services
+// (enabled by modules/20-niri-desktop.sh): waybar so a crash (known upstream SIGUSR2-reload bug)
+// auto-restarts it instead of leaving it gone until next login, and swaync because it's already
+// D-Bus-activated (BusName=org.freedesktop.Notifications) — spawning it here TOO raced a second
+// instance against that activation, which is exactly the "opens on its own and freezes" bug this
+// fixed (confirmed live: two distinct launches of swaync in the same boot's journal, racing for
+// the same D-Bus name / control-center layer-shell surface).
 spawn-at-startup "elephant"                          // Walker's backend data daemon (must run in the session env)
 spawn-at-startup "walker" "--gapplication-service"   // launcher service → instant ⌘+Space (archfrican-spotlight)
 spawn-at-startup "awww-daemon"

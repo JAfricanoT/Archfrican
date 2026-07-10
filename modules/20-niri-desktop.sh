@@ -99,6 +99,21 @@ resilient_enable_user wireplumber.service
 substep "enabling waybar (auto-restarts if it crashes — a known upstream reload bug)"
 resilient_enable_user waybar.service
 
+# swaync via its OWN shipped, D-Bus-activated systemd --user service (Type=dbus,
+# BusName=org.freedesktop.Notifications, Restart=on-failure), not niri spawn-at-startup — the
+# SAME "never spawn it from BOTH places" mistake as waybar above, just for a different daemon.
+# Confirmed live: this boot's journal showed niri's spawn-at-startup launch (its own
+# "app-niri-swaync-*.scope") racing a SEPARATE "Starting Swaync notification daemon" launch of the
+# packaged unit, competing for the same D-Bus name — exactly the documented upstream failure mode
+# (github.com/ErikReider/SwayNotificationCenter/issues/47: two launch paths for the same
+# BusName-activated service race and can leave a stray/duplicate instance fighting over the
+# control-center's layer-shell surface). That's the "opens on its own and freezes" bug reported by
+# users — intermittent because most races quietly resolve to one winner, but not always. Enabling
+# ONLY the systemd unit (removed from niri's spawn-at-startup in config.kdl.tmpl) makes it the sole
+# launch path, with systemd auto-restarting it on an actual crash.
+substep "enabling swaync (single launch path — auto-restarts if it crashes)"
+resilient_enable_user swaync.service
+
 substep "configuring keyd (⌘+letter → Ctrl, macOS muscle memory)"
 write_system_file /etc/keyd/default.conf <<'KEYD'
 # Archfrican keyd map. Two layers split ⌘ cleanly between app shortcuts and the WM:
