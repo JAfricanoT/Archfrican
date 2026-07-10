@@ -44,6 +44,45 @@ jobs:
           echo "path=$f"           >> "$GITHUB_OUTPUT"
           echo "name=$(basename "$f")" >> "$GITHUB_OUTPUT"
 
+      # Gate BEFORE upload/publish: the ISO used to go straight from "Compute ISO filename" (a bare
+      # `ls`) to being uploaded and, on the weekly schedule, force-published over the "nightly"
+      # release — with no check that the ISO is actually a bootable, complete archiso image. This
+      # mounts it read-only and checks the standard releng layout (wiki.archlinux.org/title/Archiso):
+      # arch/boot/x86_64/{vmlinuz-linux,initramfs-linux.img} for the kernel/initramfs, and
+      # arch/x86_64/airootfs.sfs for the live root filesystem — plus an unsquashfs listing to confirm
+      # the squashfs isn't truncated/corrupt and that our pre-bundled repo (build-iso.sh step 5)
+      # actually made it in.
+      - name: Validate ISO structure (kernel/initramfs present, squashfs listable, sane size)
+        run: |
+          set -euo pipefail
+          iso="${{ steps.iso.outputs.path }}"
+          pacman -Sy --noconfirm --needed squashfs-tools >/dev/null
+
+          size=$(stat -c %s "$iso")
+          min_size=$((300 * 1024 * 1024))   # 300 MiB — comfortably below any legitimate build, well
+                                             # above what a truncated/broken build would produce
+          [ "$size" -ge "$min_size" ] \
+            || { echo "::error::ISO is suspiciously small ($size bytes) — expected at least $min_size bytes"; exit 1; }
+          echo "ISO size: $size bytes (>= $min_size minimum)"
+
+          mnt="$(mktemp -d)"
+          mount -t iso9660 -o loop,ro "$iso" "$mnt"
+          trap 'umount "$mnt" 2>/dev/null; rmdir "$mnt" 2>/dev/null' EXIT
+
+          [ -f "$mnt/arch/boot/x86_64/vmlinuz-linux" ] \
+            || { echo "::error::ISO is missing arch/boot/x86_64/vmlinuz-linux (kernel)"; exit 1; }
+          [ -f "$mnt/arch/boot/x86_64/initramfs-linux.img" ] \
+            || { echo "::error::ISO is missing arch/boot/x86_64/initramfs-linux.img"; exit 1; }
+          sfs="$mnt/arch/x86_64/airootfs.sfs"
+          [ -f "$sfs" ] \
+            || { echo "::error::ISO is missing arch/x86_64/airootfs.sfs (the live root filesystem)"; exit 1; }
+          echo "kernel + initramfs + airootfs.sfs present at the standard releng paths"
+
+          unsquashfs -l "$sfs" > /tmp/sfs-listing.txt
+          grep -q 'root/.archfrican/install.sh' /tmp/sfs-listing.txt \
+            || { echo "::error::airootfs.sfs is missing root/.archfrican/install.sh — the pre-bundled repo did not make it into the ISO"; exit 1; }
+          echo "airootfs.sfs: readable via unsquashfs, contains the pre-bundled Archfrican repo"
+
       # ---- artifact: always uploaded (available for ~14 days on any push) ----
       - name: Upload artifact
         uses: actions/upload-artifact@v4
