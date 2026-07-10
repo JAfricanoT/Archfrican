@@ -4,10 +4,13 @@
 # the way Spotlight Actions / omarchy-menu / a KRunner do. Each item is a named
 # verb (same spirit as the bin/ tools), so the keyboard-driven system stays
 # discoverable instead of memorized.
+#
+# The fuzzel fallback reads menus/actions.toml directly (toml_menu_list/toml_menu_action,
+# lib/archfrican-common.sh) instead of hand-duplicating its entries — one file is the source
+# of truth for both the native Walker menu and this fallback, so they can't drift apart.
 set -euo pipefail
 source "$(dirname "$0")/../lib/archfrican-common.sh"
-B="$HOME/.local/bin"
-toggle() { [ "$("$1" status 2>/dev/null)" = on ] && echo off || echo on; }
+MENUS="${XDG_CONFIG_HOME:-$HOME/.config}/elephant/menus"
 
 # Native menu (menus/actions.toml) when Walker/elephant are up; fuzzel fallback below otherwise.
 if command -v walker >/dev/null 2>&1 \
@@ -15,130 +18,37 @@ if command -v walker >/dev/null 2>&1 \
   exec walker -m "menus:actions"
 fi
 
-sel="$(printf '%s\n' \
-  "Bloquear pantalla" \
-  "Cerrar sesión" \
-  "Suspender" \
-  "Reiniciar" \
-  "Apagar" \
-  "Asistente de configuración (todo)…" \
-  "Cambiar tema…" \
-  "Buscar actualizaciones (archfrican-update)" \
-  "Salud del sistema (archfrican-doctor)" \
-  "Apps por defecto (navegador/correo)…" \
-  "Auto claro/oscuro (alternar)" \
-  "Blur frosted-glass (alternar)" \
-  "Pantallas / monitores" \
-  "Atajos de teclado" \
-  "Bienvenida / tour" \
-  "Migrar desde otra máquina…" \
-  "Layout de ventana…" \
-  "Abrir una sesión/proyecto…" \
-  "Modo concentración (alternar)" \
-  "Portapapeles (historial)" \
-  "Emoji / símbolos" \
-  "Calculadora" \
-  "Buscar archivos" \
-  "Buscar en la web" \
-  "Navegador (Brave/Vivaldi)…" \
-  "Tienda de apps (Flatpak)" \
-  "Permisos de apps (Flatseal)" \
-  "Crear web-app…" \
-  "Git / repositorios (SSH + GitHub)…" \
-  "Nube / SMB…" \
-  "Centro de control (notificaciones)" \
-  "No molestar (alternar)" \
-  "Luz nocturna (alternar)" \
-  "VPN (Tailscale/WireGuard)…" \
-  "Mullvad (VPN + Browser)…" \
-  "Audio: efectos / EQ (EasyEffects)" \
-  "Audio: patchbay (qpwgraph)" \
-  "Accesibilidad (lector, contraste)…" \
-  "Lector de pantalla (alternar)" \
-  "Método de entrada / IME (CJK)…" \
-  "Energía / batería (laptop)…" \
-  "Instalar stack de gaming (Steam)…" \
-  "Instalar Plasma (sesión de escritorio)…" \
-  "Continuidad (KDE Connect + LocalSend)…" \
-  "Respaldo de ~ (Time Machine)…" \
-  "Revertir actualización (rollback)…" \
-  "Wallpaper / theming dinámico…" \
-  "Cohesión de apps (alternar)" \
-  "Huella digital para sudo…" \
-  "Splash de arranque (Plymouth)…" \
-  "Cámara (ajustes)" \
-  "Auto-unlock por TPM (disco cifrado)…" \
-  "Secure Boot (sbctl)…" \
-  "Privacidad…" \
-  "Bluetooth" \
-  "Audio (mezclador)" \
-  "Red / VPN" \
-  | fuzzel --dmenu --prompt '  acciones  ')" || exit 0
+have fuzzel  || { note "fuzzel no está instalado"; exit 1; }
+have python3 || { note "falta python3"; exit 1; }
 
-case "$sel" in
-  "Bloquear pantalla"*)  "$B/archfrican-lock" ;;
-  "Cerrar sesión"*)      confirm "cerrar sesión" && niri msg action quit ;;
-  "Suspender"*)          systemctl suspend ;;
-  "Reiniciar"*)          confirm "reiniciar ahora" && systemctl reboot ;;
-  "Apagar"*)             confirm "apagar ahora" && systemctl poweroff ;;
-  "Asistente"*)          "$B/archfrican-setup" ;;
-  "Cambiar tema"*)
-    t="$(for d in "$HOME"/.archfrican/themes/*/; do [ -d "$d" ] && basename "$d"; done \
-        | fuzzel --dmenu --prompt '  tema  ')" && [ -n "$t" ] && theme-switch "$t" ;;
-  *"actualizaciones"*)   ghostty -e sh -c "archfrican-update; printf '\n(enter para cerrar) '; read -r _" ;;
-  *"Salud"*)             ghostty -e sh -c "archfrican-doctor; printf '\n(enter para cerrar) '; read -r _" ;;
-  "Apps por defecto"*)   "$B/archfrican-defaults" ;;
-  "Auto claro/oscuro"*)  "$B/archfrican-auto-appearance" "$(toggle "$B/archfrican-auto-appearance")" ;;
-  "Blur"*)               "$B/archfrican-blur" "$(toggle "$B/archfrican-blur")" ;;
-  "Cohesión de apps"*)   "$B/archfrican-cohesion" "$(toggle "$B/archfrican-cohesion")" ;;
-  "Pantallas"*)
-    d="$(printf 'Organizar pantallas (se guarda al cerrar)\nGuardar el layout actual ahora\n' \
-        | fuzzel --dmenu --prompt '  pantallas  ')" || exit 0
-    case "$d" in
-      Organizar*) "$B/archfrican-displays" edit ;;
-      Guardar*)   "$B/archfrican-displays" save ;;
-    esac ;;
-  "Atajos"*)             "$B/archfrican-keys" ;;
-  "Bienvenida"*)         "$B/archfrican-welcome" --tour ;;
-  "Migrar"*)             "$B/archfrican-migrate" ;;
-  "Layout"*)             "$B/archfrican-layout" ;;
-  "Abrir una sesión"*)   "$B/archfrican-session" ;;
-  "Modo concentración"*) "$B/archfrican-focus" ;;
-  "Portapapeles"*)       walker -m clipboard ;;
-  "Emoji"*)              walker -m symbols ;;
-  "Calculadora"*)        walker -m calc ;;
-  "Buscar archivos"*)    walker -m files ;;
-  "Buscar en la web"*)   walker -m websearch ;;
-  "Navegador"*)          "$B/archfrican-browser" ;;
-  "Mullvad"*)            "$B/archfrican-mullvad" ;;
-  "Tienda"*)             gnome-software ;;
-  "Permisos"*)           flatpak run com.github.tchx84.Flatseal ;;
-  "Crear web-app"*)      "$B/archfrican-webapp" ;;
-  "Git /"*)              "$B/archfrican-git" ;;
-  "Nube"*)               "$B/archfrican-cloud" ;;
-  "Centro de control"*)  swaync-client -t -sw ;;
-  "No molestar"*)        swaync-client -d -sw ;;
-  "Luz nocturna"*)       "$B/archfrican-nightlight" toggle ;;
-  "VPN"*)                "$B/archfrican-vpn" ;;
-  "Audio: efectos"*)     easyeffects ;;
-  "Audio: patchbay"*)    qpwgraph ;;
-  "Accesibilidad"*)      "$B/archfrican-a11y" ;;
-  "Lector de pantalla"*) "$B/archfrican-screenreader" ;;
-  "Método de entrada"*)  "$B/archfrican-ime" ;;
-  "Energía"*)            "$B/archfrican-power" ;;
-  "Instalar stack de gaming"*) ghostty -e sh -c "$HOME/.archfrican/install.sh 65-gaming yes; printf '(enter para cerrar) '; read -r _" ;;
-  "Instalar Plasma"*)    ghostty -e sh -c "$HOME/.archfrican/install.sh 25-plasma-desktop yes; printf '(enter para cerrar) '; read -r _" ;;
-  "Continuidad"*)        "$B/archfrican-continuity" ;;
-  "Respaldo"*)           "$B/archfrican-backup" ;;
-  "Revertir"*)           "$B/archfrican-rollback" ;;
-  "Wallpaper"*)          "$B/archfrican-wallpaper" ;;
-  "Huella"*)             "$B/archfrican-fingerprint" ;;
-  "Splash"*)             "$B/archfrican-plymouth" ;;
-  "Cámara"*)             cameractrls ;;
-  "Auto-unlock por TPM"*) "$B/archfrican-tpm-unlock" ;;
-  "Secure Boot"*)        "$B/archfrican-secureboot" ;;
-  "Privacidad"*)         "$B/archfrican-privacy" ;;
-  "Bluetooth"*)          blueman-manager ;;
-  "Audio"*)              pavucontrol ;;
-  "Red"*)                nm-connection-editor ;;
-esac
+# "Cambiar tema…" is backed by a Lua provider (menus/themes.lua), not a static .toml — it discovers
+# themes by listing ~/.archfrican/themes/*/ live, so the fallback replicates that directly instead
+# of trying to read a themes.toml that doesn't exist.
+pick_theme() {
+  local t
+  t="$(for d in "$HOME"/.archfrican/themes/*/; do [ -d "$d" ] && basename "$d"; done \
+      | fuzzel --dmenu --prompt '  tema  ')" && [ -n "$t" ] && theme-switch "$t"
+}
+
+# run_toml_menu <file.toml> <prompt> — list its entries in fuzzel; run (or open in a terminal) the
+# chosen one, or recurse into its submenu (another sibling .toml, or the one special-cased Lua menu).
+run_toml_menu() {
+  local file="$1" prompt="$2" sel line kind value
+  [ -r "$file" ] || { note "no encuentro $(basename "$file")"; return 1; }
+  sel="$(toml_menu_list "$file" | fuzzel --dmenu --prompt "$prompt")" || return 0
+  [ -n "$sel" ] || return 0
+  line="$(toml_menu_action "$file" "$sel")"
+  [ -n "$line" ] || return 0
+  kind="${line%%$'\t'*}"; value="${line#*$'\t'}"
+  case "$kind" in
+    run)      sh -c "$value" ;;
+    terminal) ghostty -e sh -c "$value" ;;
+    submenu)
+      case "$value" in
+        themes) pick_theme ;;
+        *)      run_toml_menu "$MENUS/$value.toml" "  $value  " ;;
+      esac ;;
+  esac
+}
+
+run_toml_menu "$MENUS/actions.toml" "  acciones  "
