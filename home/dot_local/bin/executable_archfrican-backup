@@ -52,6 +52,10 @@ case "${1:-menu}" in
 Description=Archfrican user-data backup (restic)
 [Service]
 Type=oneshot
+# A big first backup / a slow rclone remote can easily exceed systemd's DefaultTimeoutStartUSec
+# (90s) — without this, systemd SIGKILLs the backup mid-run from outside the script, so neither
+# the success nor the failure branch below (:41-45) ever runs: silent, truncated, unnotified.
+TimeoutStartSec=infinity
 ExecStart=%h/.local/bin/archfrican-backup now
 SVC
     cat > "$udir/archfrican-backup.timer" <<'TMR'
