@@ -14,7 +14,7 @@ mkdir -p "$WORK/repo/lib" "$WORK/repo/modules" "$WORK/repo/packages" "$WORK/repo
 printf 'echo common\n' > "$WORK/repo/lib/common.sh"
 printf 'echo base v1\n' > "$WORK/repo/modules/00-base.sh"
 printf 'echo hygiene v1\n' > "$WORK/repo/modules/70-hygiene.sh"
-printf 'echo niri v1\n' > "$WORK/repo/modules/20-niri-desktop.sh"
+printf 'echo desktop-services v1\n' > "$WORK/repo/modules/15-desktop-services.sh"
 printf 'git\nvim\n' > "$WORK/repo/packages/base.txt"
 printf '#!/usr/bin/env bash\nACCENT=#0a84ff\n' > "$WORK/repo/themes/archfrican-dark/colors.sh"
 
@@ -56,9 +56,11 @@ rm -f "/tmp/converge-test-stderr.$$"
 printf 'git\nvim\n' > "$WORK/repo/packages/base.txt"   # restore for later tests
 
 # ---- 5. directory inputs are tree-hashed: a file INSIDE a dir input changes the hash ---------------
-h1="$(module_hash 20-niri-desktop)"
+# 15-desktop-services is the module with `themes` as a directory input (it owns the SDDM login
+# theme render — see lib/converge.sh's module_inputs()).
+h1="$(module_hash 15-desktop-services)"
 printf '#!/usr/bin/env bash\nACCENT=#ff0000\n' > "$WORK/repo/themes/archfrican-dark/colors.sh"
-h2="$(module_hash 20-niri-desktop)"
+h2="$(module_hash 15-desktop-services)"
 if [ "$h1" != "$h2" ]; then _ok "module_hash reacts to a file changing inside a directory input (themes/)"; else _no "module_hash did NOT react to a change inside a directory input"; fi
 
 # ---- 6. drift_modules: a matching stamp is NOT drift ------------------------------------------------

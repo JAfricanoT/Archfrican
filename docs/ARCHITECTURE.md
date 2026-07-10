@@ -99,9 +99,9 @@ first boot
                          │           exit 3 = opted out (not an error)
                          │           writes new .done stamp on success
                          │
-                         │    00-base → 10-gpu → 20-niri-desktop → 25-plasma-desktop → 30-dev
-                         │    → 35-apps → 40-theming → 45-print → 50-snapshots → 55-multiboot
-                         │    → 60-security → 65-gaming → 70-hygiene
+                         │    00-base → 10-gpu → 15-desktop-services → 20-niri-desktop
+                         │    → 25-plasma-desktop → 30-dev → 35-apps → 40-theming → 45-print
+                         │    → 50-snapshots → 55-multiboot → 60-security → 65-gaming → 70-hygiene
                          │
                          ├─ chezmoi apply     (dotfiles)
                          ├─ write_manifest()  (desired-state ledger)

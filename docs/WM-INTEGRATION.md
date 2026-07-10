@@ -14,7 +14,7 @@ doc only maps the boundary; it does not add other compositors.
 | The WM config: input, layout, window/layer rules, `spawn-at-startup` autostart, the `binds { … }` block | `home/dot_config/niri/config.kdl.tmpl` | niri KDL + its scrolling-tiler actions (`focus/move-column`, `consume/expel`, `set-column-width`). No 1:1 in Hyprland/sway. |
 | Focus-ring theme fragment + its tokens | `templates/niri.theme.kdl`; `themes/tokens.defaults.sh` (`RADIUS_WINDOW`, `GAP_WINDOW`, `FOCUS_RING_WIDTH`) | Spliced into the config's `THEME-START/END` markers by theme-switch. |
 | waybar workspace/window modules | `home/dot_config/waybar/config.jsonc` | `niri/workspaces`, `niri/window` (sway/Hyprland use `sway/*`, `hyprland/*`). |
-| Install of the niri package + session | `modules/20-niri-desktop.sh` | Only the `niri` package + session are niri-specific; the rest of the module (SDDM, keyd, NetworkManager, audio, bluetooth, power) is generic desktop infra. |
+| Install of the niri package + session, keyd, waybar/swaync | `modules/20-niri-desktop.sh` | SDDM/NetworkManager/audio/bluetooth/power moved to `modules/15-desktop-services.sh` (shared with the opt-in Plasma session) — this module is niri + its own panel/notifier/remap stack only. |
 
 ## B. WM-IPC seams (the reusable boundary — one labelled place per file)
 Every compositor call goes through a small **`wm_*` seam** defined near the top of each niri-tied helper

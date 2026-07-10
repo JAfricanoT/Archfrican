@@ -18,7 +18,8 @@ FORCE=1 ./install.sh              # ignore .done stamps, re-run everything
 |--------|---------|--------------|-----------------|
 | 00-base | Always | base-devel, zsh, snapper, paru | — |
 | 10-gpu | Always | mesa/nvidia/vulkan (auto-detected) | nvidia-suspend (if NVIDIA) |
-| 20-niri-desktop | Always | niri, ghostty, sddm, waybar, pipewire | sddm, NetworkManager, bluetooth |
+| 15-desktop-services | Always | (reuses base/niri-desktop packages) | sddm, NetworkManager, bluetooth, power-profiles-daemon |
+| 20-niri-desktop | Always | niri, ghostty, waybar, swaync, keyd | waybar, swaync, keyd |
 | 25-plasma-desktop | **Opt-in** | plasma-desktop, dolphin, plasma-nm, plasma-pa | — |
 | 30-dev | Always | code, rustup, go, docker, lazygit | docker |
 | 35-apps | Always | flatpak, gnome-software, rclone | — |
@@ -94,10 +95,34 @@ Reads `/sys/bus/pci/devices/*/class` + vendor IDs. Priority: NVIDIA > AMD > Inte
 
 ---
 
+## 15-desktop-services — Desktop-environment-agnostic services
+
+**Always active.** SDDM login manager (the same greeter for niri AND the opt-in Plasma session),
+NetworkManager, audio, Bluetooth, and power profiles — none of it niri-specific. Runs between
+10-gpu and 20-niri-desktop so both niri and Plasma can rely on it already being done. Installs no
+packages of its own (reuses `packages/base.txt` + `packages/niri-desktop.txt`'s NetworkManager/
+Bluetooth/pipewire entries, already pulled in by 20-niri-desktop).
+
+**What it configures**
+
+| File / Service | What |
+|----------------|------|
+| `/usr/share/sddm/themes/archfrican/` | Custom SDDM QML theme (macOS-inspired login screen) |
+| `/etc/sddm.conf.d/10-archfrican.conf` | Wayland session, remember last user |
+| `/usr/share/backgrounds/archfrican/` | Curated Archfrican wallpapers (pickable in the install wizard) |
+| `/etc/bluetooth/main.conf.d/10-archfrican.conf` | Bluetooth auto-power-on |
+| Services enabled | `sddm`, `NetworkManager`, `bluetooth`, `power-profiles-daemon` |
+| User sockets | `pipewire.socket`, `pipewire-pulse.socket`, `wireplumber.service` |
+
+**Re-run**: `./install.sh 15-desktop-services`
+
+---
+
 ## 20-niri-desktop — Wayland desktop
 
-**Always active.** Installs the full desktop stack: niri compositor, SDDM login manager,
-Waybar panel, fuzzel launcher, PipeWire audio, Bluetooth, and all supporting ecosystem tools.
+**Always active.** The niri compositor layer: package install, keyd (⌘-style remaps), waybar/
+swaync (each via its own systemd --user service, not niri spawn-at-startup — see the comments in
+the module for the two upstream bugs that fixed), and the screen-share portal routing.
 
 **Packages** (`packages/niri-desktop.txt`):
 
@@ -120,15 +145,13 @@ Waybar panel, fuzzel launcher, PipeWire audio, Bluetooth, and all supporting eco
 
 | File / Service | What |
 |----------------|------|
-| `/usr/share/sddm/themes/archfrican/` | Custom SDDM QML theme (macOS-inspired login screen) |
-| `/etc/sddm.conf.d/10-archfrican.conf` | Wayland session, remember last user |
 | `/etc/keyd/default.conf` | macOS-style keyboard: `Meta` → `Ctrl`, `Meta+Shift` → `Ctrl+Shift` |
-| `/etc/bluetooth/main.conf.d/10-archfrican.conf` | Bluetooth auto-power-on |
 | `/etc/xdg-desktop-portal/niri-portals.conf` | Routes the `ScreenCast` portal to `-wlr` (RustDesk/AnyDesk/browser/OBS screen-share) — niri's own packaged default sends it to `-gnome`, which needs mutter's D-Bus API and can't work under niri |
-| `~/.config/code-flags.conf` | VS Code Wayland native rendering |
-| `/usr/share/backgrounds/archfrican/` | Curated Archfrican wallpapers (pickable in the install wizard) |
-| Services enabled | `sddm`, `NetworkManager`, `bluetooth`, `power-profiles-daemon`, `keyd` |
-| User sockets | `pipewire.socket`, `pipewire-pulse.socket`, `wireplumber.service` |
+| Services enabled | `waybar.service`, `swaync.service`, `keyd` |
+
+(SDDM, NetworkManager, Bluetooth, audio, and power profiles are shared with the opt-in Plasma
+session — see modules/15-desktop-services.sh above. `~/.config/code-flags.conf` is written by
+modules/30-dev.sh, not here.)
 
 **Re-run**: `./install.sh 20-niri-desktop`
 

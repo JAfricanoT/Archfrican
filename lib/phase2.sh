@@ -22,7 +22,8 @@ on_err() {
 }
 
 module_label() { case "$1" in
-  00-base) echo "Base system";; 10-gpu) echo "GPU drivers";; 20-niri-desktop) echo "Desktop (niri)";;
+  00-base) echo "Base system";; 10-gpu) echo "GPU drivers";;
+  15-desktop-services) echo "Desktop services";; 20-niri-desktop) echo "Desktop (niri)";;
   25-plasma-desktop) echo "Plasma desktop";;
   30-dev) echo "Dev toolchains";; 35-apps) echo "Apps & Flatpak";; 40-theming) echo "Theming";;
   45-print) echo "Printing & scanning";; 50-snapshots) echo "Snapshots";;
@@ -31,7 +32,8 @@ module_label() { case "$1" in
 module_desc() { case "$1" in
   00-base) echo "CachyOS repos, dual kernel (cachyos + lts), paru";;
   10-gpu) echo "vendor-agnostic drivers for the detected GPU";;
-  20-niri-desktop) echo "compositor, SDDM login, keyd, audio";;
+  15-desktop-services) echo "SDDM login, NetworkManager, audio, Bluetooth, power profiles (DE-agnostic)";;
+  20-niri-desktop) echo "compositor, keyd, waybar, swaync";;
   25-plasma-desktop) echo "KDE Plasma, a second Windows-familiar desktop session (opt-in)";;
   30-dev) echo "editors, language servers, version managers, docker";;
   35-apps) echo "Flatpak + Flathub, software center, cloud/SMB";;
@@ -208,6 +210,7 @@ run_phase2() {                # run_phase2 [single-module]
   run_module 00-base
   ensure_login_shell "$USER_NAME"   # zsh exists now (base.txt) — make the resume's pre-created bash user use it
   run_module 10-gpu "$GPU"
+  run_module 15-desktop-services
   run_module 20-niri-desktop
   run_module 25-plasma-desktop "$PLASMA"
   run_module 30-dev

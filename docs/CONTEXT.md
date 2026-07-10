@@ -66,8 +66,8 @@ archfrican/
 ├── install.sh            # entrada única (curl|sh): self-clone + detect + preflight + wizard + dispatch
 ├── lib/base-install.sh   # bedrock base installer (Btrfs+subvols+snapper, dual kernel, GRUB) — fase 1
 ├── lib/                  # common, detect-gpu, env, ui (gum), preflight, host-config, phase2
-├── modules/              # 00-base 10-gpu 20-niri-desktop 25-plasma-desktop 30-dev 35-apps
-│                         #   40-theming 45-print 50-snapshots 55-multiboot 60-security 65-gaming 70-hygiene
+├── modules/              # 00-base 10-gpu 15-desktop-services 20-niri-desktop 25-plasma-desktop
+│                         #   30-dev 35-apps 40-theming 45-print 50-snapshots 55-multiboot 60-security 65-gaming 70-hygiene
 ├── packages/             # listas por capa: base / niri-desktop / dev / theming / aur
 ├── themes/<name>/colors.sh   # paletas (esquema único de variables)
 ├── templates/            # plantillas por app (placeholders ${VAR})
@@ -85,7 +85,7 @@ niri auto-reload por marcadores `// THEME-START/END` en config.kdl). fuzzel usa 
 
 - **217 archivos** rastreados en git; repo completo con CI verde en todos los jobs.
 - **ISO booteable** disponible (`build-iso.sh`); reconstrucción automática semanal en CI; ver [docs/ISO.md](ISO.md).
-- **13 módulos** de fase 2: 00-base, 10-gpu, 20-niri-desktop, 25-plasma-desktop, 30-dev, 35-apps, 40-theming, 45-print, 50-snapshots, 55-multiboot, 60-security, 65-gaming, 70-hygiene.
+- **14 módulos** de fase 2: 00-base, 10-gpu, 15-desktop-services, 20-niri-desktop, 25-plasma-desktop, 30-dev, 35-apps, 40-theming, 45-print, 50-snapshots, 55-multiboot, 60-security, 65-gaming, 70-hygiene.
 - **7 temas** disponibles: adl-dark (default), adl-light, archfrican-dark, archfrican-light, catppuccin-mocha, high-contrast, tokyo-night.
 - **44 comandos** CLI en `~/.local/bin/` (ver [docs/COMMANDS.md](COMMANDS.md)).
 - `theme-switch` corre desde el symlink desplegado (`~/.local/bin` → clon del repo);
