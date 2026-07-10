@@ -329,6 +329,10 @@ jobs:
         run: bash tests/unit/manifest.sh
       - name: deep-clean allowlist — fixed, never computed; @home guard; dry-run-by-default
         run: bash tests/unit/deep-clean.sh
+      - name: converge — module_hash reacts to script/package/dir changes; drift_modules stamp logic
+        run: bash tests/unit/converge.sh
+      - name: defaults — is_installed()/list_category() cli+desktop-file detection (11 providers depend on this)
+        run: bash tests/unit/defaults.sh
 
   modules-list-consistency:
     runs-on: ubuntu-latest        # 5 independent lists of module names must stay in sync, or drift silently
