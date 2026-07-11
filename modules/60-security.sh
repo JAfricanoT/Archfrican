@@ -69,6 +69,15 @@ NFT
 substep "overriding nftables ExecStop so a stop never flushes other tables"
 write_system_file /etc/systemd/system/nftables.service.d/10-archfrican.conf 0644 <<'UNIT'
 [Service]
+# The upstream unit is Type=oneshot with no RemainAfterExit — it settles "inactive" the instant
+# ExecStart returns, so systemd never has a reliable "this is currently active" window to key a
+# later `stop`/`restart` off. In practice that made `systemctl restart nftables` non-deterministic:
+# our ExecStop (below) could run AFTER the following ExecStart in the same restart cycle instead of
+# before it, deleting the table we'd just (re)created and leaving the firewall unloaded until reboot.
+# RemainAfterExit=yes keeps the unit "active (exited)" once ExecStart succeeds, so restart/stop are
+# ordinary stop-then-start again — verified live: a stale nftables.conf load could look like "the
+# fix isn't live" purely because of this, even though the file on disk was already correct.
+RemainAfterExit=yes
 # Tear down ONLY our table on stop (never the whole ruleset). Leading '-' tolerates the
 # table being absent (stop after a failed start, or a double-stop) so the unit isn't marked failed.
 ExecStop=
