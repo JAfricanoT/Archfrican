@@ -2,5 +2,7 @@
 # These are appended to the releng base by build-iso.sh — do NOT duplicate packages
 # already in /usr/share/archiso/configs/releng/packages.x86_64 (base, networkmanager,
 # iwd, curl, git, btrfs-progs, gptfdisk, cryptsetup, dosfstools, etc.)
-gum       # TUI wizard (Charmbracelet; available in Arch [extra])
-rsync     # used by inject_resume to copy network profiles to the target
+# TUI wizard (Charmbracelet; available in Arch [extra])
+gum
+# used by inject_resume to copy network profiles to the target
+rsync
