@@ -127,11 +127,15 @@ refresh_mirrors_if_stale() {
   local age; age=$(( ( $(date +%s) - $(stat -c %Y /etc/pacman.d/mirrorlist 2>/dev/null || echo 0) ) / 86400 ))
   [ "$age" -gt 7 ] || return 0
   _hd "Mirror refresh — mirrorlist is ${age}d old"
-  if [ -r /etc/xdg/reflector/reflector.conf ]; then
+  if { if [ -r /etc/xdg/reflector/reflector.conf ]; then
     sudo reflector @/etc/xdg/reflector/reflector.conf
   else
     sudo reflector --protocol https --latest 20 --sort rate --age 12 --save /etc/pacman.d/mirrorlist
-  fi && _ok "mirrorlist refreshed" || _note "reflector failed — continuing with the existing mirrorlist"
+  fi; }; then
+    _ok "mirrorlist refreshed"
+  else
+    _note "reflector failed — continuing with the existing mirrorlist"
+  fi
 }
 
 # ---------- repo refresh + desired-state converge ----------------------------

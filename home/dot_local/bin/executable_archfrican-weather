@@ -11,13 +11,13 @@
 CONF="${XDG_CONFIG_HOME:-$HOME/.config}/archfrican/weather"
 
 # Explicit opt-out
-if [ -f "$CONF" ] && [ "$(cat "$CONF" | tr -d '[:space:]')" = off ]; then
+if [ -f "$CONF" ] && [ "$(tr -d '[:space:]' < "$CONF")" = off ]; then
     printf '{"text":"","class":"hidden"}\n'; exit 0
 fi
 
 # City: explicit name > timezone-derived
 if [ -f "$CONF" ]; then
-    _val=$(cat "$CONF" | tr -d '[:space:]')
+    _val=$(tr -d '[:space:]' < "$CONF")
 else
     _val=auto
 fi

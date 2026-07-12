@@ -36,6 +36,7 @@ do_install() {  # do_install <spec> ; spec = repo:pkgs | aur:pkgs | flatpak:appi
     # what's about to happen and waits for y/N before running paru. Points at the AUR page
     # itself rather than hardcoding today's specifics, since a PKGBUILD can change them later.
     aur-warn) if have paru; then
+                # shellcheck disable=SC2016  # $AF_PKG is expanded by the INNER sh -c, single quotes are intentional
                 ghostty -e env AF_PKG="$pkg" sh -c '
                   echo "This AUR package makes broader-than-usual changes to your system — check"
                   echo "its AUR page (conflicts, install script) before continuing:"
