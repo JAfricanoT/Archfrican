@@ -101,7 +101,3 @@ ui_confirm_default_no() {          # ui_confirm "question"  -> rc 0 (yes) / 1 (n
   fi
 }
 
-ui_spin() {                        # ui_spin "title" -- cmd args...
-  local title="$1"; shift; [ "${1:-}" = -- ] && shift
-  if [ "$UI_BACKEND" = gum ]; then gum spin --title "$title" -- "$@"; else log "$title"; "$@"; fi
-}

@@ -249,7 +249,6 @@ verify_spawns() {                 # verify_spawns <niri-config.kdl> — WM-coupl
 }
 
 enable_service()      { sudo systemctl enable "$1"; ok "enabled $1"; }
-enable_user_service() { systemctl --user enable "$1"; ok "enabled (user) $1"; }
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 export REPO_ROOT

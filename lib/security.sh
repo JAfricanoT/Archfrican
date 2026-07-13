@@ -48,17 +48,3 @@ SSHD
   fw_allow 22/tcp
   ok "SSH enabled (hardened) + 22/tcp opened. Connect: ssh $USER@<host-ip>"
 }
-
-# Print the corrected faillock recovery procedure for THIS box. root is DISABLED
-# (sudo-only), so the usual "log in as root on a VT" does not apply.
-faillock_recover_doc() {
-  cat <<'DOC'
-If sudo/login is locked after too many failures (faillock):
-  • The lock auto-clears after the unlock_time window (default 600s) — just wait.
-  • To clear immediately you need a root shell, but root login is DISABLED. Get one by:
-      1. Reboot, pick "linux-lts" (or a Snapper snapshot) in the GRUB menu.
-      2. At the boot prompt add  rd.break  OR  boot a snapshot to a root shell.
-      3. Run:  faillock --user <youruser> --reset
-  • Prevention: faillock here is deny=5 / unlock_time=600 and never locks "root".
-DOC
-}

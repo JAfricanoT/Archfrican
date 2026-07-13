@@ -162,7 +162,8 @@ LOGIND
 substep "tuning PAM faillock (deny=5, auto-unlock after 10 min)"
 write_system_file /etc/security/faillock.conf 0644 <<'FAILLOCK'
 # Archfrican faillock policy. No even_deny_root (root is disabled here anyway). If you ever
-# lock yourself out: boot linux-lts / a Snapper snapshot to a root shell, then
+# lock yourself out: the lock auto-clears after unlock_time (600 s) — or, to clear it NOW,
+# boot linux-lts / a Snapper snapshot to a root shell, then
 #   faillock --user <youruser> --reset
 deny = 5
 fail_interval = 900

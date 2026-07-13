@@ -7,11 +7,5 @@
 is_iso() { [ -d /run/archiso ]; }
 
 # Where the self-clone lands. ISO -> /root (you are root); booted -> $HOME.
+# (git bootstrap lives in install.sh's _ensure_git — it must exist before lib/ is on disk.)
 clone_dest() { if is_iso; then echo /root/.archfrican; else echo "$HOME/.archfrican"; fi; }
-
-# Make sure git exists before the self-clone (root on ISO, sudo when booted).
-ensure_git() {
-  command -v git >/dev/null 2>&1 && return 0
-  if [ "$EUID" -eq 0 ]; then pacman -Sy --needed --noconfirm git
-  else sudo pacman -Sy --needed --noconfirm git; fi
-}
