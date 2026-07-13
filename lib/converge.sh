@@ -19,20 +19,24 @@ ARCHFRICAN_MODULES="00-base 10-gpu 15-desktop-services 20-niri-desktop 25-plasma
 module_inputs() {                 # module_inputs <name>
   printf 'lib/common.sh modules/%s.sh' "$1"
   case "$1" in
-    00-base)         printf ' packages/base.txt' ;;
+    00-base)         printf ' packages/base.txt lib/grub.sh' ;;
     10-gpu)          printf ' lib/detect-gpu.sh lib/grub.sh' ;;
     # SDDM theme/wallpaper inputs include the palettes (themes/) + templates so editing a palette
     # is seen by drift detection and re-converges the rendered login theme (audit H1/M1).
     # module_hash tree-hashes a directory, so the bare dir names cover every file + stay future-proof.
     15-desktop-services) printf ' templates/sddm.theme.conf assets/sddm/archfrican assets/wallpapers themes' ;;
     20-niri-desktop) printf ' packages/niri-desktop.txt' ;;
-    25-plasma-desktop) printf ' packages/plasma-desktop.txt' ;;
+    # lib/plasma-theme.sh: runtime-sourced by apply_plasma_theme (lib/common.sh) — the pending
+    # BreezeDark format correction must re-converge Plasma machines (the b731642 bug class).
+    25-plasma-desktop) printf ' packages/plasma-desktop.txt lib/plasma-theme.sh' ;;
     30-dev)          printf ' packages/dev.txt' ;;
     35-apps)         printf ' packages/apps.txt flatpak/apps.txt' ;;
-    40-theming)      printf ' packages/theming.txt packages/aur.txt bin/theme-switch themes templates lib/grub.sh' ;;
+    # lib/plasma-theme.sh: sourced by bin/theme-switch (which this module runs).
+    40-theming)      printf ' packages/theming.txt packages/aur.txt bin/theme-switch themes templates lib/grub.sh lib/plasma-theme.sh' ;;
     45-print)        printf ' packages/print.txt' ;;
+    50-snapshots)    printf ' lib/grub.sh' ;;
     55-multiboot)    printf ' packages/multiboot.txt lib/grub.sh' ;;
-    60-security)     printf ' packages/security.txt lib/security.sh lib/fido2.sh' ;;
+    60-security)     printf ' packages/security.txt lib/security.sh lib/fido2.sh lib/grub.sh' ;;
     65-gaming)       printf ' gaming/packages.txt lib/detect-gpu.sh' ;;
     70-hygiene)      printf ' bin/archfrican-update bin/archfrican-doctor lib/health.sh' ;;
   esac

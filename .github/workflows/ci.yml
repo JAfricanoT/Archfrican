@@ -365,14 +365,47 @@ jobs:
             || { echo "::error::ARCHFRICAN_MODULES and modules/*.sh on disk disagree: $(diff <(echo "$modules_txt") <(echo "$files_txt") | tr '\n' ' ')"; exit 1; }
 
           # module_inputs()'s case arms don't need to cover every module — one with no extra inputs
-          # beyond its own script + lib/common.sh simply has no case arm (e.g. 50-snapshots installs
-          # no dedicated package list) — but every arm that DOES exist must name a real module, catching
-          # a stale/typo'd name if a module is ever renamed.
+          # beyond its own script + lib/common.sh simply has no case arm — but every arm that DOES
+          # exist must name a real module, catching a stale/typo'd name if a module is ever renamed.
           inputs_txt="$(awk '/^module_inputs\(\)/,/^}/' lib/converge.sh | grep -oE '[0-9]{2}-[a-z]+(-[a-z]+)*\)' | tr -d ')' | sort -u)"
           bad="$(comm -23 <(echo "$inputs_txt") <(echo "$modules_txt"))"
           [ -z "$bad" ] || { echo "::error::module_inputs() case has an entry that is not a real module: $(echo "$bad" | tr '\n' ' ')"; exit 1; }
 
           echo "modules-list-consistency: ARCHFRICAN_MODULES/module_label/module_desc/run_module/modules-on-disk all agree; module_inputs() has no stale entries"
+
+      - name: every lib a module sources is registered in module_inputs (drift-blindness guard)
+        run: |
+          set -euo pipefail
+          # The b731642 bug class, twice shipped: a module leans on a lib/*.sh whose edits then
+          # don't change module_hash(), so converge skips the re-run and deployed machines keep
+          # stale behavior while drift detection reports clean. Mechanical rule: every
+          # `source "$REPO_ROOT/lib/X.sh"` in modules/N.sh must appear in `module_inputs N`
+          # (lib/common.sh is always implicit), bin/theme-switch's sourced libs must appear in
+          # 40-theming's inputs, and any module calling apply_plasma_theme needs
+          # lib/plasma-theme.sh (lib/common.sh sources it at runtime — a transitive input).
+          source lib/converge.sh
+          rc=0
+          for m in $ARCHFRICAN_MODULES; do
+            inputs=" $(module_inputs "$m") "
+            for libf in $(grep -oE 'source "\$REPO_ROOT/lib/[a-z0-9-]+\.sh"' "modules/$m.sh" | grep -oE 'lib/[a-z0-9-]+\.sh'); do
+              case "$inputs" in *" $libf "*) ;; *)
+                echo "::error::modules/$m.sh sources $libf but module_inputs $m does not register it (converge would be blind to its edits)"; rc=1 ;;
+              esac
+            done
+            if grep -q 'apply_plasma_theme' "modules/$m.sh"; then
+              case "$inputs" in *' lib/plasma-theme.sh '*) ;; *)
+                echo "::error::modules/$m.sh calls apply_plasma_theme but module_inputs $m lacks lib/plasma-theme.sh (transitive source via lib/common.sh)"; rc=1 ;;
+              esac
+            fi
+          done
+          theming=" $(module_inputs 40-theming) "
+          for libf in $(grep -oE '\. "\$ROOT/lib/[a-z0-9-]+\.sh"' bin/theme-switch | grep -oE 'lib/[a-z0-9-]+\.sh'); do
+            case "$theming" in *" $libf "*) ;; *)
+              echo "::error::bin/theme-switch sources $libf but module_inputs 40-theming does not register it"; rc=1 ;;
+            esac
+          done
+          [ "$rc" = 0 ] && echo "module_inputs registers every sourced lib (no drift blindness)"
+          exit "$rc"
 
       - name: docs/COMMANDS.md documents exactly the commands that ship
         run: |

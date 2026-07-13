@@ -79,6 +79,18 @@ rm -f "$ARCHFRICAN_PHASE2_STATE/55-multiboot.done"
 drift="$(drift_modules)"
 if ! printf '%s\n' "$drift" | grep -qx '55-multiboot'; then _ok "drift_modules: a never-installed (no-stamp) module is NOT reported as drift"; else _no "drift_modules wrongly reported a never-installed module as drift"; fi
 
+# ---- 9. runtime-sourced libs are registered inputs: editing lib/plasma-theme.sh drifts Plasma -------
+# The b731642 bug class: apply_plasma_theme sources lib/plasma-theme.sh at runtime (not via the
+# module script), so if module_inputs forgets it, the pending .colors format correction would
+# never re-converge deployed Plasma machines while doctor reports "no drift".
+printf 'echo plasma v1\n' > "$WORK/repo/lib/plasma-theme.sh"
+printf 'echo plasma-desktop v1\n' > "$WORK/repo/modules/25-plasma-desktop.sh"
+mkdir -p "$ARCHFRICAN_PHASE2_STATE"
+module_hash 25-plasma-desktop > "$ARCHFRICAN_PHASE2_STATE/25-plasma-desktop.done"
+printf 'echo plasma v2 CORRECTED FORMAT\n' > "$WORK/repo/lib/plasma-theme.sh"
+drift="$(drift_modules)"
+if printf '%s\n' "$drift" | grep -qx '25-plasma-desktop'; then _ok "editing lib/plasma-theme.sh drifts 25-plasma-desktop (runtime-sourced lib is a registered input)"; else _no "25-plasma-desktop did NOT drift on a lib/plasma-theme.sh edit — converge is blind to the Plasma paint"; fi
+
 rm -rf "$WORK"
 printf '\nconverge unit test: %d passed, %d failed\n' "$P" "$F"
 [ "$F" -eq 0 ]
