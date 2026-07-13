@@ -90,6 +90,14 @@ list_themes() { local d; for d in "$REPO_ROOT"/themes/*/; do [ -d "$d" ] && base
 ARCHFRICAN_DEFAULT_THEME=archfrican-dark
 current_theme() { cat "$HOME/.config/.archfrican-theme" 2>/dev/null || echo "$ARCHFRICAN_DEFAULT_THEME"; }
 
+# CPU-microcode package for THIS machine: intel-ucode / amd-ucode / nothing (unknown vendor).
+# Used by lib/base-install.sh (pacstrap extras) and modules/60-security.sh (booted backfill).
+cpu_ucode() {
+  case "$(grep -m1 -oE 'GenuineIntel|AuthenticAMD' /proc/cpuinfo 2>/dev/null)" in
+    GenuineIntel) printf 'intel-ucode';; AuthenticAMD) printf 'amd-ucode';;
+  esac
+}
+
 # Enable a locale in locale.gen: validate the charset (the name is interpolated into the
 # regexes), uncomment an existing '#<locale> …' line, or APPEND '<locale> UTF-8' when the file
 # doesn't carry it at all (a trimmed locale.gen, an exotic LANG) — without the append branch the

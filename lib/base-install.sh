@@ -36,11 +36,6 @@ probe() {          # probe '<placeholder>' <real-cmd…> — placeholder in dry-
 # /dev/nvme0n1 -> p1/p2 ; /dev/sda|/dev/vda -> 1/2 ; /dev/mmcblk0 -> p1/p2
 part_dev() { case "$1" in *[0-9]) printf '%sp%s' "$1" "$2";; *) printf '%s%s' "$1" "$2";; esac; }
 
-cpu_ucode() {      # echoes intel-ucode / amd-ucode / nothing (unknown)
-  case "$(grep -m1 -oE 'GenuineIntel|AuthenticAMD' /proc/cpuinfo 2>/dev/null)" in
-    GenuineIntel) printf 'intel-ucode';; AuthenticAMD) printf 'amd-ucode';;
-  esac
-}
 xkb_to_vconsole() { # xkb layout -> tty keymap; fall back to 'us' if it isn't a valid console keymap
   local xkb="$1"     # (us/latam/es ARE valid keymaps; many xkb names aren't, e.g. gb's keymap is 'uk')
   if localectl --no-convert list-keymaps 2>/dev/null | grep -qx "$xkb"; then printf '%s' "$xkb"

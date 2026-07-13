@@ -172,11 +172,7 @@ unlock_time = 600
 FAILLOCK
 
 # ---- CPU microcode (security/stability fixes, loaded early by the initramfs) --
-ucode_pkg=""
-case "$(grep -m1 -oE 'GenuineIntel|AuthenticAMD' /proc/cpuinfo 2>/dev/null)" in
-  GenuineIntel) ucode_pkg=intel-ucode;;
-  AuthenticAMD) ucode_pkg=amd-ucode;;
-esac
+ucode_pkg="$(cpu_ucode)"
 if [ -n "$ucode_pkg" ] && ! pacman -Q "$ucode_pkg" &>/dev/null; then
   substep "installing $ucode_pkg (CPU microcode) + regenerating GRUB"
   pac_install "$ucode_pkg"
