@@ -46,7 +46,7 @@ esac; done
 if [ "$RUN" = 1 ] || [ "$CONVERGE" = 1 ] || [ "$PRUNE" = 1 ]; then
   LOCKFILE="${XDG_RUNTIME_DIR:-/tmp}/archfrican-update.lock"
   exec {lock_fd}>"$LOCKFILE"
-  flock -n "$lock_fd" || die "ya hay un archfrican-update corriendo — esperá a que termine e intentá de nuevo"
+  flock -n "$lock_fd" || die "ya hay un archfrican-update corriendo — espera a que termine e inténtalo de nuevo"
 fi
 
 warn_n=0
@@ -57,63 +57,63 @@ _hd()   { printf '\n\e[1m  %s\e[0m\n\n' "$*"; }
 
 # ---------- pre-update report (read-only) ------------------------------------
 precheck() {
-  _hd "Archfrican — pre-update check"
+  _hd "Archfrican — chequeo previo"
 
   ar="$(df -BM --output=avail / 2>/dev/null | tail -1 | tr -dc 0-9)"
-  if [ -n "$ar" ] && [ "$ar" -ge 3000 ]; then _ok "root: ${ar}M free"
-  else _note "root low on space (${ar:-?}M) — a large upgrade may fail"; fi
+  if [ -n "$ar" ] && [ "$ar" -ge 3000 ]; then _ok "root: ${ar}M libres"
+  else _note "poco espacio en root (${ar:-?}M) — una actualización grande puede fallar"; fi
   if mountpoint -q /boot 2>/dev/null; then
     ab="$(df -BM --output=avail /boot 2>/dev/null | tail -1 | tr -dc 0-9)"
-    if [ -n "$ab" ] && [ "$ab" -ge 100 ]; then _ok "/boot: ${ab}M free"
-    else _note "/boot tight (${ab:-?}M) — remove an old kernel first"; fi
+    if [ -n "$ab" ] && [ "$ab" -ge 100 ]; then _ok "/boot: ${ab}M libres"
+    else _note "/boot justo (${ab:-?}M) — elimina antes un kernel viejo"; fi
   fi
 
   command -v snapper >/dev/null 2>&1 \
-    && _ok "snapshots active (--run takes a pre-snapshot; snap-pac checkpoints the -Syu)"
+    && _ok "snapshots activos (--run crea un pre-snapshot; snap-pac marca el -Syu)"
 
   if [ -f /etc/pacman.d/mirrorlist ]; then
     age=$(( ( $(date +%s) - $(stat -c %Y /etc/pacman.d/mirrorlist 2>/dev/null || echo 0) ) / 86400 ))
-    if [ "$age" -le 7 ]; then _ok "mirrorlist ${age}d old"
-    else _note "mirrorlist ${age}d old — --run auto-refreshes it (>7d) before the upgrade"; fi
+    if [ "$age" -le 7 ]; then _ok "mirrorlist de hace ${age}d"
+    else _note "mirrorlist de hace ${age}d — --run la refresca solo (>7d) antes de actualizar"; fi
   fi
 
   news="$(curl -fsS --max-time 8 'https://archlinux.org/feeds/news/' 2>/dev/null \
             | grep -oE '<title>[^<]+' | sed -n '2p' | sed 's/<title>//')"
-  [ -n "$news" ] && _note "latest Arch news: \"$news\" — read https://archlinux.org/news/ before a big upgrade"
+  [ -n "$news" ] && _note "última noticia de Arch: \"$news\" — lee https://archlinux.org/news/ antes de una actualización grande"
 
   if command -v arch-audit >/dev/null 2>&1; then
     n="$(arch-audit --quiet --upgradable 2>/dev/null | grep -c .)"
-    if [ "${n:-0}" -eq 0 ]; then _ok "no known fixable CVEs"
-    else _note "$n package(s) with fixable CVEs — this upgrade should clear them"; fi
+    if [ "${n:-0}" -eq 0 ]; then _ok "sin CVEs conocidos con fix disponible"
+    else _note "$n paquete(s) con CVEs corregibles — esta actualización debería resolverlos"; fi
   fi
 
   # --- drift: is the repo behind origin? (lightweight shallow fetch) ---
   if [ -d "$ROOT/.git" ] && command -v git >/dev/null 2>&1; then
     if git -C "$ROOT" fetch --depth 1 origin "$ARCHFRICAN_REF" >/dev/null 2>&1; then
       behind="$(git -C "$ROOT" rev-list --count HEAD..FETCH_HEAD 2>/dev/null)"
-      if [ "${behind:-0}" -gt 0 ]; then _note "repo: $behind commit(s) behind origin/$ARCHFRICAN_REF — --run pulls them"
-      else _ok "repo: current with origin/$ARCHFRICAN_REF"; fi
+      if [ "${behind:-0}" -gt 0 ]; then _note "repo: $behind commit(s) por detrás de origin/$ARCHFRICAN_REF — --run los trae"
+      else _ok "repo: al día con origin/$ARCHFRICAN_REF"; fi
     fi
   fi
   # --- drift: applied modules whose on-disk inputs changed + pending migrations ---
   d="$(drift_modules 2>/dev/null | grep -c .)"
-  if [ "${d:-0}" -gt 0 ]; then _note "config drift: $d module(s) changed in the repo — --run re-converges them"
-  else _ok "config: applied state matches the on-disk repo"; fi
+  if [ "${d:-0}" -gt 0 ]; then _note "drift de config: $d módulo(s) cambiaron en el repo — --run los re-converge"
+  else _ok "config: el estado aplicado coincide con el repo"; fi
   pm="$(pending_migrations 2>/dev/null)"
-  [ "${pm:-0}" -gt 0 ] && _note "$pm migration(s) pending"
+  [ "${pm:-0}" -gt 0 ] && _note "$pm migración(es) pendiente(s)"
 
   command -v checkupdates >/dev/null 2>&1 \
-    && printf '\n  %s package update(s) available.\n' "$(checkupdates 2>/dev/null | grep -c .)"
+    && printf '\n  %s actualización(es) de paquetes disponibles.\n' "$(checkupdates 2>/dev/null | grep -c .)"
 }
 
 # ---------- a single rollback point for the WHOLE update ----------------------
 pre_snapshot() {
-  command -v snapper >/dev/null 2>&1 || { _note "snapper absent — no pre-snapshot (continuing)"; return 0; }
+  command -v snapper >/dev/null 2>&1 || { _note "snapper no está — sin pre-snapshot (continuando)"; return 0; }
   local desc rev; rev="$(git -C "${ROOT:-$HOME/.archfrican}" rev-parse --short HEAD 2>/dev/null || echo '?')"
   desc="archfrican-update $(date +%Y-%m-%d) @$rev"
   if sudo snapper -c root create -d "$desc" >/dev/null 2>&1; then
-    _ok "pre-snapshot created (\"$desc\") — one reboot rolls the whole update back"
-  else _note "could not create a pre-snapshot (continuing)"; fi
+    _ok "pre-snapshot creado (\"$desc\") — un reboot revierte toda la actualización"
+  else _note "no pude crear el pre-snapshot (continuando)"; fi
 }
 
 # ---------- keep the mirrorlist fresh WITHOUT an always-on background timer --
@@ -126,15 +126,15 @@ refresh_mirrors_if_stale() {
   [ -f /etc/pacman.d/mirrorlist ] || return 0
   local age; age=$(( ( $(date +%s) - $(stat -c %Y /etc/pacman.d/mirrorlist 2>/dev/null || echo 0) ) / 86400 ))
   [ "$age" -gt 7 ] || return 0
-  _hd "Mirror refresh — mirrorlist is ${age}d old"
+  _hd "Refresco de mirrors — la mirrorlist tiene ${age}d"
   if { if [ -r /etc/xdg/reflector/reflector.conf ]; then
     sudo reflector @/etc/xdg/reflector/reflector.conf
   else
     sudo reflector --protocol https --latest 20 --sort rate --age 12 --save /etc/pacman.d/mirrorlist
   fi; }; then
-    _ok "mirrorlist refreshed"
+    _ok "mirrorlist refrescada"
   else
-    _note "reflector failed — continuing with the existing mirrorlist"
+    _note "reflector falló — continuando con la mirrorlist actual"
   fi
 }
 
@@ -159,17 +159,17 @@ repo_refresh() {                 # pull the desired state + run migrations (no p
             local url; url="$(git -C "$ROOT" remote get-url origin 2>/dev/null | sed -E 's#\.git$##')"
             CHANGELOG="(older than the local fetch depth — see ${url:-the repo}/compare/$old...$new)"
           fi
-        else _ok "repo already current ($new)"; fi
-      else _note "git reset --hard failed — converging the on-disk repo ($old) as-is"; fi
-    else _note "git fetch failed — converging the on-disk repo ($old)"; fi
+        else _ok "repo ya al día ($new)"; fi
+      else _note "git reset --hard falló — convergiendo el repo local ($old) tal cual"; fi
+    else _note "git fetch falló — convergiendo el repo local ($old)"; fi
   fi
-  run_migrations || { _note "migrations failed — aborting before the converge"; return 1; }
+  run_migrations || { _note "las migraciones fallaron — abortando antes del converge"; return 1; }
 }
 converge_modules() {             # run the freshly-pulled installer; only CHANGED modules re-run
-  ARCHFRICAN_UPDATE=1 bash "$ROOT/install.sh" --update || { _note "converge reported an error — review above"; return 1; }
+  ARCHFRICAN_UPDATE=1 bash "$ROOT/install.sh" --update || { _note "el converge reportó un error — revisa arriba"; return 1; }
 }
 converge() {
-  _hd "Converge — re-apply the repo's desired state"
+  _hd "Converge — re-aplicar el estado deseado del repo"
   # Package installs need a FRESH pacman DB (--run syncs one between pull and converge);
   # --converge deliberately never touches pacman. If THIS pull changed a package list, a
   # module would run `pacman -S` against a stale DB — "target not found" and the package
@@ -197,7 +197,7 @@ converge() {
 # ---- what changed (conventional-commit subjects, grouped) -------------------
 print_changelog() {
   [ -n "$CHANGELOG" ] || return 0
-  _hd "What changed"
+  _hd "Qué cambió"
   local feat="" fix="" other="" line type rest scope
   while IFS= read -r line; do
     [ -n "$line" ] || continue
@@ -212,9 +212,9 @@ print_changelog() {
       *)    other="$other    • $line"$'\n' ;;
     esac
   done <<< "$CHANGELOG"
-  [ -n "$feat" ]  && printf '  New features:\n%s' "$feat"
-  [ -n "$fix" ]   && printf '  Fixes:\n%s' "$fix"
-  [ -n "$other" ] && printf '  Other changes:\n%s' "$other"
+  [ -n "$feat" ]  && printf '  Novedades:\n%s' "$feat"
+  [ -n "$fix" ]   && printf '  Arreglos:\n%s' "$fix"
+  [ -n "$other" ] && printf '  Otros cambios:\n%s' "$other"
 }
 
 # ---------- desktop notification when origin has new commits -----------------
@@ -233,11 +233,11 @@ do_notify() {
   # marking the unit "failed" and making archfrican-doctor report a recurring, self-inflicted AMBER.
   # The chosen action's NAME prints to stdout.
   local action
-  action="$(notify-send -t 25000 -A "update=Update now" -A "later=Later" \
-    "Archfrican" "$behind new commit(s) available. Click to update." 2>/dev/null)"
+  action="$(notify-send -t 25000 -A "update=Actualizar ahora" -A "later=Más tarde" \
+    "Archfrican" "$behind cambio(s) nuevo(s) disponibles. Clic para actualizar." 2>/dev/null)"
   [ "$action" = "update" ] || exit 0
   if command -v ghostty >/dev/null 2>&1; then
-    ghostty -e sh -c "archfrican-update --run; printf '\n(enter to close) '; read -r _"
+    ghostty -e sh -c "archfrican-update --run; printf '\n(enter para cerrar) '; read -r _"
   else
     archfrican-update --run
   fi
@@ -245,24 +245,24 @@ do_notify() {
 
 # ---------- opt-in prune (only Archfrican-managed, never your packages) -------
 do_prune() {
-  _hd "Prune — Archfrican-managed packages no longer in the repo"
+  _hd "Prune — paquetes gestionados por Archfrican que ya no están en el repo"
   local cand ans; mapfile -t cand < <(prune_candidates)
-  if [ "${#cand[@]}" -eq 0 ]; then _ok "nothing to prune (no managed-but-undesired packages)"; return 0; fi
-  printf '  Installed by Archfrican, no longer in any list (your own packages never appear here):\n'
+  if [ "${#cand[@]}" -eq 0 ]; then _ok "nada que limpiar (sin paquetes gestionados sobrantes)"; return 0; fi
+  printf '  Instalados por Archfrican y ya fuera de toda lista (tus propios paquetes nunca aparecen aquí):\n'
   printf '    %s\n' "${cand[@]}"
-  printf '\n  Remove them now? [y/N] '; read -r ans
+  printf '\n  ¿Eliminarlos ahora? [y/N] '; read -r ans
   case "$ans" in
     y|Y) sudo pacman -Rns "${cand[@]}" ;;   # never --noconfirm; pacman itself refuses unsafe removals
-    *)   printf '  Skipped. To remove later:\n    sudo pacman -Rns %s\n' "${cand[*]}" ;;
+    *)   printf '  Omitido. Para eliminarlos luego:\n    sudo pacman -Rns %s\n' "${cand[*]}" ;;
   esac
 }
 
 # ---------- post-update summary ----------------------------------------------
 post_summary() {
-  _hd "Post-update health"
+  _hd "Salud post-actualización"
   "$ROOT/bin/archfrican-doctor" 2>/dev/null || true
   print_changelog
-  printf '\n  \e[32m✓ Update complete.\e[0m If a kernel changed: sudo systemctl reboot\n\n'
+  printf '\n  \e[32m✓ Actualización completa.\e[0m Si cambió el kernel: sudo systemctl reboot\n\n'
 }
 
 # ---------- dispatch ----------------------------------------------------------
@@ -273,17 +273,17 @@ if [ "$RUN" = 1 ]; then
   # the fresh DB) → AUR. Converging BEFORE the upgrade left a stale DB, so a package newly added to a repo
   # list failed to install ("target not found") and only self-healed on a second --run. Rollback (the
   # pre-snapshot) covers the whole sequence.
-  _hd "Repo refresh — pull the desired state"
+  _hd "Refresco del repo — traer el estado deseado"
   repo_refresh || exit 1
   refresh_mirrors_if_stale
-  _hd "System upgrade (official repos) — interactive, never --noconfirm"
-  [ "$warn_n" -gt 0 ] && printf '  \e[33m%d caution(s) in the pre-check above.\e[0m\n\n' "$warn_n"
-  sudo pacman -Syu || _note "pacman -Syu reported an error — review above"
-  _hd "Converge — re-apply the repo's desired state (installs against the fresh DB)"
+  _hd "Actualización del sistema (repos oficiales) — interactiva, nunca --noconfirm"
+  [ "$warn_n" -gt 0 ] && printf '  \e[33m%d aviso(s) en el chequeo previo de arriba.\e[0m\n\n' "$warn_n"
+  sudo pacman -Syu || _note "pacman -Syu reportó un error — revisa arriba"
+  _hd "Converge — re-aplicar el estado deseado del repo (instala contra la DB fresca)"
   converge_modules || exit 1
   if [ "$NO_AUR" = 0 ] && command -v paru >/dev/null 2>&1; then
-    _hd "AUR upgrade (reviewed; a failed build never blocks the system)"
-    paru -Sua || _note "an AUR build failed — the official upgrade still applied; retry later: paru -Sua"
+    _hd "Actualización AUR (revisada; un build fallido nunca bloquea el sistema)"
+    paru -Sua || _note "falló un build de AUR — la actualización oficial ya aplicó; reintenta luego: paru -Sua"
   fi
   [ "$PRUNE" = 1 ] && do_prune
   post_summary
@@ -294,7 +294,7 @@ elif [ "$CONVERGE" = 1 ]; then
   converge || exit 1
   [ "$PRUNE" = 1 ] && do_prune
   print_changelog
-  printf '\n  \e[32m✓ Converge complete\e[0m — config + dotfiles match the repo (no package upgrade; use --run).\n\n'
+  printf '\n  \e[32m✓ Converge completo\e[0m — config + dotfiles coinciden con el repo (sin actualizar paquetes; para eso, --run).\n\n'
 
 elif [ "$PRUNE" = 1 ]; then
   do_prune                                  # prune against the last recorded manifest
@@ -304,7 +304,7 @@ elif [ "$NOTIFY" = 1 ]; then
 
 else
   precheck
-  printf '\n  Bring this machine to the repo + upgrade packages:\n    \e[1marchfrican-update --run\e[0m\n'
-  printf '  Re-apply config/dotfiles only (no upgrade):\n    archfrican-update --converge\n'
-  printf '  Also drop Archfrican-managed pkgs no longer wanted:\n    archfrican-update --run --prune\n\n'
+  printf '\n  Poner esta máquina al día con el repo + actualizar paquetes:\n    \e[1marchfrican-update --run\e[0m\n'
+  printf '  Re-aplicar solo config/dotfiles (sin actualizar):\n    archfrican-update --converge\n'
+  printf '  Además, limpiar paquetes gestionados que ya no están:\n    archfrican-update --run --prune\n\n'
 fi
