@@ -69,6 +69,17 @@ b_snapper_cfg() {
   findmnt -rno SOURCE /.snapshots 2>/dev/null | grep -qF '@.snapshots'
 }
 b_shell_zsh()   { getent passwd "$(id -un)" | grep -qE ':/usr/bin/zsh$|:/bin/zsh$'; }
+b_fw_ruleset() {
+  # The loaded ruleset needs root; probe it authoritatively ONLY if sudo is already cached
+  # (-n never prompts — same contract as b_snapper_cfg), else fall back to the unit being
+  # active. The authoritative branch catches the b5db546 class (conf on disk fixed, kernel
+  # still enforcing the old rules) — 'chain forward' is the chain that fix touched.
+  if sudo -n true 2>/dev/null; then
+    sudo -n nft list table inet filter 2>/dev/null | grep -q 'chain forward'
+  else
+    systemctl is-active --quiet nftables.service
+  fi
+}
 # update/converge predicates (need lib/converge.sh sourced + REPO_ROOT set; see assert_update)
 b_no_drift()    { [ -z "$(drift_modules 2>/dev/null)" ]; }
 b_drift_is()    { [ "$(drift_modules 2>/dev/null | tr '\n' ' ')" = "$1 " ]; }
@@ -166,6 +177,8 @@ assert_postboot() {           # post-reboot: on the installed system, as the use
   assert "archfrican SDDM theme installed"                   test -r /usr/share/sddm/themes/archfrican/Main.qml
   assert "snapper 'root' wired (config -> / via sudo, or @.snapshots subvol mounted)" b_snapper_cfg
   assert "NetworkManager is active"                          systemctl is-active --quiet NetworkManager.service
+  assert "nftables firewall active (unit up)"                systemctl is-active --quiet nftables.service
+  assert "firewall ruleset loaded (table inet filter + forward chain)" b_fw_ruleset
   assert "login shell is zsh"                                b_shell_zsh
   assert "wallpaper daemon binary resolves (awww-daemon)"    command -v awww-daemon
   assert "linux-cachyos kernel installed (primary)"          pacman -Qq linux-cachyos
