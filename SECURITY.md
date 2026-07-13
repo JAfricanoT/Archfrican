@@ -33,7 +33,7 @@ the **supply chain** (the `curl | sh` bootstrap, the CachyOS repo bootstrap, AUR
   validated; passwords flow via stdin only.
 - **Network** — the nftables firewall uses a **named table and never `flush ruleset`** (so it can't wipe
   Docker/podman tables), deny-inbound by default.
-- The full audit trail lives in [docs/audit/](docs/audit/).
+- The full audit trail lives in [audit/](audit/).
 
 Validated findings and fixes are tracked in the audit and in `docs/*`. Out-of-scope: vulnerabilities in
 upstream Arch/CachyOS/AUR packages themselves — report those upstream.
@@ -69,7 +69,7 @@ y la **cadena de suministro** (el bootstrap `curl | sh`, el repo de CachyOS, las
   validan con `visudo -cf`; las contraseñas fluyen solo por stdin.
 - **Red** — el firewall nftables usa una **tabla nombrada y nunca `flush ruleset`** (no puede borrar las
   tablas de Docker/podman), deny-inbound por defecto.
-- El rastro completo de auditoría está en [docs/audit/](docs/audit/).
+- El rastro completo de auditoría está en [audit/](audit/).
 
 Fuera de alcance: vulnerabilidades en los propios paquetes upstream de Arch/CachyOS/AUR — repórtalas
 upstream.

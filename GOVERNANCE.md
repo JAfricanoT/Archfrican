@@ -20,8 +20,8 @@ disagreement, the maintainer arbitrates. Only the maintainer merges to `main`.
 Changes touching **disk partitioning, the bootloader, encryption/LUKS, PAM/sudo/FIDO2, the firewall, or the
 supply chain** carry the highest blast radius and get extra scrutiny before merge:
 1. **Adversarial review** — the change is reviewed against the audit findings in
-   [docs/audit/01-security-supply-chain.md](docs/audit/01-security-supply-chain.md) and
-   [docs/audit/02-data-integrity-ops.md](docs/audit/02-data-integrity-ops.md): a reviewer actively tries to
+   [audit/01-security.md](audit/01-security.md) and
+   [audit/02-state-integrity.md](audit/02-state-integrity.md): a reviewer actively tries to
    break it, not just read it.
 2. **VM validation** — disk/boot changes are validated on a VM per
    [docs/STAGE2-VALIDATION.md](docs/STAGE2-VALIDATION.md) (not the general docs/VALIDATION.md) before they
@@ -67,8 +67,8 @@ hace merge a `main`.
 Los cambios que tocan **particionado de disco, el bootloader, cifrado/LUKS, PAM/sudo/FIDO2, el firewall o la
 cadena de suministro** tienen el mayor radio de impacto y reciben escrutinio extra antes del merge:
 1. **Revisión adversarial** — se revisa contra los hallazgos de
-   [docs/audit/01](docs/audit/01-security-supply-chain.md) y
-   [docs/audit/02](docs/audit/02-data-integrity-ops.md): el revisor intenta romperlo, no solo leerlo.
+   [audit/01](audit/01-security.md) y
+   [audit/02](audit/02-state-integrity.md): el revisor intenta romperlo, no solo leerlo.
 2. **Validación en VM** — los cambios de disco/arranque se validan en VM según
    [docs/STAGE2-VALIDATION.md](docs/STAGE2-VALIDATION.md) antes de publicarse activados.
 3. **Gates de seguridad intactos** — el PR no puede debilitar: `ARCHFRICAN_ISO_ARMED` por defecto `0` (el
