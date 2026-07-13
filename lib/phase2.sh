@@ -123,20 +123,20 @@ run_phase2() {                # run_phase2 [single-module]
     if [ -n "$_other" ]; then
       ui_note "Detected another OS ($_other) on a different disk."
       ui_confirm "Show $_other in the GRUB boot menu (multi-boot)?" && MULTIBOOT=yes
-    elif ui_confirm_default_no "Share this machine with another OS already installed (multi-boot)?"; then
+    elif ui_confirm "Share this machine with another OS already installed (multi-boot)?" no; then
       MULTIBOOT=yes
     fi
     # SSH server (opt-in, default NO): a hardened sshd + an nftables allow for 22/tcp (remote access).
-    if ui_confirm_default_no "Enable the SSH server (remote access, hardened)?"; then
+    if ui_confirm "Enable the SSH server (remote access, hardened)?" no; then
       SSH_ENABLE=yes
     fi
     # Gaming stack (opt-in, default NO): [multilib] + Steam/gamescope/gamemode/MangoHud/Proton-GE.
-    if ui_confirm_default_no "Install the gaming stack (Steam, gamescope, Proton-GE)?"; then
+    if ui_confirm "Install the gaming stack (Steam, gamescope, Proton-GE)?" no; then
       GAMING=yes
     fi
     # Plasma desktop (opt-in, default NO): a second, Windows-familiar session at SDDM login,
     # in parallel to niri — native Plasma keybinds/launcher, nothing of niri's touched.
-    if ui_confirm_default_no "Install KDE Plasma as an additional desktop session (Windows-familiar, opt-in)?"; then
+    if ui_confirm "Install KDE Plasma as an additional desktop session (Windows-familiar, opt-in)?" no; then
       PLASMA=yes
     fi
     # FIDO2 physical-key mode (opt-in; needs a plugged key). Enroll the touch(es) now;

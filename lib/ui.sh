@@ -91,13 +91,3 @@ ui_confirm() {                     # ui_confirm "question" [default:yes|no]  -> 
   fi
 }
 
-ui_confirm_default_no() {          # ui_confirm "question"  -> rc 0 (yes) / 1 (no), default NO
-  local a
-  if [ "$UI_BACKEND" = gum ]; then
-    gum confirm --default=false "$1"
-  else
-    read -rp "$1 [y/N]: " a </dev/tty >&2 || true
-    [[ "${a:-n}" =~ ^[Yy]$ ]]
-  fi
-}
-
