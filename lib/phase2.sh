@@ -111,7 +111,8 @@ run_phase2() {                # run_phase2 [single-module]
     TZ="$(timedatectl list-timezones 2>/dev/null | ui_filter 'Timezone' "$TZ")"
     LOCALE="$(ui_input 'Locale (LANG)' "$LOCALE")"
     XKB="$(ui_input 'Keyboard layout (xkb: us, latam, es, ...)' "$XKB")"
-    THEME="$(ui_choose 'Initial theme' archfrican-dark archfrican-light catppuccin-mocha tokyo-night high-contrast)"
+    # shellcheck disable=SC2046  # word-split intentional: theme names are bare dir names (no spaces)
+    THEME="$(ui_choose 'Initial theme' $(list_themes))"
     WALLPAPER="$(ui_choose 'Wallpaper' none Blue Cross Cube CubeTwo Curve)"
     GPU="${ARCHFRICAN_GPU:-$DETECTED_GPU}"   # auto-detected; the installer picks the driver (no mis-pick)
     ui_note "GPU: $GPU (auto-detectada — el instalador elige el driver. Override: ARCHFRICAN_GPU=vm|nvidia|amd|intel)"

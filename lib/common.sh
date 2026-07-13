@@ -72,6 +72,11 @@ write_system_file() {             # write_system_file <path> [mode]   (content o
   sudo install -D -m "$mode" "$tmp" "$path"; rm -f "$tmp"; ok "wrote $path"
 }
 
+# All curated themes = the directories under themes/ — the SAME glob the user-side pickers use
+# (archfrican-welcome, archfrican-setup), so the wizard list can never drift from what ships
+# (themes/tokens.defaults.sh documents this as the intended pattern).
+list_themes() { local d; for d in "$REPO_ROOT"/themes/*/; do [ -d "$d" ] && basename "$d"; done; }
+
 # Paint the SDDM login theme from a palette: token-substitute templates/sddm.theme.conf with the
 # colors in themes/<theme>/colors.sh and write it to the system theme path (idempotent, via
 # write_system_file). The greeter runs pre-login (no ~/.config), so this MUST live under /usr/share.
