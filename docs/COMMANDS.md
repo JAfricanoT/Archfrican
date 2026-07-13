@@ -627,6 +627,25 @@ flags to the script after verifying your GPU supports VAAPI.
 
 ---
 
+## archfrican-screenshot
+
+Region capture with **annotation** — the macOS `⌘+Shift+4` flow. `slurp` selects a region,
+`grim` captures it, and `satty` opens it for markup (arrows, text, boxes, blur, crop). On save
+it both copies to the clipboard and writes a PNG to `~/Pictures/Screenshots`. Keyboard shortcut:
+`⌘+Shift+4`.
+
+```
+archfrican-screenshot
+```
+
+Coexists with niri's native captures (`Print` / `⌘+Shift+S` = region, `⌘+Shift+P` = whole
+screen) — those stay the fast path; this adds the markup step. If `satty` is absent it falls
+back to `grim` + `wl-copy` (still captures and copies), so the key is never a no-op.
+
+**Requires**: `satty` (in `packages/niri-desktop.txt`), plus `grim`/`slurp`/`wl-clipboard`.
+
+---
+
 ## archfrican-displays
 
 Persist your monitor layout across reboots and `chezmoi apply` runs — with one saved

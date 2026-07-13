@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# archfrican-screenshot — región + anotación al vuelo (⌘+Shift+4, estilo macOS). slurp elige la
+# región, grim la captura y satty la abre para marcar (flechas, texto, recuadros, blur, recorte);
+# al guardar, copia al portapapeles Y escribe un PNG en ~/Pictures/Screenshots. Si satty no está,
+# cae a grim+wl-copy (captura y copia igual, sin anotar) para que la tecla NUNCA sea un no-op.
+#
+# Convive con las capturas nativas de niri (Print / ⌘+Shift+S = región, ⌘+Shift+P = pantalla):
+# esas siguen siendo la vía rápida; esta añade el markup que el usuario de Mac espera.
+set -euo pipefail
+_notify() { command -v notify-send >/dev/null 2>&1 && notify-send "archfrican-screenshot" "$@"; }
+
+command -v grim  >/dev/null 2>&1 || { _notify "falta grim (paquete grim)";  exit 1; }
+command -v slurp >/dev/null 2>&1 || { _notify "falta slurp (paquete slurp)"; exit 1; }
+
+# slurp sale != 0 si el usuario cancela con Escape — eso NO es un error, solo abortar en silencio.
+geom="$(slurp 2>/dev/null)" || exit 0
+[ -n "$geom" ] || exit 0
+
+dir="${XDG_SCREENSHOTS_DIR:-${XDG_PICTURES_DIR:-$HOME/Pictures}/Screenshots}"
+mkdir -p "$dir"
+file="$dir/captura-$(date +%Y%m%d-%H%M%S).png"
+
+if command -v satty >/dev/null 2>&1; then
+  # satty lee la imagen de stdin (--filename -), copia al portapapeles al guardar y cierra solo.
+  grim -g "$geom" - | satty --filename - --output-filename "$file" --copy-command wl-copy --early-exit
+else
+  grim -g "$geom" "$file"
+  command -v wl-copy >/dev/null 2>&1 && wl-copy < "$file"
+  _notify "captura guardada en $file (instala satty para anotar)"
+fi

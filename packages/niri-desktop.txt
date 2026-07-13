@@ -15,6 +15,7 @@ swaylock               # fallback locker so the screen ALWAYS locks even if gtkl
 awww                   # wallpaper daemon (animated); swww's official successor in extra (binary: awww-daemon)
 grim
 slurp
+satty                  # anotación de capturas (⌘+Shift+4) — archfrican-screenshot; flechas/texto/blur/recorte
 wl-clipboard
 cliphist               # clipboard history
 brightnessctl

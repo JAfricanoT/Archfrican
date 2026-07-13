@@ -214,6 +214,7 @@ binds {
     Print             { screenshot; }   // captura de región
     Mod+Shift+S       { screenshot; }   // captura de región
     Mod+Shift+P       { screenshot-screen; }   // captura de toda la pantalla
+    Mod+Shift+4       { spawn "{{ .chezmoi.homeDir }}/.local/bin/archfrican-screenshot"; }   // región + anotación (satty), estilo ⌘⇧4 de macOS
 
     // nota: swayosd-client muestra una barra visual en pantalla con el nuevo valor
     // Media y brillo
