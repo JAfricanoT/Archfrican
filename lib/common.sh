@@ -114,7 +114,7 @@ enable_locale_gen() {             # enable_locale_gen <locale> [<locale.gen path
 # Paint the SDDM login theme from a palette: token-substitute templates/sddm.theme.conf with the
 # colors in themes/<theme>/colors.sh and write it to the system theme path (idempotent, via
 # write_system_file). The greeter runs pre-login (no ~/.config), so this MUST live under /usr/share.
-# Used authoritatively by modules/20-niri-desktop.sh; bin/theme-switch updates it live (best-effort).
+# Used authoritatively by modules/15-desktop-services.sh; bin/theme-switch updates it live (best-effort).
 render_sddm_theme() {             # render_sddm_theme <theme-name>
   local theme="$1"
   local pal="$REPO_ROOT/themes/$theme/colors.sh" tmpl="$REPO_ROOT/templates/sddm.theme.conf"
