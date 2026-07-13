@@ -258,10 +258,7 @@ wires up the `theme-switch` binary.
 
 **What it configures**
 
-- `gsettings` → `gtk-theme = WhiteSur-Dark`, `icon-theme = WhiteSur-dark`, `cursor-theme = McMojave-cursors`
-- `gsettings` → `font-name = "SF Pro Display 11"`, `monospace-font-name = "SF Mono 11"`
-- `gsettings` → `color-scheme = prefer-dark`
-- Runs `theme-switch` with the theme selected in the wizard (stored in `~/.config/.archfrican-theme`)
+- Runs `theme-switch` with the theme selected in the wizard (stored in `~/.config/.archfrican-theme`) — it owns every `gsettings` identity key (gtk/icon/cursor themes, UI + mono fonts, color-scheme), all driven by the theme's token cascade
 - Stages the wallpaper selected in the wizard into `~/.config/archfrican/wallpaper`, applied at first login by `archfrican-wallpaper-restore` (five curated options available out of the box)
 - Sets cohesion on (VS Code + web-app theme injection); user can toggle with `archfrican-cohesion off`
 
