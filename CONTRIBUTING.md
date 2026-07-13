@@ -15,7 +15,8 @@ modules/NN-name.sh    one ordered step each; sources lib/common.sh; idempotent +
 packages/*.txt        the ONLY place package names live (one per line; # comments)
 home/                 chezmoi dotfiles source (dot_config/…, executable_…)
 themes/<name>/colors.sh + templates/   the sed-based theme system
-docs/                 CONTEXT (ES), VALIDATION, STAGE2-VALIDATION, FIDO2-RECOVERY, audit/
+docs/                 CONTEXT (ES), COMMANDS, MODULES, VALIDATION, RECOVERY, FIDO2-RECOVERY
+audit/                the current full-repo audit (findings + punch-list status)
 ```
 **Two layers, never mixed:** the *system* (modules + package lists) and the *configuration* (dotfiles) are
 separate. A component = one module + one package list + one dotfiles subtree, so it can be swapped alone.

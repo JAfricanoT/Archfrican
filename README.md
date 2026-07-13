@@ -40,7 +40,7 @@ off the Mac, and a hard requirement that **nothing explodes**.
 | Terminal     | **Ghostty** (Kitty graphics protocol, blur, native Wayland)   |
 | Editor       | Code-OSS (Wayland; Open VSX) — LSPs are system-level & editor-agnostic|
 | Dev          | rustup · go · uv · fnm + gopls/rust-analyzer/pyright/ruff/clangd|
-| Look         | macOS-like: WhiteSur GTK, SF fonts, niri blur (opt-in), fuzzel |
+| Look         | macOS-like: WhiteSur GTK, SF fonts, niri blur (opt-in), Walker launcher (fuzzel fallback) |
 | Theming      | hot-swap switcher: `theme-switch <name>`                       |
 | macOS keys   | `keyd` maps ⌘+C/V/X/Z/… → Ctrl, ⌘+Space → launcher            |
 
@@ -108,8 +108,8 @@ and **Shift** combos, so there's no collision:
 
 The **command surface** (`⌘ + Shift + A`, the launcher pushed toward Spotlight/Raycast) reaches every
 setting and mode as a named verb: switch theme, check updates, set default apps, toggle blur/auto-dark,
-**emoji** picker, **web search** with bang prefixes (`g`, `yt`, `w`, `aw`, `aur`, `gh`), calculator, and
-local file search — all over the same fuzzel.
+**emoji** picker, **web search**, calculator, and local file search — all on **Walker** (GTK4, rich
+app grid, elephant providers), with the same menus rendered in fuzzel as a never-dies fallback.
 
 **Apps:** Flatpak + Flathub are set up out of the box (sandboxed GUI apps, browsable in `gnome-software`;
 manage per-app permissions with **Flatseal**); a curated, declarative catalog lives in `flatpak/apps.txt`.
