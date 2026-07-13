@@ -302,7 +302,11 @@ if [ "$RUN" = 1 ]; then
   converge_modules || exit 1
   if [ "$NO_AUR" = 0 ] && command -v paru >/dev/null 2>&1; then
     _hd "Actualización AUR (revisada; un build fallido nunca bloquea el sistema)"
-    paru -Sua || _note "falló un build de AUR — la actualización oficial ya aplicó; reintenta luego: paru -Sua"
+    # with_heartbeat: un build AUR grande (rustdesk, etc.) compila en silencio muchos minutos — el
+    # latido cada ~40s deja claro que sigue trabajando, no que se congeló. paru queda en primer
+    # plano (sus prompts/sudo/revisión de PKGBUILD funcionan igual); la línea es solo un overlay.
+    with_heartbeat "actualizando paquetes AUR" paru -Sua \
+      || _note "falló un build de AUR — la actualización oficial ya aplicó; reintenta luego: paru -Sua"
   fi
   [ "$PRUNE" = 1 ] && do_prune
   post_summary

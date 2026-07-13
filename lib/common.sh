@@ -41,6 +41,33 @@ have()        { command -v "$1" &>/dev/null; }
 best_effort() { "$@" || { warn "skipped (non-fatal): $*"; return 0; }; }
 attempt()     { local _l="$1"; shift; "$@" || { warn "FAILED (continuing): ${_l} [$*]"; return 0; }; }
 
+# Proof-of-life for long SILENT phases. An AUR build spends minutes compiling (vcpkg/ninja building
+# aom, ffmpeg, then rustc) with NO output — the CPU is pegged but the terminal looks frozen. While
+# $@ runs, print one dim line every ~40s (elapsed + system load = "still working"). $@ stays in the
+# FOREGROUND and keeps the controlling TTY, so paru's prompts / sudo / pacman progress are untouched
+# — the line is a pure stderr overlay that never changes the command's output or exit status. A
+# no-op when not on a TTY (timers/logs stay clean) or ARCHFRICAN_NO_HEARTBEAT=1. Callers should
+# guard with `|| handler` (both sites do) so a build failure is theirs to handle, not `set -e`'s.
+with_heartbeat() {                # with_heartbeat "label" cmd args...
+  local label="$1"; shift
+  { [ -t 2 ] && [ "${ARCHFRICAN_NO_HEARTBEAT:-0}" != 1 ]; } || { "$@"; return; }
+  local start=$SECONDS rc=0
+  local grace="${ARCHFRICAN_HEARTBEAT_GRACE:-45}" every="${ARCHFRICAN_HEARTBEAT_EVERY:-40}"
+  (
+    sleep "$grace"                # let early interactive prompts pass before the first line
+    while :; do
+      printf '\e[2m  ⏳ %s — %dm%02ds · load %s (sigue trabajando; las compilaciones no imprimen nada)\e[0m\n' \
+        "$label" $(( (SECONDS - start) / 60 )) $(( (SECONDS - start) % 60 )) \
+        "$(cut -d' ' -f1 /proc/loadavg 2>/dev/null || echo '?')" >&2
+      sleep "$every"
+    done
+  ) &
+  local hb=$!
+  "$@" || rc=$?
+  kill "$hb" 2>/dev/null; wait "$hb" 2>/dev/null || true
+  return "$rc"
+}
+
 # Enable a unit only if it exists; never abort the caller (built on best_effort).
 # Use plain `enable_service` for units that MUST succeed (sddm, docker).
 resilient_enable() {
@@ -201,7 +228,9 @@ aur_install() {           # aur_install pkg1 pkg2 ...  — per-package + NON-FAT
     substep "building/installing AUR package: $p"
     # timeout: an AUR build is network (source fetch) + compile — 30min is generous for either, and
     # a genuinely-stuck build fails exactly like any other build failure here (warn + continue).
-    timeout 1800 paru -S --needed --noconfirm "$p" || { warn "AUR build failed (continuing): $p"; failed+=("$p"); }
+    # with_heartbeat: --noconfirm builds are silent for minutes; the latido shows they're alive.
+    with_heartbeat "compilando $p (AUR)" timeout 1800 paru -S --needed --noconfirm "$p" \
+      || { warn "AUR build failed (continuing): $p"; failed+=("$p"); }
   done
   [ ${#failed[@]} -eq 0 ] && { ok "AUR layer OK"; return 0; }
   warn "AUR package(s) that did NOT build: ${failed[*]} — the desktop still works."
