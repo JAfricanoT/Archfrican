@@ -154,9 +154,11 @@ jobs:
       - name: Boot headless and assert the installer auto-starts
         run: |
           set -euo pipefail
-          iso="$(find iso-dl -name 'archfrican-*.iso' | head -1)"
+          # -type f: download-artifact@v4 unpacks into iso-dl/<artifact-name>/, and the artifact name
+          # IS the ISO filename — so a bare -name also matches that directory. Take the real file.
+          iso="$(find iso-dl -type f -name 'archfrican-*.iso' | head -1)"
           [ -n "$iso" ] || { echo "::error::no built ISO artifact found"; exit 1; }
-          echo "ISO: $iso"
+          echo "ISO: $iso ($(stat -c %s "$iso") bytes)"
 
           # Direct kernel boot bypasses the bootloader; pull the kernel + initramfs out of the ISO9660
           # filesystem with xorriso (the tool mkarchiso itself uses — reliable on the hybrid MBR/ISO
