@@ -3,13 +3,11 @@
 # menu of common column arrangements and applies the choice to the focused column via niri IPC.
 # Teaches niri's model without a manual (the thing that makes raw tiling approachable for newcomers).
 set -euo pipefail
+source "$(dirname "$0")/../lib/archfrican-common.sh"
 command -v niri >/dev/null 2>&1 || exit 1
 
 # Native menu (menus/layout.toml) when Walker/elephant are up; fuzzel fallback below otherwise.
-if command -v walker >/dev/null 2>&1 \
-   && elephant listproviders 2>/dev/null | grep -q "^desktopapplications$"; then
-  exec walker -m "menus:layout"
-fi
+walker_menu layout
 
 # ── WM seam (niri): all compositor IPC in this file routes through here — one place to port. docs/WM-INTEGRATION.md
 wm_action() { niri msg action "$@"; }

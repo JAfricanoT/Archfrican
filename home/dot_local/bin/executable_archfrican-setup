@@ -12,10 +12,7 @@ theme_now() { cat "$HOME/.config/.archfrican-theme" 2>/dev/null || echo adl-dark
 kbd_now()   { cat "$HOME/.config/.archfrican-kbd" 2>/dev/null || echo us; }
 
 # Native menu (menus/setup.toml) when Walker/elephant are up; fuzzel fallback below otherwise.
-if command -v walker >/dev/null 2>&1 \
-   && elephant listproviders 2>/dev/null | grep -q "^desktopapplications$"; then
-  exec walker -m "menus:setup"
-fi
+walker_menu setup
 
 while :; do
   sel="$(printf '%s\n' \

@@ -30,7 +30,7 @@ if [ -z "$img" ]; then
   # filesystem-dependent, not a fixed menu), so this LOOKS like the rest of the launcher instead
   # of a separate fuzzel popup. Same stdin-list/stdout-selection contract as fuzzel --dmenu.
   # Falls back to fuzzel if walker/elephant aren't responding, so this never goes fully dark.
-  if command -v walker >/dev/null 2>&1 && elephant listproviders >/dev/null 2>&1; then
+  if walker_native; then
     img="$(printf '%s\n' "${candidates[@]}" | walker --dmenu --placeholder 'fondo de pantalla:')" || exit 0
   else
     img="$(printf '%s\n' "${candidates[@]}" | fuzzel --dmenu --prompt 'fondo de pantalla:  ')" || exit 0

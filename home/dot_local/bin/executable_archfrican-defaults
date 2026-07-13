@@ -215,10 +215,7 @@ case "${1:-}" in
   __list)  list_category "$2" ;;
   __apply) apply_category "$2" "$3" ;;
   *)
-    if command -v walker >/dev/null 2>&1 \
-       && elephant listproviders 2>/dev/null | grep -q "^desktopapplications$"; then
-      exec walker -m "menus:defaults"
-    fi
+    walker_menu defaults
     cat="$(printf '%s\n' \
       "Navegador web" "Editor / IDE" "IA / agentes (CLI)" "Terminal" "Gestor de archivos" \
       "Visor de PDF" "Visor de imágenes" "Correo" "Gestor de contenedores" "Mensajería" \

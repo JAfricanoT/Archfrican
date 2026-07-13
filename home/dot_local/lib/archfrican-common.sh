@@ -13,6 +13,18 @@ confirm() {
   case "$c" in "Sí,"*) return 0 ;; *) return 1 ;; esac
 }
 
+# Walker/elephant native-menu availability — the ONE definition of "walker is up" (walker on
+# PATH AND the elephant daemon actually serving its baseline provider). Every script that
+# offers a native menu or a walker dmenu must gate on this, never on its own variant.
+walker_native() {
+  have walker && elephant listproviders 2>/dev/null | grep -q '^desktopapplications$'
+}
+
+# walker_menu <name> — exec the native menus:<name> (never returns) when Walker is up; plain
+# return otherwise so the caller falls through to its fuzzel fallback. The `if` keeps the
+# probe's failure from tripping `set -e` in callers.
+walker_menu() { if walker_native; then exec walker -m "menus:$1"; fi; }
+
 # toml_menu_list <file.toml> — print each [[entries]]' "text" field, one per line, in file order.
 # Reads the same static menus/*.toml the native Walker/elephant provider reads, so a fuzzel fallback
 # built on these two functions can never drift from the native menu — one file, two renderers.
