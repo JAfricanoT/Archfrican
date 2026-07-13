@@ -168,7 +168,31 @@ repo_refresh() {                 # pull the desired state + run migrations (no p
 converge_modules() {             # run the freshly-pulled installer; only CHANGED modules re-run
   ARCHFRICAN_UPDATE=1 bash "$ROOT/install.sh" --update || { _note "converge reported an error — review above"; return 1; }
 }
-converge() { _hd "Converge — re-apply the repo's desired state"; repo_refresh && converge_modules; }
+converge() {
+  _hd "Converge — re-apply the repo's desired state"
+  # Package installs need a FRESH pacman DB (--run syncs one between pull and converge);
+  # --converge deliberately never touches pacman. If THIS pull changed a package list, a
+  # module would run `pacman -S` against a stale DB — "target not found" and the package
+  # silently doesn't install (the gtklock case). Refuse and point at --run instead of
+  # institutionalizing a partial upgrade with a bare `pacman -Sy` here.
+  local pre_rev=""
+  [ -d "$ROOT/.git" ] && pre_rev="$(git -C "$ROOT" rev-parse HEAD 2>/dev/null)"
+  repo_refresh || return 1
+  if [ -n "$pre_rev" ]; then
+    local pkg_changes
+    if ! pkg_changes="$(git -C "$ROOT" diff --name-only "$pre_rev" HEAD -- packages/ flatpak/ gaming/ 2>/dev/null)"; then
+      pkg_changes="(historial incompleto tras el fetch — no puedo verificar las listas; asume que cambiaron)"
+    fi
+    if [ -n "$pkg_changes" ]; then
+      _note "este pull cambió listas de paquetes:"
+      printf '%s\n' "$pkg_changes" | sed 's/^/      /'
+      _note "instalar paquetes nuevos necesita la base de datos de pacman recién sincronizada"
+      printf '\n  Usa:  \e[1marchfrican-update --run\e[0m  (sincroniza + actualiza + converge)\n\n'
+      return 1
+    fi
+  fi
+  converge_modules
+}
 
 # ---- what changed (conventional-commit subjects, grouped) -------------------
 print_changelog() {
