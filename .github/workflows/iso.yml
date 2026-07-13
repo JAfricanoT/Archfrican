@@ -187,7 +187,7 @@ jobs:
           # shellcheck disable=SC2086
           qemu-system-x86_64 $accel -m 2560 -smp 2 \
             -kernel vmlinuz -initrd initramfs \
-            -append "archisobasedir=arch archisolabel=$label console=ttyS0,115200 cow_spacesize=1G" \
+            -append "archisobasedir=arch archisolabel=$label console=tty0 console=ttyS0,115200 cow_spacesize=1G" \
             -drive file="$iso",format=raw,media=cdrom,if=ide,readonly=on \
             -display none -serial file:serial.log -no-reboot &
           qpid=$!
