@@ -34,7 +34,7 @@ MODE="${1:-report}"
 # 20+ checks running per-monitor. Only --json (the waybar path) uses it. Override TTL via env.
 # TTL must exceed waybar's own poll interval (custom/health's "interval": 1800 in config.jsonc) —
 # otherwise the cache is ALWAYS expired by the next tick and buys nothing: every single poll re-runs
-# all 22 checks, including the two real network calls (check_updates -> checkupdates, check_firmware
+# all 23 checks, including the two real network calls (check_updates -> checkupdates, check_firmware
 # -> fwupdmgr get-updates). 3600 (1h) gives real headroom over the 1800s poll.
 HEALTH_CACHE="${XDG_RUNTIME_DIR:-/tmp}/archfrican-health.json"
 HEALTH_TTL="${ARCHFRICAN_HEALTH_TTL:-3600}"     # seconds (1h); 0 disables the cache
@@ -62,7 +62,7 @@ run_all_checks() {
   # Archfrican surfaces FIRST — a broken config/tool here disables the whole desktop, so it should
   # be the first thing the report (and the waybar red dot) screams about.
   check_niri_config; check_desktop_stack; check_archfrican_cli; check_theme_render; check_keyd
-  check_failed_units; check_journal; check_disk; check_snapshots; check_scrub; check_smart; check_boot; check_multiboot
+  check_failed_units; check_firewall; check_journal; check_disk; check_snapshots; check_scrub; check_smart; check_boot; check_multiboot
   check_orphans; check_pacnew; check_updates; check_cve; check_firmware; check_reboot
   check_foreign; check_timers; check_drift
 }

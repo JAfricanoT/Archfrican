@@ -226,6 +226,26 @@ check_theme_render() {
   else _h_amber "theme render" "unrendered \${...} in:$stray — run: theme-switch \"\$(cat ~/.config/.archfrican-theme 2>/dev/null || echo $ARCHFRICAN_DEFAULT_THEME)\""; fi
 }
 
+# Enabled-but-not-loaded is the silent failure mode this exists for: nftables.service can be
+# "active (exited)" while the conf never loaded (or the table was torn down) — no other check
+# notices, and a firewall fix shipped by converge would look applied while the kernel enforces
+# the old rules.
+check_firewall() {
+  systemctl is-enabled --quiet nftables.service 2>/dev/null || { _h_skip "firewall" "nftables not enabled"; return; }
+  if ! systemctl is-active --quiet nftables.service 2>/dev/null; then
+    _h_amber "firewall" "nftables enabled but not active — sudo systemctl start nftables"; return
+  fi
+  if sudo -n true 2>/dev/null; then
+    if sudo -n nft list table inet filter 2>/dev/null | grep -q 'chain'; then
+      _h_ok "firewall" "active + table inet filter loaded"
+    else
+      _h_red "firewall" "nftables active but 'table inet filter' is NOT loaded — sudo systemctl restart nftables"
+    fi
+  else
+    _h_skip "firewall" "active; ruleset probe needs sudo (check: sudo nft list table inet filter)"
+  fi
+}
+
 # keyd is the ⌘→Ctrl macOS-shortcut layer; installed-but-inactive means copy/paste muscle memory is
 # dead. AMBER. (Note: keyd never touches plain Super+<non-letter>, so it can't break niri's Mod binds.)
 check_keyd() {

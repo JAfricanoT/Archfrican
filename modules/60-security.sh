@@ -86,7 +86,16 @@ ExecStop=-/usr/bin/nft delete table inet filter
 UNIT
 sudo systemctl daemon-reload
 resilient_enable nftables.service
-ok "firewall staged (active next boot). Open a port with:  fw-allow <port>/<tcp|udp>"
+if systemctl is-active --quiet nftables.service; then
+  # Converge on a BOOTED system: make the on-disk conf the LOADED ruleset now. Before this,
+  # a firewall fix shipped via --run stayed inert until an unprompted reboot (b5db546's
+  # forward-chain fix sat on disk while the kernel enforced the old rules). The restart is
+  # deterministic since the RemainAfterExit drop-in above (e3535f7).
+  attempt "nftables reload" sudo systemctl restart nftables.service
+  ok "firewall loaded (rules live NOW). Open a port with:  fw-allow <port>/<tcp|udp>"
+else
+  ok "firewall staged (active next boot). Open a port with:  fw-allow <port>/<tcp|udp>"
+fi
 
 # ---- SSH server (OPT-IN: the wizard toggle arg, or ARCHFRICAN_ENABLE_SSH=1) --
 # Off by default — a workstation is deny-inbound. When enabled, ssh_enable_hardened writes a hardened
