@@ -1,0 +1,9 @@
+# Retired targets chezmoi must DELETE on apply (adds/updates never remove — without this,
+# every pre-Walker install keeps shipping retired scripts on PATH indefinitely).
+# Rule: any deletion under home/ adds its deployed path here in the same commit.
+# Retired 2026-07-02 (Walker native modes replaced them: windows/calc/files/websearch/symbols):
+.local/bin/archfrican-calc
+.local/bin/archfrican-emoji
+.local/bin/archfrican-find
+.local/bin/archfrican-websearch
+.local/bin/archfrican-window
