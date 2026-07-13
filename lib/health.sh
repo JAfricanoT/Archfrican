@@ -79,6 +79,29 @@ check_boot() {
   fi
 }
 
+# Boot-time regression: a healthy niri+cachyos USERSPACE boot is a handful of seconds; the usual
+# regression is a unit that TIMES OUT (DefaultTimeoutStartSec=90s) and balloons it. An absolute,
+# generous threshold catches that class without a fragile per-machine baseline (no state file to
+# corrupt — the "nothing explodes" way). AMBER points at the worst offender so it's actionable.
+check_boot_time() {
+  _h_have systemd-analyze || { _h_skip "boot time"; return; }
+  local out us total
+  out="$(systemd-analyze time 2>/dev/null)" || { _h_skip "boot time" "arranque no terminado / n/d"; return; }
+  us="$(printf '%s' "$out" | grep -oE '[0-9.]+s \(userspace\)' | grep -oE '^[0-9.]+')"
+  [ -n "$us" ] || { _h_skip "boot time" "no pude leer systemd-analyze"; return; }
+  # Total is only shown when it parses to a plain figure — a suspend/resume inflates the initrd
+  # phase into an "Xh Ymin" total that isn't a boot regression, so userspace is the real signal.
+  total="$(printf '%s' "$out" | grep -oE '= [0-9.]+s' | grep -oE '[0-9.]+')"
+  local tsuffix=""; [ -n "$total" ] && tsuffix=" (total ${total}s)"
+  if awk -v v="$us" 'BEGIN{exit !(v>45)}'; then
+    local worst
+    worst="$(systemd-analyze blame 2>/dev/null | grep -v '\.device$' | head -1 | sed 's/^[[:space:]]*//')"
+    _h_amber "boot time" "userspace ${us}s${tsuffix} — ¿unidad lenta o en timeout? peor: ${worst:-systemd-analyze blame}"
+  else
+    _h_ok "boot time" "userspace ${us}s${tsuffix}"
+  fi
+}
+
 check_multiboot() {
   [ -d /sys/firmware/efi ] || { _h_skip "dual-boot" "not UEFI"; return; }
   declare -F detect_other_os >/dev/null 2>&1 || { _h_skip "dual-boot" "detector n/a"; return; }
