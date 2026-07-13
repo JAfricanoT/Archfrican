@@ -34,12 +34,12 @@ submenu = "themes"
 [[entries]]
 text = "Buscar actualizaciones (archfrican-update)"
 terminal = true
-actions = { run = "sh -c '{{ .chezmoi.homeDir }}/.local/bin/archfrican-update; printf \"\\n(enter para cerrar) \"; read -r _'" }
+actions = { run = "sh -c 'archfrican-update; printf \"\\n(enter para cerrar) \"; read -r _'" }
 
 [[entries]]
 text = "Salud del sistema (archfrican-doctor)"
 terminal = true
-actions = { run = "sh -c '{{ .chezmoi.homeDir }}/.local/bin/archfrican-doctor; printf \"\\n(enter para cerrar) \"; read -r _'" }
+actions = { run = "sh -c 'archfrican-doctor; printf \"\\n(enter para cerrar) \"; read -r _'" }
 
 [[entries]]
 text = "Apps por defecto (navegador/correo)…"
