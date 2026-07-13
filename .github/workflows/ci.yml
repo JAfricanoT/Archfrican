@@ -231,13 +231,17 @@ jobs:
           # render the palette for every theme; assert no stray tokens + valid hex colours
           tmpl=templates/sddm.theme.conf
           for t in adl-dark adl-light archfrican-dark archfrican-light catppuccin-mocha tokyo-night high-contrast; do
-            out="$( ( . "themes/$t/colors.sh"
+            out="$( ( . themes/tokens.defaults.sh
+                      . "themes/$t/colors.sh"
+                      if [ -r "themes/$t/tokens.sh" ]; then . "themes/$t/tokens.sh"; fi
                       sed -e "s|\${BG}|$BG|g" -e "s|\${BG_ALT}|$BG_ALT|g" -e "s|\${BG_DIM}|$BG_DIM|g" \
                           -e "s|\${FG}|$FG|g" -e "s|\${FG_DIM}|$FG_DIM|g" -e "s|\${ACCENT}|$ACCENT|g" \
-                          -e "s|\${MAGENTA}|$MAGENTA|g" -e "s|\${CYAN}|$CYAN|g" "$tmpl" ) )"
+                          -e "s|\${MAGENTA}|$MAGENTA|g" -e "s|\${CYAN}|$CYAN|g" \
+                          -e "s|\${FONT_UI}|$FONT_UI|g" "$tmpl" ) )"
             echo "$out" | grep -qE '\$\{[A-Z_]+\}' && { echo "::error::unrendered token in $t"; exit 1; }
             echo "$out" | grep -qE '^accentColor=#[0-9a-fA-F]{6}$' || { echo "::error::accentColor not a hex color in $t"; exit 1; }
             echo "$out" | grep -qE '^tint2=#[0-9a-fA-F]{6}$'       || { echo "::error::tint2 not a hex color in $t"; exit 1; }
+            echo "$out" | grep -qE '^fontFamily=.+$'               || { echo "::error::fontFamily did not render in $t"; exit 1; }
           done
           echo "sddm-theme: 8 components present + QML balanced + 9 palettes render clean"
 

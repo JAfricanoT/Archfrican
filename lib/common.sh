@@ -119,12 +119,19 @@ render_sddm_theme() {             # render_sddm_theme <theme-name>
   local theme="$1"
   local pal="$REPO_ROOT/themes/$theme/colors.sh" tmpl="$REPO_ROOT/templates/sddm.theme.conf"
   if [ ! -r "$pal" ] || [ ! -r "$tmpl" ]; then warn "render_sddm_theme: missing $pal or $tmpl — skipping"; return 0; fi
-  ( # shellcheck disable=SC1090
+  ( # same defaults -> palette -> per-theme tokens cascade bin/theme-switch uses: the template
+    # now carries ${FONT_UI} (the Inter identity), not just palette colours.
+    # shellcheck disable=SC1090
+    if [ -r "$REPO_ROOT/themes/tokens.defaults.sh" ]; then . "$REPO_ROOT/themes/tokens.defaults.sh"; fi
+    # shellcheck disable=SC1090
     . "$pal"
+    # shellcheck disable=SC1090
+    if [ -r "$REPO_ROOT/themes/$theme/tokens.sh" ]; then . "$REPO_ROOT/themes/$theme/tokens.sh"; fi
     # shellcheck disable=SC2154
     sed -e "s|\${BG}|$BG|g" -e "s|\${BG_ALT}|$BG_ALT|g" -e "s|\${BG_DIM}|$BG_DIM|g" \
         -e "s|\${FG}|$FG|g" -e "s|\${FG_DIM}|$FG_DIM|g" -e "s|\${ACCENT}|$ACCENT|g" \
-        -e "s|\${MAGENTA}|$MAGENTA|g" -e "s|\${CYAN}|$CYAN|g" "$tmpl"
+        -e "s|\${MAGENTA}|$MAGENTA|g" -e "s|\${CYAN}|$CYAN|g" \
+        -e "s|\${FONT_UI}|$FONT_UI|g" "$tmpl"
   ) | write_system_file /usr/share/sddm/themes/archfrican/theme.conf 0644
 }
 
