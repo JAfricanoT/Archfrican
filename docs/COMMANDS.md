@@ -335,6 +335,30 @@ PPD and TLP are mutually exclusive. thermald can run alongside either.
 
 ---
 
+## archfrican-power-auto
+
+Internal helper (you rarely call it by hand): sets the CPU power profile from the AC-adapter
+state — **balanced on the charger, power-saver on battery** — the macOS behavior a bare
+compositor (no GNOME/KDE power daemon) otherwise lacks. A udev rule
+(`/etc/udev/rules.d/60-archfrican-power-profile.rules`, installed by module `15-desktop-services`)
+fires it through `systemd-run` on every plug/unplug. Inert on desktops and on any machine without
+`power-profiles-daemon`.
+
+```
+archfrican-power-auto ac        # force the AC profile now
+archfrican-power-auto battery   # force the battery profile now
+```
+
+**Override / disable** — create `/etc/archfrican/power-auto.conf` (shell syntax) with any of:
+
+```sh
+AUTO=off           # disable auto-switching (keep your manual profile)
+AC=performance     # profile to use on AC       (default: balanced)
+BATTERY=balanced   # profile to use on battery  (default: power-saver)
+```
+
+---
+
 ## archfrican-vpn
 
 VPN connection manager: Tailscale mesh or NetworkManager (WireGuard/OpenVPN/OpenConnect).

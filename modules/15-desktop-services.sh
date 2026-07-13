@@ -99,6 +99,22 @@ if pacman -Q tlp &>/dev/null; then
 fi
 resilient_enable power-profiles-daemon.service
 
+# Auto-switch the profile on AC plug/unplug — the macOS "just works" behavior a bare compositor
+# (no GNOME/KDE power daemon) otherwise lacks. The udev rule fires archfrican-power-auto through
+# `systemd-run --no-block`, so it runs detached with a clean env + system D-Bus (never blocking
+# udev). Inert on desktops (no AC-adapter `online` transitions / profile absent) and on any box
+# without power-profiles-daemon; ATTR{online} matches ONLY the mains adapter, never a battery.
+# Disable/remap per-machine via /etc/archfrican/power-auto.conf (see the helper's header).
+substep "auto power profile on AC/battery (udev)"
+sudo ln -sf "$REPO_ROOT/bin/archfrican-power-auto" /usr/local/bin/archfrican-power-auto
+write_system_file /etc/udev/rules.d/60-archfrican-power-profile.rules 0644 <<'RULES'
+# Archfrican: set the CPU power profile from the AC-adapter state. add|change so it also applies
+# the current state at boot (a no-op until power-profiles-daemon is up, then the next event fixes it).
+ACTION=="add|change", SUBSYSTEM=="power_supply", ATTR{online}=="1", RUN+="/usr/bin/systemd-run --no-block /usr/local/bin/archfrican-power-auto ac"
+ACTION=="add|change", SUBSYSTEM=="power_supply", ATTR{online}=="0", RUN+="/usr/bin/systemd-run --no-block /usr/local/bin/archfrican-power-auto battery"
+RULES
+best_effort sudo udevadm control --reload-rules
+
 substep "creating XDG user dirs + default file manager"
 best_effort xdg-user-dirs-update
 best_effort xdg-mime default org.gnome.Nautilus.desktop inode/directory

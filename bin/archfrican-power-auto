@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# archfrican-power-auto <ac|battery> — set the CPU power profile for the current power source.
+# Invoked by /etc/udev/rules.d/60-archfrican-power-profile.rules on AC plug/unplug (through
+# `systemd-run --no-block`, so it runs detached from udev with a clean env + the system D-Bus).
+# A pure no-op when power-profiles-daemon isn't present or the requested profile isn't offered by
+# the platform (e.g. a desktop that only exposes 'performance'), so it ships enabled with no risk.
+#
+# Laptops get the macOS "just works" behavior: balanced on the charger, power-saver on battery.
+# Override or disable via /etc/archfrican/power-auto.conf (shell syntax), any of:
+#   AUTO=off           # disable auto-switching entirely (keep your manual profile)
+#   AC=performance     # profile to use on AC       (default: balanced)
+#   BATTERY=balanced   # profile to use on battery  (default: power-saver)
+set -uo pipefail
+command -v powerprofilesctl >/dev/null 2>&1 || exit 0
+
+AUTO=on; AC=balanced; BATTERY=power-saver
+conf=/etc/archfrican/power-auto.conf
+# shellcheck disable=SC1090
+[ -r "$conf" ] && . "$conf"
+[ "${AUTO:-on}" = off ] && exit 0
+
+case "${1:-}" in
+  ac)      want="$AC" ;;
+  battery) want="$BATTERY" ;;
+  *)       exit 0 ;;
+esac
+
+# Only set a profile the platform actually offers — `powerprofilesctl list` prints one
+# "  <name>:" line per available profile ("* " marks the active one).
+powerprofilesctl list 2>/dev/null | grep -qE "^[* ]*${want}:" || exit 0
+powerprofilesctl set "$want" >/dev/null 2>&1 || true
