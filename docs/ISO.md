@@ -64,7 +64,7 @@ USB boot
     │
     └─ GRUB → root auto-login at TTY1
            │
-           └─ /root/.bash_profile → exec install.sh
+           └─ /root/.zlogin → install.sh (root del live usa zsh; sin exec — un fallo cae a shell)
                   │
                   ├─ is_iso() == true → run_phase1()
                   ├─ in_repo() == true → no GitHub clone (repo is pre-bundled)
@@ -192,7 +192,7 @@ attached and auto-generated release notes.
 iso/
 ├── airootfs/
 │   ├── root/
-│   │   └── .bash_profile       # auto-launches install.sh on root login
+│   │   └── .zlogin             # auto-launches install.sh on root login (zsh — releng)
 │   └── etc/
 │       ├── motd                # WiFi instructions shown if user reaches shell
 │       └── hostname            # "archfrican" in the live environment

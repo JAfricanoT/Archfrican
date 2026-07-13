@@ -81,7 +81,13 @@ jobs:
           unsquashfs -l "$sfs" > /tmp/sfs-listing.txt
           grep -q 'root/.archfrican/install.sh' /tmp/sfs-listing.txt \
             || { echo "::error::airootfs.sfs is missing root/.archfrican/install.sh — the pre-bundled repo did not make it into the ISO"; exit 1; }
-          echo "airootfs.sfs: readable via unsquashfs, contains the pre-bundled Archfrican repo"
+          # The auto-launch hook must be root/.zlogin: the live root's shell is ZSH (releng
+          # passwd), so a .bash_profile is dead code — exactly the bug that shipped once.
+          grep -q 'root/.zlogin' /tmp/sfs-listing.txt \
+            || { echo "::error::airootfs.sfs is missing root/.zlogin — the installer would never auto-start"; exit 1; }
+          grep -q 'root/.bash_profile' /tmp/sfs-listing.txt \
+            && { echo "::error::airootfs.sfs carries root/.bash_profile — a stale overlay? the live shell is zsh and never reads it"; exit 1; } || true
+          echo "airootfs.sfs: readable via unsquashfs, contains the pre-bundled repo + the .zlogin auto-launch"
 
       # ---- artifact: always uploaded (available for ~14 days on any push) ----
       - name: Upload artifact

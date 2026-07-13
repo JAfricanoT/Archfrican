@@ -4,7 +4,7 @@
 # Strategy: use archiso's upstream 'releng' profile as the base (gets GRUB/syslinux/EFI
 # boot infrastructure for free, stays in sync with archiso updates), then layer our minimal
 # customizations on top: metadata overrides, extra packages (gum), our airootfs overlay
-# (motd, hostname, .bash_profile with auto-launch), and the pre-bundled installer repo.
+# (motd, hostname, .zlogin with auto-launch), and the pre-bundled installer repo.
 #
 # Requires:  archiso (pacman -S archiso), root privileges for mkarchiso.
 # Usage:
@@ -55,7 +55,7 @@ echo "==> Adding extra packages..."
 grep -v '^[[:space:]]*#' "$HERE/iso/packages.extra.x86_64" | grep -v '^[[:space:]]*$' \
   >> "$PROFILE_DIR/packages.x86_64"
 
-# ---- 4. overlay our airootfs additions (motd, hostname, .bash_profile) ------
+# ---- 4. overlay our airootfs additions (motd, hostname, .zlogin) ------------
 echo "==> Overlaying airootfs customizations..."
 cp -a "$HERE/iso/airootfs/." "$PROFILE_DIR/airootfs/"
 
