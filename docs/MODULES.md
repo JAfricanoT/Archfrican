@@ -254,7 +254,7 @@ wires up the `theme-switch` binary.
 **Packages**
 
 - From `packages/theming.txt`: `ttf-jetbrains-mono-nerd`, `inter-font`, `noto-fonts`, `noto-fonts-emoji`, `nwg-look`
-- From `packages/aur.txt` (via paru): `whitesur-gtk-theme`, `whitesur-icon-theme`, `mcmojave-cursors`, `otf-san-francisco`, `otf-san-francisco-mono`, `nwg-dock`, `bemoji`
+- From `packages/aur.txt` (via paru): `whitesur-gtk-theme`, `whitesur-icon-theme`, `mcmojave-cursors`, `otf-san-francisco`, `otf-san-francisco-mono`, `nwg-dock`
 
 **What it configures**
 

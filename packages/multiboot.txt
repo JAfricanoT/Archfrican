@@ -1,6 +1,6 @@
 # Multi-boot detection (os-prober). Installed ONLY when the multi-boot toggle is on
-# (modules/55-multiboot.sh) — never on a single-boot install. fuse3 + ntfs-3g let
-# os-prober read a Windows/NTFS partition so it can be named in the GRUB menu.
+# (modules/55-multiboot.sh) — never on a single-boot install. ntfs-3g (plus fuse3, owned by
+# packages/apps.txt — every list has ONE owner per package, CI enforces it) lets os-prober
+# read a Windows/NTFS partition so it can be named in the GRUB menu.
 os-prober
-fuse3
 ntfs-3g

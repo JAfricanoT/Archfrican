@@ -246,6 +246,14 @@ jobs:
     container: archlinux:latest
     steps:
       - uses: actions/checkout@v4
+      - name: every package has exactly ONE owning list
+        run: |
+          set -euo pipefail
+          # `pacman -S --needed` makes a duplicate harmless at install time, but manifest.txt
+          # unions the lists — so removing a package from one list is a SILENT NO-OP while
+          # another list still carries it. One owner per package, always.
+          dups="$(sed -E 's/#.*//; s/^[[:space:]]+//; s/[[:space:]]+$//' packages/*.txt gaming/packages.txt | grep . | sort | uniq -d)"
+          [ -z "$dups" ] || { echo "::error::package(s) declared in more than one list: $(printf '%s ' $dups)"; exit 1; }
       - name: every pacman-list package resolves in a binary repo
         run: |
           set -euo pipefail

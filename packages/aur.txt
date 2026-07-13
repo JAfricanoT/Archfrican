@@ -5,7 +5,6 @@ mcmojave-cursors
 otf-san-francisco            # SF Pro family
 otf-san-francisco-mono       # SF Mono
 nwg-dock                     # macOS-style dock for Wayland
-bemoji                       # emoji/symbol picker for the launcher (archfrican-emoji falls back if absent)
 walker                       # Spotlight launcher (GTK4, rich grid) — archfrican-spotlight; fuzzel stays as fallback
 elephant                     # Walker's backend daemon (loads provider .so plugins from /usr/lib/elephant)
 # elephant providers are SEPARATE packages (NOT bundled in `elephant`) — without them Walker is empty and

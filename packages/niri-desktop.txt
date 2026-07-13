@@ -79,7 +79,6 @@ xdg-utils                  # xdg-settings/xdg-mime — honest one-shot default-a
 
 # --- Fase 1: launcher command-surface (calc / window-switch / file-search modes) ---
 libqalculate               # qalc — the calculator behind ⌘+Shift+C (Spotlight-style "type a sum")
-plocate                    # fast local file search (⌘+Shift+G); indexes ~ per-user, no root, no telemetry
 
 # --- Fase 3: control center, VPN, pro-audio ---
 wlsunset                   # night light (warm screen) — archfrican-nightlight

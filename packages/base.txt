@@ -12,7 +12,6 @@ inotify-tools          # needed by grub-btrfs daemon
 reflector              # keep mirrorlist fast
 pacman-contrib
 zram-generator
-openssh
 man-db
 pciutils               # lspci, for GPU auto-detection (also ensured up-front in install.sh)
 
