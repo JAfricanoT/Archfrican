@@ -45,7 +45,7 @@ Item {
         function onLoginFailed() {
             card.authenticating = false
             message.isError = true
-            message.text = "Incorrect password"
+            message.text = "Contraseña incorrecta"
             shake.start()
             password.selectAll()
             password.forceActiveFocus()
@@ -115,7 +115,7 @@ Item {
                 anchors.top: parent.top; anchors.bottom: parent.bottom
                 anchors.leftMargin: 16
                 echoMode: revealOn ? TextInput.Normal : TextInput.Password
-                placeholderText: "Password"
+                placeholderText: "Contraseña"
                 color: card.textColor
                 placeholderTextColor: card.dimColor
                 font.family: card.fontFamily
@@ -187,7 +187,7 @@ Item {
                 color: card.accentColor
                 font.family: card.fontFamily
                 font.pixelSize: 12
-                text: "⇪ Caps Lock"
+                text: "⇪ Bloq Mayús"
             }
             Text {
                 id: layoutText

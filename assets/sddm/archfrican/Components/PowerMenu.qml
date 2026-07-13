@@ -48,9 +48,9 @@ Row {
         font.family: power.fontFamily
         font.pixelSize: 13
         anchors.verticalCenter: parent.verticalCenter
-        text: power.armed === "poweroff" ? "Shut down?"
-            : power.armed === "reboot"   ? "Restart?"
-            : "Suspend?"
+        text: power.armed === "poweroff" ? "¿Apagar?"
+            : power.armed === "reboot"   ? "¿Reiniciar?"
+            : "¿Suspender?"
     }
     Text {
         visible: power.armed !== ""
@@ -65,7 +65,7 @@ Row {
     }
     Text {
         visible: power.armed !== ""
-        text: "Cancel"
+        text: "Cancelar"
         color: cancelArea.containsMouse ? power.textColor : power.dimColor
         font.family: power.fontFamily; font.pixelSize: 13
         anchors.verticalCenter: parent.verticalCenter
