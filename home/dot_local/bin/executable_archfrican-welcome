@@ -56,7 +56,7 @@ archfrican-tpm-unlock    → desbloqueo automático del disco vía TPM (sin cont
     "Tienda"*)                if command -v gnome-software >/dev/null 2>&1; then gnome-software; else note "tienda no instalada (módulo 35-apps)"; fi ;;
     "Auto"*)                  "$B/archfrican-auto-appearance" on ;;
     "Accesibilidad"*)         "$B/archfrican-a11y" ;;
-    "Pantallas"*)             if command -v nwg-displays >/dev/null 2>&1; then nwg-displays; else note "instala nwg-displays"; fi ;;
+    "Pantallas"*)             "$B/archfrican-displays" edit || true ;;   # edit = nwg-displays + auto-save (persiste); || true: que un fallo no mate el tour (set -e)
     "Cómo mantener"*)         card 'Un comando: archfrican-update (reporte) · archfrican-update --run (aplica, con snapshot reversible). El sistema = el repo, aplicado.' '  actualizar  ' ;;
     "Cómo revertir"*)         "$B/archfrican-rollback" ;;
     "Migrar"*)                "$B/archfrican-migrate" ;;
