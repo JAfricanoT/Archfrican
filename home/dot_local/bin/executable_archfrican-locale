@@ -40,16 +40,35 @@ case "$sel" in
   "Teclado"*)
     xkb="$(localectl list-x11-keymap-layouts 2>/dev/null | fuzzel --dmenu --prompt '  teclado  ')" || exit 0
     [ -n "$xkb" ] || exit 0
+    # $xkb lands inside a sed replacement below — the list is system-provided, but guard anyway.
+    case "$xkb" in *[!A-Za-z0-9_,-]*) note "layout inválido: $xkb"; exit 1 ;; esac
     # shellcheck disable=SC2016
     ghostty -e env AF_VAL="$xkb" sh -c '
       set -e
       echo "── Aplicando teclado: $AF_VAL ──"
       sudo localectl set-x11-keymap "$AF_VAL"
       sudo localectl set-keymap "$AF_VAL" 2>/dev/null || true
-      echo; echo "Teclado → $AF_VAL.  Re-inicia niri para aplicarlo en el escritorio."
+      echo; echo "Teclado → $AF_VAL."
       printf "(enter para cerrar) "; read -r _'
-    printf '%s\n' "$xkb" > "$kbdfile"   # niri reads this at startup (config.kdl xkb layout)
-    note "Teclado → $xkb (re-inicia niri)" ;;
+    printf '%s\n' "$xkb" > "$kbdfile"   # converge re-renders config.kdl from this (chezmoi template)
+    # The DEPLOYED config.kdl carries a LITERAL layout (config.kdl.tmpl bakes the value at
+    # chezmoi-apply time), so restarting niri would re-read the same stale file. Patch the
+    # rendered config in place — niri live-reloads on save — guarded by `niri validate` +
+    # revert, the same seatbelt archfrican-displays uses.
+    kdl="${XDG_CONFIG_HOME:-$HOME/.config}/niri/config.kdl"
+    if [ -f "$kdl" ] && have niri; then
+      cp -a "$kdl" "$kdl.archfrican-locale.bak"
+      sed -i "s/^\([[:space:]]*layout \)\"[^\"]*\"/\1\"$xkb\"/" "$kdl"
+      if niri validate >/dev/null 2>&1; then
+        rm -f "$kdl.archfrican-locale.bak"
+        note "Teclado → $xkb (aplicado en vivo)"
+      else
+        mv "$kdl.archfrican-locale.bak" "$kdl"
+        note "Teclado → $xkb — la config de niri no validó tras el parche; revertida (se aplica en el próximo converge)"
+      fi
+    else
+      note "Teclado → $xkb"
+    fi ;;
   "Zona horaria"*)
     tz="$(timedatectl list-timezones 2>/dev/null | fuzzel --dmenu --prompt '  zona horaria  ')" || exit 0
     [ -n "$tz" ] || exit 0
