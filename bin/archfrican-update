@@ -70,6 +70,7 @@ fi
 
 warn_n=0
 CHANGELOG=""    # commit subjects pulled by the last repo_refresh — see print_changelog
+PRE_SNAP_NUM="" # number of the pre-update snapshot (pre_snapshot); the post-update rollback offer targets it
 _ok()   { printf '  \e[32m✓\e[0m %s\n' "$*"; }
 _note() { printf '  \e[33m!\e[0m %s\n' "$*"; warn_n=$((warn_n + 1)); }
 _hd()   { printf '\n\e[1m  %s\e[0m\n\n' "$*"; }
@@ -130,9 +131,40 @@ pre_snapshot() {
   command -v snapper >/dev/null 2>&1 || { _note "snapper no está — sin pre-snapshot (continuando)"; return 0; }
   local desc rev; rev="$(git -C "${ROOT:-$HOME/.archfrican}" rev-parse --short HEAD 2>/dev/null || echo '?')"
   desc="archfrican-update $(date +%Y-%m-%d) @$rev"
-  if sudo snapper -c root create -d "$desc" >/dev/null 2>&1; then
-    _ok "pre-snapshot creado (\"$desc\") — un reboot revierte toda la actualización"
-  else _note "no pude crear el pre-snapshot (continuando)"; fi
+  # -p/--print-number returns the new snapshot's number, so the post-update validation can offer to
+  # roll back to exactly THIS checkpoint if the update turns something critical red.
+  if PRE_SNAP_NUM="$(sudo snapper -c root create -p -d "$desc" 2>/dev/null)" && [ -n "$PRE_SNAP_NUM" ]; then
+    _ok "pre-snapshot #$PRE_SNAP_NUM creado — un reboot revierte toda la actualización"
+  else PRE_SNAP_NUM=""; _note "no pude crear el pre-snapshot (continuando)"; fi
+}
+
+# After --run: did the update turn any CRITICAL check RED that wasn't red before? Only NEW reds count
+# (a pre-existing red isn't this update's fault) and only reds — the expected post-update amber churn
+# (kernel reboot, new updates, .pacnew) never triggers this. If so, offer the one-reboot rollback to
+# the pre-snapshot. Closes the "nothing explodes" loop: the safety net is offered exactly when needed.
+post_update_validate() {          # post_update_validate "<pre-update red names, newline-sep>"
+  local before="$1" after new ans
+  after="$("$ROOT/bin/archfrican-doctor" --red-names 2>/dev/null | sort -u)"
+  new="$(printf '%s\n' "$after" | grep -Fxv -f <(printf '%s\n' "$before") 2>/dev/null | grep -v '^[[:space:]]*$' || true)"
+  [ -n "$new" ] || return 0
+  _hd "⚠ Posible regresión por la actualización"
+  _note "chequeos que pasaron a CRÍTICO (rojo) y antes no lo estaban:"
+  printf '%s\n' "$new" | sed 's/^/      • /'
+  if [ -z "$PRE_SNAP_NUM" ] || ! command -v snapper >/dev/null 2>&1; then
+    _note "revisa con: archfrican-doctor  (no hay pre-snapshot para revertir automáticamente)"; return 0
+  fi
+  _note "el pre-snapshot #$PRE_SNAP_NUM revierte TODA esta actualización en un reinicio."
+  if [ -t 0 ]; then
+    printf '  ¿Revertir al pre-snapshot #%s ahora? [y/N] ' "$PRE_SNAP_NUM"; read -r ans
+    case "$ans" in
+      y|Y) if sudo snapper -c root rollback "$PRE_SNAP_NUM"; then
+             printf '  \e[32m✓ revertido.\e[0m Reinicia para volver al estado previo:  sudo systemctl reboot\n'
+           else _note "el rollback falló — probá:  archfrican-rollback"; fi ;;
+      *)   printf '  Ok, sin revertir. Cuando quieras:  archfrican-rollback  (o: sudo snapper -c root rollback %s)\n' "$PRE_SNAP_NUM" ;;
+    esac
+  else
+    _note "para revertir:  archfrican-rollback   (o: sudo snapper -c root rollback $PRE_SNAP_NUM)"
+  fi
 }
 
 # ---------- keep the mirrorlist fresh WITHOUT an always-on background timer --
@@ -287,6 +319,9 @@ post_summary() {
 # ---------- dispatch ----------------------------------------------------------
 if [ "$RUN" = 1 ]; then
   precheck
+  # Baseline of CRITICAL (red) checks BEFORE the update, so post_update_validate flags only NEW reds
+  # (a regression this run introduced), never pre-existing ones.
+  before_reds="$("$ROOT/bin/archfrican-doctor" --red-names 2>/dev/null | sort -u)"
   pre_snapshot
   # Order matters: pull → UPGRADE (syncs the DB + brings the system current) → converge (installs against
   # the fresh DB) → AUR. Converging BEFORE the upgrade left a stale DB, so a package newly added to a repo
@@ -331,6 +366,7 @@ if [ "$RUN" = 1 ]; then
   fi
   [ "$PRUNE" = 1 ] && do_prune
   post_summary
+  post_update_validate "$before_reds"
 
 elif [ "$CONVERGE" = 1 ]; then
   precheck

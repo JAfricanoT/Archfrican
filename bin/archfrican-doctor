@@ -4,6 +4,8 @@
 #   archfrican-doctor --json     one line of waybar JSON (text/class/tooltip)
 #   archfrican-doctor --notify   quiet unless amber/red, then one notify-send
 #   archfrican-doctor --fix      run ONLY provably-safe fixes (paccache/reset-failed/pacdiff); never -Syu/-Rns
+#   archfrican-doctor --red-names machine-readable: the NAMES of RED (critical) checks, one per line
+#                                (archfrican-update diffs this before/after a run to catch regressions)
 set -uo pipefail
 if [ "${EUID:-$(id -u)}" -eq 0 ]; then
   echo "archfrican-doctor: run as your normal user, not root/sudo." >&2
@@ -66,6 +68,21 @@ run_all_checks() {
   check_orphans; check_pacnew; check_updates; check_cve; check_firmware; check_reboot
   check_foreign; check_timers; check_drift
 }
+
+# Machine-readable: emit ONLY the names of RED (critical) checks, one per line. Overriding the
+# health helpers to print just the name (red) or nothing (ok/amber/skip) reuses the exact same
+# check set the report runs — no second source of truth. archfrican-update diffs the before/after
+# set to detect a regression the update introduced (a NEW red), and offer the pre-snapshot rollback.
+# shellcheck disable=SC2317  # the helper overrides below are reached indirectly via run_all_checks
+if [ "$MODE" = "--red-names" ]; then
+  _h_ok(){ :; }
+  _h_amber(){ :; }
+  _h_skip(){ :; }
+  _h_red(){ printf '%s\n' "$1"; }
+  run_all_checks
+  exit 0
+fi
+
 REPORT="$(mktemp)"
 run_all_checks > "$REPORT"        # NOT a subshell -> H_RED/H_AMBER update here
 issues=$(( H_RED + H_AMBER ))
