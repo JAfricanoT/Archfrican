@@ -173,7 +173,15 @@ jobs:
           [ -n "$label" ] || { echo "::error::could not read the ISO volume label (archisolabel)"; exit 1; }
           echo "archiso label: $label"
 
-          if [ -e /dev/kvm ]; then accel="-enable-kvm -cpu host"; echo "KVM: yes"; else accel="-cpu max"; echo "KVM: no (TCG — slower)"; fi
+          # /dev/kvm exists on GH runners but is crw-rw---- root:kvm — the runner user isn't in the
+          # group, so qemu gets "Permission denied". chmod opens it; verify access and fall back to
+          # (slower) TCG if it still isn't usable, so the test runs either way.
+          accel="-cpu max"; kvmmsg="no (TCG — slower)"
+          if [ -e /dev/kvm ]; then
+            sudo chmod 666 /dev/kvm 2>/dev/null || true
+            if [ -r /dev/kvm ] && [ -w /dev/kvm ]; then accel="-enable-kvm -cpu host"; kvmmsg="yes"; fi
+          fi
+          echo "KVM: $kvmmsg"
 
           # archiso finds its squashfs on the labelled CD; console=ttyS0 so /dev/kmsg reaches serial.
           # shellcheck disable=SC2086
@@ -185,7 +193,7 @@ jobs:
           qpid=$!
 
           ok=0
-          for _ in $(seq 1 300); do
+          for _ in $(seq 1 420); do   # generous: covers a TCG fallback boot; KVM exits early on the marker
             if grep -qa 'ARCHFRICAN_AUTOLAUNCH_OK' serial.log 2>/dev/null; then ok=1; break; fi
             kill -0 "$qpid" 2>/dev/null || break     # qemu exited early
             sleep 1
