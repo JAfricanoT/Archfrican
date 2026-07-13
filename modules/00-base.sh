@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Phase 2, step 0: base system, CachyOS repos, dual kernel, AUR helper.
 source "$(dirname "$0")/../lib/common.sh"
+source "$REPO_ROOT/lib/grub.sh"
 
 substep "adding the CachyOS repository (optimized packages + linux-cachyos)"
 if ! grep -q '\[cachyos\]' /etc/pacman.conf; then
@@ -54,9 +55,7 @@ pac_install_file "$REPO_ROOT/packages/base.txt"
 substep "installing the dual kernel: linux-cachyos (primary) + linux-lts (safety net)"
 pac_install linux-cachyos linux-cachyos-headers linux-lts linux-lts-headers
 substep "regenerating the GRUB config"
-# timeout: os-prober (if installed via opt-in multi-boot) scans every disk/partition and can hang
-# on a bad device — same cap modules/55-multiboot.sh already uses.
-timeout 300 sudo grub-mkconfig -o /boot/grub/grub.cfg
+regen_grub
 warn "linux-lts stays in the GRUB menu. If a Cachy kernel ever misbehaves with"
 warn "your GPU, just boot LTS and keep working — nothing explodes."
 

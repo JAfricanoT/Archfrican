@@ -11,6 +11,13 @@
 GRUB_DEFAULT="${GRUB_DEFAULT:-/etc/default/grub}"
 GRUB_CHANGED=0
 
+# Regenerate the on-disk GRUB menu — the ONE home for the mkconfig invocation (6 modules use
+# it). timeout: os-prober (if installed via opt-in multi-boot) scans every disk/partition and
+# can hang on a bad device — the 300 s cap turns that into a visible failure. Returns the raw
+# exit code (124 = cap hit) so modules/55-multiboot.sh can distinguish a timeout from a real
+# error; grub-mkconfig writes atomically, so the old menu survives a failed/killed run.
+regen_grub() { timeout 300 sudo grub-mkconfig -o /boot/grub/grub.cfg; }
+
 # Append a token to GRUB_CMDLINE_LINUX_DEFAULT (idempotent, word-boundary). The value
 # MUST be present and double-quoted on one line, else die (the single-quoted/absent case
 # the old nvidia sed also refused). Sets GRUB_CHANGED=1 only on a real edit.

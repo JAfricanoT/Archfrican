@@ -30,7 +30,7 @@ substep "probing other disks for operating systems — this can be slow"
 # distinguish the cap (124 — menu may be incomplete) from a REAL error: on a real failure revert the
 # key and die, so /etc/default/grub stays coherent with the (unchanged) on-disk grub.cfg — grub-mkconfig
 # writes atomically, so the old, working menu survives a failed/killed run.
-rc=0; timeout 300 sudo grub-mkconfig -o /boot/grub/grub.cfg || rc=$?
+rc=0; regen_grub || rc=$?
 if [ "$rc" = 124 ]; then
   warn "grub-mkconfig hit the 5-min cap (a locked/huge NTFS?) — the menu may be incomplete; re-run: ./install.sh 55-multiboot yes"
 elif [ "$rc" != 0 ]; then

@@ -61,9 +61,7 @@ case "$gpu" in
       fi
       if [ "$need_build" = 1 ]; then
         substep "regenerating GRUB + initramfs (this takes a moment)"
-        # timeout: os-prober (if installed via opt-in multi-boot) scans every disk/partition and
-        # can hang on a bad device — same cap modules/55-multiboot.sh already uses.
-        timeout 300 sudo grub-mkconfig -o /boot/grub/grub.cfg
+        regen_grub
         sudo mkinitcpio -P
         sudo install -d "$(dirname "$SENTINEL")"; sudo touch "$SENTINEL"
       fi
