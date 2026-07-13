@@ -157,64 +157,13 @@ timeout 5 gsettings set org.gnome.desktop.interface cursor-size         "$CURSOR
 # a Plasma session is currently running (that's what the NEXT Plasma login reads); plasma-apply-* calls
 # are a bonus "apply live right now" nicety IF a Plasma session happens to be up, timeout-guarded like
 # the gsettings calls above (same hang risk: no D-Bus target when this runs from niri or headless).
-# This reimplements lib/common.sh's apply_plasma_theme() standalone on purpose — same reason the
-# SDDM/GRUB blocks above don't call render_sddm_theme/render_grub_theme either: theme-switch stays
-# dependency-free of lib/common.sh so the deployed ~/.local/bin symlink keeps working with no REPO_ROOT.
+# The paint itself is the shared lib/plasma-theme.sh (also used by lib/common.sh's
+# apply_plasma_theme) — theme-switch already requires the deployed clone at $ROOT (it dies
+# above without $ROOT/themes), so sourcing one lib from it keeps the deployed symlink working.
 if command -v kwriteconfig6 >/dev/null 2>&1; then
-  hex2rgb() { local h="${1#\#}"; printf '%d,%d,%d' "0x${h:0:2}" "0x${h:2:2}" "0x${h:4:2}"; }
-  mkdir -p "$HOME/.local/share/color-schemes"
-  cat > "$HOME/.local/share/color-schemes/Archfrican.colors" <<CLR
-[General]
-Name=Archfrican
-ColorScheme=Archfrican
-
-[Colors:Window]
-BackgroundNormal=$(hex2rgb "$BG")
-ForegroundNormal=$(hex2rgb "$FG")
-
-[Colors:View]
-BackgroundNormal=$(hex2rgb "${BG_ALT:-$BG}")
-ForegroundNormal=$(hex2rgb "$FG")
-
-[Colors:Button]
-BackgroundNormal=$(hex2rgb "${BG_ALT:-$BG}")
-ForegroundNormal=$(hex2rgb "$FG")
-
-[Colors:Selection]
-BackgroundNormal=$(hex2rgb "$ACCENT")
-ForegroundNormal=$(hex2rgb "${ACCENT_FG:-#ffffff}")
-
-[WM]
-activeBackground=$(hex2rgb "$BG")
-activeForeground=$(hex2rgb "$FG")
-inactiveBackground=$(hex2rgb "${BG_DIM:-$BG}")
-inactiveForeground=$(hex2rgb "${FG_DIM:-$FG}")
-CLR
-  # UNVERIFIED .colors format (drafted from the public KDE color-scheme spec, not confirmed on a live
-  # Plasma install — see lib/common.sh's apply_plasma_theme for the same caveat). Diff against a real
-  # /usr/share/color-schemes/BreezeDark.colors once Plasma is installed, correct if needed.
-  if command -v plasma-apply-colorscheme >/dev/null 2>&1; then
-    timeout 5 plasma-apply-colorscheme Archfrican >/dev/null 2>&1 || true
-  fi
-
-  timeout 5 kwriteconfig6 --file kdeglobals --group Icons   --key Theme "$ICON_THEME"          2>/dev/null || true
-  timeout 5 kwriteconfig6 --file kcminputrc --group Mouse   --key cursorTheme "$CURSOR_THEME"  2>/dev/null || true
-  timeout 5 kwriteconfig6 --file kcminputrc --group Mouse   --key cursorSize  "$CURSOR_SIZE"   2>/dev/null || true
-  timeout 5 kwriteconfig6 --file kdeglobals --group General --key font  "$FONT_UI,$FONT_GTK_SIZE,-1,5,50,0,0,0,0,0"   2>/dev/null || true
-  timeout 5 kwriteconfig6 --file kdeglobals --group General --key fixed "$FONT_MONO,$FONT_GTK_SIZE,-1,5,50,0,0,0,0,0" 2>/dev/null || true
-
-  if command -v plasma-apply-wallpaperimage >/dev/null 2>&1; then
-    img=""
-    if [ -r "$HOME/.config/archfrican/wallpaper" ]; then
-      img="$(head -1 "$HOME/.config/archfrican/wallpaper" 2>/dev/null)" || true
-    fi
-    { [ -n "$img" ] && [ -r "$img" ]; } || img=""
-    if [ -z "$img" ] && command -v convert >/dev/null 2>&1; then
-      img="$HOME/.local/state/archfrican/plasma-bg.png"; mkdir -p "$(dirname "$img")" || true
-      timeout 5 convert -size 64x64 "xc:$BG" "$img" 2>/dev/null || img=""
-    fi
-    if [ -n "$img" ]; then timeout 5 plasma-apply-wallpaperimage "$img" >/dev/null 2>&1 || true; fi
-  fi
+  # shellcheck source=lib/plasma-theme.sh
+  . "$ROOT/lib/plasma-theme.sh"
+  plasma_paint
   echo "updated the Plasma theme (color scheme, icons, cursor, fonts)"
 fi
 

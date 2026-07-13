@@ -102,12 +102,10 @@ render_grub_theme() {             # render_grub_theme <theme-name>  ->  /boot/gr
 }
 
 # Best-effort: paint KDE Plasma (if installed) from the SAME palette used by GTK/niri/waybar/etc.
-# Used authoritatively by modules/25-plasma-desktop.sh (once, at install/re-run); bin/theme-switch has
-# its OWN separate, deployed-symlink-safe reimplementation for LIVE switches — same reason
-# render_sddm_theme/render_grub_theme above aren't called from theme-switch either (it stays
-# dependency-free of lib/common.sh so the deployed ~/.local/bin/theme-switch symlink keeps working
-# without a REPO_ROOT). Gated on kwriteconfig6 (ships with kconfig, a guaranteed transitive dependency
-# of plasma-desktop) — a hard no-op on any niri-only machine.
+# Used authoritatively by modules/25-plasma-desktop.sh (once, at install/re-run); bin/theme-switch
+# paints LIVE switches with the same shared lib/plasma-theme.sh (sourced from the deployed clone).
+# Gated on kwriteconfig6 (ships with kconfig, a guaranteed transitive dependency of plasma-desktop)
+# — a hard no-op on any niri-only machine.
 apply_plasma_theme() {            # apply_plasma_theme <theme-name>
   have kwriteconfig6 || return 0
   local theme="$1"
@@ -128,64 +126,9 @@ apply_plasma_theme() {            # apply_plasma_theme <theme-name>
     # bin/theme-switch uses: defaults -> palette -> theme's own tokens.sh, last one wins.
     # shellcheck disable=SC1090
     if [ -r "$REPO_ROOT/themes/$theme/tokens.sh" ]; then . "$REPO_ROOT/themes/$theme/tokens.sh"; fi
-    hex2rgb() { local h="${1#\#}"; printf '%d,%d,%d' "0x${h:0:2}" "0x${h:2:2}" "0x${h:4:2}"; }
-    mkdir -p "$HOME/.local/share/color-schemes"
-    cat > "$HOME/.local/share/color-schemes/Archfrican.colors" <<CLR
-[General]
-Name=Archfrican
-ColorScheme=Archfrican
-
-[Colors:Window]
-BackgroundNormal=$(hex2rgb "$BG")
-ForegroundNormal=$(hex2rgb "$FG")
-
-[Colors:View]
-BackgroundNormal=$(hex2rgb "${BG_ALT:-$BG}")
-ForegroundNormal=$(hex2rgb "$FG")
-
-[Colors:Button]
-BackgroundNormal=$(hex2rgb "${BG_ALT:-$BG}")
-ForegroundNormal=$(hex2rgb "$FG")
-
-[Colors:Selection]
-BackgroundNormal=$(hex2rgb "$ACCENT")
-ForegroundNormal=$(hex2rgb "${ACCENT_FG:-#ffffff}")
-
-[WM]
-activeBackground=$(hex2rgb "$BG")
-activeForeground=$(hex2rgb "$FG")
-inactiveBackground=$(hex2rgb "${BG_DIM:-$BG}")
-inactiveForeground=$(hex2rgb "${FG_DIM:-$FG}")
-CLR
-    # UNVERIFIED .colors format (drafted from the public KDE color-scheme spec — Plasma isn't
-    # installed on the machine this was written on). Diff against a real
-    # /usr/share/color-schemes/BreezeDark.colors once Plasma is installed and correct if needed.
-    # `|| true` on every call below: this subshell inherits `set -e` from lib/common.sh, and a
-    # nonzero exit here (a timed-out D-Bus call, a locked config file) would otherwise abort the
-    # subshell mid-sequence, silently skipping every step after the first failure.
-    { have plasma-apply-colorscheme && timeout 5 plasma-apply-colorscheme Archfrican >/dev/null 2>&1; } || true
-
-    timeout 5 kwriteconfig6 --file kdeglobals --group Icons   --key Theme "$ICON_THEME"          2>/dev/null || true
-    timeout 5 kwriteconfig6 --file kcminputrc --group Mouse   --key cursorTheme "$CURSOR_THEME"  2>/dev/null || true
-    timeout 5 kwriteconfig6 --file kcminputrc --group Mouse   --key cursorSize  "$CURSOR_SIZE"   2>/dev/null || true
-    timeout 5 kwriteconfig6 --file kdeglobals --group General --key font  "$FONT_UI,$FONT_GTK_SIZE,-1,5,50,0,0,0,0,0"   2>/dev/null || true
-    timeout 5 kwriteconfig6 --file kdeglobals --group General --key fixed "$FONT_MONO,$FONT_GTK_SIZE,-1,5,50,0,0,0,0,0" 2>/dev/null || true
-
-    # Wallpaper: needs a running Plasma session to know which containment/screen to paint — its
-    # behavior with no Plasma session ever started (fresh opt-in) is unverified.
-    if have plasma-apply-wallpaperimage; then
-      img=""
-      if [ -r "$HOME/.config/archfrican/wallpaper" ]; then
-        img="$(head -1 "$HOME/.config/archfrican/wallpaper" 2>/dev/null)" || true
-      fi
-      { [ -n "$img" ] && [ -r "$img" ]; } || img=""
-      if [ -z "$img" ] && have convert; then
-        img="$HOME/.local/state/archfrican/plasma-bg.png"; mkdir -p "$(dirname "$img")" || true
-        timeout 5 convert -size 64x64 "xc:$BG" "$img" 2>/dev/null || img=""
-      fi
-      if [ -n "$img" ]; then timeout 5 plasma-apply-wallpaperimage "$img" >/dev/null 2>&1 || true; fi
-    fi
-    true
+    # shellcheck source=lib/plasma-theme.sh
+    . "$REPO_ROOT/lib/plasma-theme.sh"
+    plasma_paint
   )
   ok "Plasma theme painted from '$theme' (color scheme, icons, cursor, fonts; wallpaper best-effort)"
 }
