@@ -88,7 +88,10 @@ dc_pacstrap_new() {   # build the replacement system in a fresh @.new — NEVER 
   dc_run btrfs subvolume create "$DC_ROOT_MNT/@.new"
   dc_run mkdir -p "$DC_NEW_MNT"
   dc_run mount -o subvol=@.new "$DC_ROOT_DEV" "$DC_NEW_MNT"
-  dc_run pacstrap -K "$DC_NEW_MNT" base linux-lts linux-firmware btrfs-progs grub efibootmgr sudo networkmanager git zram-generator
+  # Same AF_BEDROCK_PKGS (lib/common.sh) as base_pacstrap — the rebuilt base can't drift from a
+  # fresh install's. Fase 1 must also mirror its conditional extras (cryptsetup via the encrypt
+  # probe, cpu_ucode()) when it wires the real chroot config.
+  dc_run pacstrap -K "$DC_NEW_MNT" "${AF_BEDROCK_PKGS[@]}"
 }
 
 dc_chroot_config_new() {   # arch-chroot into @.new to configure the replacement system

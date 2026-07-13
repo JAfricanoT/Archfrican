@@ -97,7 +97,7 @@ base_format_mount() {  # base_format_mount <esp> <rootfs>
 
 base_pacstrap() {      # base_pacstrap <ucode-or-empty> <encrypt(yes|no)>
   local ucode="$1" enc="$2"
-  local -a pkgs=(base linux-lts linux-firmware btrfs-progs grub efibootmgr sudo networkmanager git zram-generator)
+  local -a pkgs=("${AF_BEDROCK_PKGS[@]}")   # the shared bedrock set (lib/common.sh) — deep-clean rebuilds from the same one
   # The initramfs `encrypt` HOOK needs the cryptsetup binary IN THE TARGET at mkinitcpio time (and at
   # every later regen, e.g. linux-cachyos/nvidia). It is NOT in `base`, so it must be pacstrapped.
   [ "$enc" = yes ] && pkgs+=(cryptsetup)

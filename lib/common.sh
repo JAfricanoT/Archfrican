@@ -72,6 +72,13 @@ write_system_file() {             # write_system_file <path> [mode]   (content o
   sudo install -D -m "$mode" "$tmp" "$path"; rm -f "$tmp"; ok "wrote $path"
 }
 
+# The bedrock pacstrap set — what makes a bootable Archfrican base. Single source for
+# lib/base-install.sh (fresh install) and lib/deep-clean.sh (factory reset rebuilds @ from this
+# same set, so the two can never drift). Conditional extras (cryptsetup when encrypted, the CPU
+# microcode) are appended by each caller — they are probe-dependent, not part of the fixed set.
+# shellcheck disable=SC2034  # consumed by the two libs above, sourced after this file
+AF_BEDROCK_PKGS=(base linux-lts linux-firmware btrfs-progs grub efibootmgr sudo networkmanager git zram-generator)
+
 # All curated themes = the directories under themes/ — the SAME glob the user-side pickers use
 # (archfrican-welcome, archfrican-setup), so the wizard list can never drift from what ships
 # (themes/tokens.defaults.sh documents this as the intended pattern).
