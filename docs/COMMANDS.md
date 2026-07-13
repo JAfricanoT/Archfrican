@@ -173,6 +173,33 @@ restic restore latest --target ~/restaurado
 
 ---
 
+## archfrican-versions
+
+File-level **version history** over the Btrfs snapshots (snapper) — the macOS "Browse All
+Versions" flow. Recovers a previous version of a file (or one you deleted) by browsing the
+snapshots, **without touching the original**: by default it restores a *copy* with a suffix;
+replacing the current file is opt-in and always backs it up first.
+
+```
+archfrican-versions [ruta]
+```
+
+- **no args** → pick a file from your `$HOME` with fuzzel, then choose a version.
+- **with a path** → that file — also works to recover an **already-deleted** file (pass its old path).
+
+It covers both `/home` (the `home` snapper config — see module `50-snapshots`) and system files
+(the `root` config). Distinct versions are deduped (by size+mtime) and shown newest-first with
+their date. Per version you can: **recover as a copy** (safe), **see the diff** with the current
+file, or **replace the current** (confirmed, backing the current up first).
+
+Complements `archfrican-backup` (restic, a full offsite-capable backup): this is the instant,
+local *version history*. Needs the `home` snapper config for `/home` files — set up on install /
+`archfrican-update --converge`.
+
+**Access via**: `⌘+Shift+A → "Recuperar versión de un archivo (snapshots)…"`
+
+---
+
 ## archfrican-migrate
 
 Arrive at a new machine pre-personalized: restore dotfiles, SSH/GPG keys, and

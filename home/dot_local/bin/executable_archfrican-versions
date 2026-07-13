@@ -1,0 +1,90 @@
+#!/usr/bin/env bash
+# archfrican-versions — historial de versiones de un archivo sobre los snapshots btrfs (snapper).
+# Recupera una versión anterior de un archivo navegando los snapshots, SIN tocar el original: por
+# defecto restaura una COPIA con sufijo; reemplazar el actual es opt-in y SIEMPRE respalda primero.
+# Cubre /home (config snapper 'home', módulo 50) y el sistema (config 'root'). Complementa a
+# archfrican-backup (restic, respaldo completo): esto es el "historial de versiones" local e instantáneo.
+#
+# Uso:  archfrican-versions [ruta]
+#   sin ruta  → elige un archivo de tu HOME con fuzzel
+#   con ruta  → esa (sirve también para recuperar un archivo YA BORRADO: pasa su ruta antigua)
+set -euo pipefail
+source "$(dirname "$0")/../lib/archfrican-common.sh"
+have fuzzel || { note "falta fuzzel"; exit 1; }
+
+# ---- 1. archivo objetivo --------------------------------------------------------------------------
+file="${1:-}"
+if [ -z "$file" ]; then
+  have fd || { note "falta fd (paquete fd)"; exit 1; }
+  file="$(fd --type f --hidden --exclude .git --exclude .cache --exclude node_modules . "$HOME" 2>/dev/null \
+           | fuzzel --dmenu --prompt '  archivo a recuperar  ')" || exit 0
+fi
+[ -n "$file" ] || exit 0
+file="$(readlink -m -- "$file")"    # ruta absoluta canónica (funciona aunque ya no exista)
+
+# ---- 2. mapear a la config snapper + ruta relativa dentro del snapshot -----------------------------
+case "$file" in
+  "$HOME"/*|/home/*) base="/home/.snapshots"; rel="${file#/home/}" ;;
+  *)                 base="/.snapshots";      rel="${file#/}"      ;;
+esac
+if [ ! -d "$base" ]; then
+  note "no hay snapshots para esa ubicación aún ($base no existe — converge el módulo 50-snapshots)"
+  exit 1
+fi
+
+# ---- 3. acceso: directo si se puede, si no vía sudo (pide contraseña una sola vez) -----------------
+SUDO=""
+if ! ls "$base" >/dev/null 2>&1; then SUDO="sudo"; note "los snapshots requieren permisos: se pedirá tu contraseña"; fi
+snap_date() { $SUDO grep -oE '<date>[^<]+' "$1/info.xml" 2>/dev/null | sed 's/<date>//' | head -1; }
+
+# ---- 4. recolectar versiones DISTINTAS, más nuevas primero (dedup por tamaño:mtime) ---------------
+TAB="$(printf '\t')"
+tmp="$(mktemp)"; trap 'rm -f "$tmp"' EXIT
+last_sig=""
+for n in $($SUDO ls -1 "$base" 2>/dev/null | grep -E '^[0-9]+$' | sort -rn); do
+  sp="$base/$n/snapshot/$rel"
+  $SUDO test -e "$sp" || continue
+  sig="$($SUDO stat -c '%s:%Y' "$sp" 2>/dev/null || true)"
+  [ -n "$sig" ] && [ "$sig" = "$last_sig" ] && continue   # misma versión que la ya listada → salta
+  last_sig="$sig"
+  size="$($SUDO stat -c '%s' "$sp" 2>/dev/null || echo 0)"
+  hz="$(numfmt --to=iec "$size" 2>/dev/null || echo "${size}B")"
+  printf '%s\t%s\t%s\t%s\n' "$n" "$(snap_date "$base/$n")" "$hz" "$sp" >> "$tmp"
+done
+[ -s "$tmp" ] || { note "no encontré versiones anteriores de $(basename "$file") en los snapshots"; exit 0; }
+
+# ---- 5. elegir versión ----------------------------------------------------------------------------
+sel="$(awk -F"$TAB" '{printf "snapshot %s  ·  %s  ·  %s\n", $1, $2, $3}' "$tmp" \
+        | fuzzel --dmenu --prompt "  versiones de $(basename "$file")  ")" || exit 0
+num="$(printf '%s' "$sel" | awk '{print $2}')"
+case "$num" in ''|*[!0-9]*) exit 0 ;; esac
+src="$(awk -F"$TAB" -v n="$num" '$1==n {print $4; exit}' "$tmp")"
+{ [ -n "$src" ] && $SUDO test -e "$src"; } || { note "no pude ubicar esa versión"; exit 1; }
+
+# ---- 6. acción (no destructiva por defecto) -------------------------------------------------------
+act="$(printf 'Recuperar como copia (no toca el original)\nVer diferencias con el actual\nReemplazar el actual (respalda primero)\n' \
+        | fuzzel --dmenu --prompt '  qué hacer  ')" || exit 0
+ts="$(date +%Y%m%d-%H%M%S)"
+case "$act" in
+  "Recuperar como copia"*)
+    dst="${file}.recuperado-${num}-${ts}"
+    if $SUDO cp -a -- "$src" "$dst" 2>/dev/null; then
+      note "recuperado: $dst"
+      if command -v xdg-open >/dev/null 2>&1; then setsid -f xdg-open "$(dirname "$dst")" >/dev/null 2>&1 || true; fi
+    else note "no pude escribir $dst"; fi ;;
+  "Ver diferencias"*)
+    if [ ! -e "$file" ]; then note "el archivo actual no existe (fue borrado) — usa 'Recuperar como copia'"; exit 0; fi
+    dtmp="$(mktemp --suffix=.diff)"
+    $SUDO diff -u "$file" "$src" > "$dtmp" 2>/dev/null || true   # diff sale 1 al diferir: normal
+    if [ ! -s "$dtmp" ]; then note "no hay diferencias (idénticos)"; rm -f "$dtmp"; exit 0; fi
+    if have ghostty; then
+      viewer='less'; have bat && viewer='bat --paging=always -l diff'
+      setsid -f ghostty -e sh -c "$viewer \"$dtmp\"; rm -f \"$dtmp\"" >/dev/null 2>&1 || { note "diferencias en $dtmp"; }
+    else note "diferencias guardadas en $dtmp"; fi ;;
+  "Reemplazar el actual"*)
+    confirm "reemplazar $file con la versión del snapshot $num (respaldo el actual primero)" || exit 0
+    { [ -e "$file" ] && $SUDO cp -a -- "$file" "${file}.antes-de-recuperar-${ts}"; } || true
+    if $SUDO cp -a -- "$src" "$file" 2>/dev/null; then
+      note "reemplazado (respaldo: ${file}.antes-de-recuperar-${ts})"
+    else note "no pude reemplazar $file"; fi ;;
+esac
