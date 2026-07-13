@@ -84,6 +84,12 @@ AF_BEDROCK_PKGS=(base linux-lts linux-firmware btrfs-progs grub efibootmgr sudo 
 # (themes/tokens.defaults.sh documents this as the intended pattern).
 list_themes() { local d; for d in "$REPO_ROOT"/themes/*/; do [ -d "$d" ] && basename "$d"; done; }
 
+# THE default theme — what a machine wears while ~/.config/.archfrican-theme doesn't exist yet.
+# home/dot_local/lib/archfrican-common.sh carries the same constant for the deployed user
+# scripts (they never see this lib); keep the two identical.
+ARCHFRICAN_DEFAULT_THEME=archfrican-dark
+current_theme() { cat "$HOME/.config/.archfrican-theme" 2>/dev/null || echo "$ARCHFRICAN_DEFAULT_THEME"; }
+
 # Enable a locale in locale.gen: validate the charset (the name is interpolated into the
 # regexes), uncomment an existing '#<locale> …' line, or APPEND '<locale> UTF-8' when the file
 # doesn't carry it at all (a trimmed locale.gen, an exotic LANG) — without the append branch the

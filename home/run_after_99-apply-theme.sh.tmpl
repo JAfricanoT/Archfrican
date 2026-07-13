@@ -4,7 +4,9 @@
 # chezmoi just wrote (theme-switch is skipped at install time because config.kdl
 # doesn't exist yet), and (2) (re)generates the chezmoi-ignored color files so
 # the user's chosen theme survives every `chezmoi apply` instead of reverting.
-# Reads ~/.config/.archfrican-theme (written by theme-switch); defaults to adl-dark.
+# Reads ~/.config/.archfrican-theme (written by theme-switch); defaults to archfrican-dark
+# (ARCHFRICAN_DEFAULT_THEME in archfrican-common.sh — this hook keeps its own literal because
+# it must survive even when ~/.local/lib isn't deployed yet; keep the two in sync).
 set -euo pipefail
 ARCHFRICAN_ROOT="{{ .chezmoi.homeDir }}/.archfrican"
 

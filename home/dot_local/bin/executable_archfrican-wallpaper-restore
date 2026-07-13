@@ -23,7 +23,7 @@ fi
 
 # fallback: a solid backdrop in the current theme's BG (cohesive, never black)
 ROOT="${ARCHFRICAN_ROOT:-$HOME/.archfrican}"
-theme="$(cat "$HOME/.config/.archfrican-theme" 2>/dev/null || echo adl-dark)"
+theme="$(theme_now)"
 bg="#17181b"
 pal="$ROOT/themes/$theme/colors.sh"
 if [ -r "$pal" ]; then

@@ -35,7 +35,7 @@ fi
 
 # One initial paint so Plasma matches the theme ALREADY active in niri, the first time it's entered.
 # bin/theme-switch keeps it converged after this. Best-effort: theming never fails the module.
-THEME_NOW="$(cat "$HOME/.config/.archfrican-theme" 2>/dev/null || echo archfrican-dark)"
+THEME_NOW="$(current_theme)"
 best_effort apply_plasma_theme "$THEME_NOW"
 
 ok "Plasma desktop module done — pick 'Plasma' at the SDDM login screen to try it. niri is untouched."

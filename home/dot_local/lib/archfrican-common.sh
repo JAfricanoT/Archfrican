@@ -13,6 +13,14 @@ confirm() {
   case "$c" in "Sí,"*) return 0 ;; *) return 1 ;; esac
 }
 
+# THE default theme — what a machine wears while ~/.config/.archfrican-theme doesn't exist yet
+# (first boot, cleared state). lib/common.sh carries the same constant for the installer side;
+# keep the two identical. A few spots can't source this bash lib and carry the literal —
+# keep them in sync too: home/run_after_99-apply-theme.sh.tmpl, menus/setup.toml.tmpl, and
+# the POSIX-sh darkman hooks (share/dark-mode.d + light-mode.d).
+ARCHFRICAN_DEFAULT_THEME=archfrican-dark
+theme_now() { cat "$HOME/.config/.archfrican-theme" 2>/dev/null || echo "$ARCHFRICAN_DEFAULT_THEME"; }
+
 # Walker/elephant native-menu availability — the ONE definition of "walker is up" (walker on
 # PATH AND the elephant daemon actually serving its baseline provider). Every script that
 # offers a native menu or a walker dmenu must gate on this, never on its own variant.

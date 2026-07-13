@@ -25,7 +25,7 @@ attempt "color-scheme"  timeout 5 gsettings set org.gnome.desktop.interface colo
 # run_after re-applies it after dotfiles), NOT a hardcoded macos-dark. Hardcoding here silently
 # overrode the wizard choice on install and reset a long-standing theme on every converge.
 substep "applying the saved theme (the wizard pick, or archfrican-dark if none)"
-theme="$(cat "$HOME/.config/.archfrican-theme" 2>/dev/null || echo archfrican-dark)"
+theme="$(current_theme)"
 
 # Tier-B app cohesion (VS Code + web-apps) is ON by default — the homogeneity is the point;
 # `archfrican-cohesion off` disables it and is remembered across converge re-runs. Seed the flag only

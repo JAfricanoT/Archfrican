@@ -22,12 +22,12 @@ case "$sel" in
   "Lector"*)
     "$B/archfrican-screenreader" ;;
   "Alto contraste: activar")
-    cur="$(cat "$themefile" 2>/dev/null || echo adl-dark)"
+    cur="$(theme_now)"
     if [ "$cur" != high-contrast ]; then printf '%s\n' "$cur" > "$prevfile"; fi
     theme-switch high-contrast
     gs set org.gnome.desktop.a11y.interface high-contrast true ;;
   "Alto contraste: desactivar")
-    theme-switch "$(cat "$prevfile" 2>/dev/null || echo adl-dark)"
+    theme-switch "$(cat "$prevfile" 2>/dev/null || echo "$ARCHFRICAN_DEFAULT_THEME")"
     gs set org.gnome.desktop.a11y.interface high-contrast false ;;
   "Cursor grande")    gs set org.gnome.desktop.interface cursor-size 48; note "cursor grande" ;;
   "Cursor normal")    gs set org.gnome.desktop.interface cursor-size 24; note "cursor normal" ;;

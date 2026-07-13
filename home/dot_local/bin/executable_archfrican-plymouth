@@ -35,8 +35,8 @@ sudo pacman -S --needed --noconfirm plymouth || { note "no pude instalar plymout
 # ── install the Archfrican theme (from the active palette); fall back to the stock spinner on any gap ──
 theme_name=spinner
 src="$ROOT/assets/plymouth/archfrican"
-active="$(cat "$HOME/.config/.archfrican-theme" 2>/dev/null || echo archfrican-dark)"
-pal="$ROOT/themes/$active/colors.sh"; [ -r "$pal" ] || pal="$ROOT/themes/archfrican-dark/colors.sh"
+active="$(theme_now)"
+pal="$ROOT/themes/$active/colors.sh"; [ -r "$pal" ] || pal="$ROOT/themes/$ARCHFRICAN_DEFAULT_THEME/colors.sh"
 if [ -r "$src/archfrican.script.in" ] && [ -r "$src/archfrican.plymouth" ] && [ -r "$pal" ]; then
   rendered="$(mktemp)"
   if build_theme "$pal" "$rendered" "$src/archfrican.script.in" \

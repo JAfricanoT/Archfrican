@@ -96,7 +96,7 @@ run_phase2() {                # run_phase2 [single-module]
   USER_NAME="$USER"; USER_PW=""
   TZ="$(timedatectl show -p Timezone --value 2>/dev/null || echo America/New_York)"
   LOCALE="en_US.UTF-8"; XKB="us"
-  THEME="$(cat "$HOME/.config/.archfrican-theme" 2>/dev/null || echo archfrican-dark)"
+  THEME="$(current_theme)"
   GPU="$DETECTED_GPU"
 
   # ---- comfortable wizard (only with a real terminal) -----------------------

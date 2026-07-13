@@ -8,8 +8,7 @@ source "$(dirname "$0")/../lib/archfrican-common.sh"
 have fuzzel || { echo "fuzzel required" >&2; exit 1; }
 flip() { if [ "$("$1" status 2>/dev/null)" = on ]; then echo off; else echo on; fi; }
 launch() { if have "$1"; then "$@"; fi; }
-theme_now() { cat "$HOME/.config/.archfrican-theme" 2>/dev/null || echo adl-dark; }
-kbd_now()   { cat "$HOME/.config/.archfrican-kbd" 2>/dev/null || echo us; }
+kbd_now()   { cat "$HOME/.config/.archfrican-kbd" 2>/dev/null || echo us; }   # theme_now comes from archfrican-common.sh
 
 # Native menu (menus/setup.toml) when Walker/elephant are up; fuzzel fallback below otherwise.
 walker_menu setup

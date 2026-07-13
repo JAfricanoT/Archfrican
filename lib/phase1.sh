@@ -103,7 +103,7 @@ p1_autopilot() {
   TZ="${AF_AP_TZ:-UTC}"
   LOCALE="${AF_AP_LOCALE:-en_US.UTF-8}"
   XKB="${AF_AP_XKB:-us}"
-  THEME="${AF_AP_THEME:-archfrican-dark}"
+  THEME="${AF_AP_THEME:-$ARCHFRICAN_DEFAULT_THEME}"
   GPU="${AF_AP_GPU:-$(detect_gpu)}"
   SSH_ENABLE="${AF_AP_SSH:-no}"
   MULTIBOOT="${AF_AP_MULTIBOOT:-no}"   # tests stay single-boot; the detector never runs in autopilot
