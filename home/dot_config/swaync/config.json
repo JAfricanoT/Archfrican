@@ -33,8 +33,8 @@
         { "label": "Luz nocturna", "type": "toggle",
           "command": "archfrican-nightlight toggle",
           "update-command": "sh -c 'archfrican-nightlight status | grep -q on && echo true || echo false'" },
-        { "label": "Tema oscuro", "type": "normal", "command": "sh -c '$HOME/.local/bin/theme-switch adl-dark'" },
-        { "label": "Tema claro", "type": "normal", "command": "sh -c '$HOME/.local/bin/theme-switch adl-light'" },
+        { "label": "Tema oscuro", "type": "normal", "command": "sh -c '$HOME/.local/share/dark-mode.d/10-archfrican-theme'" },
+        { "label": "Tema claro", "type": "normal", "command": "sh -c '$HOME/.local/share/light-mode.d/10-archfrican-theme'" },
         { "label": "Pantallas", "type": "normal", "command": "sh -c '$HOME/.local/bin/archfrican-displays edit'" }
       ]
     }
