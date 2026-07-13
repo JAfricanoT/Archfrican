@@ -40,13 +40,32 @@ esac; done
 # --run/--converge/--prune mutate shared state (git reset --hard, module .done stamps, the pacman
 # DB) — two overlapping invocations corrupt any of them. The likely collision: --notify's "Update
 # now" action launches a fresh --run while a manual --run (or the periodic timer's own --run) is
-# already mid-flight. Acquired before precheck so a blocked second instance fails fast and cleanly,
-# instead of interleaving its own precheck/snapshot output with the first instance's live progress.
-# Held via the fd itself (exec {lock_fd}>...) — no trap/cleanup needed, it drops on any exit path.
+# already mid-flight.
+#
+# PID-keyed, NOT an flock'd fd: the converge phase daemonizes descendants (the theme run_after hook
+# `setsid -f elephant`, elephant's clipboard watcher), which INHERIT an `exec {fd}>` lock fd and
+# keep the flock held forever after archfrican-update itself exits — a genuine deadlock that needed
+# a manual `rm` of the lockfile. Keying on our own PID sidesteps fd inheritance entirely: the lock
+# is stale the instant this process dies, however it dies (normal, die, or SIGKILL'd mid-build).
 if [ "$RUN" = 1 ] || [ "$CONVERGE" = 1 ] || [ "$PRUNE" = 1 ]; then
-  LOCKFILE="${XDG_RUNTIME_DIR:-/tmp}/archfrican-update.lock"
-  exec {lock_fd}>"$LOCKFILE"
-  flock -n "$lock_fd" || die "ya hay un archfrican-update corriendo — espera a que termine e inténtalo de nuevo"
+  LOCKDIR="${XDG_RUNTIME_DIR:-/tmp}/archfrican-update.lock.d"
+  take_lock() {
+    # mkdir is atomic — exactly one racing instance wins the create.
+    if mkdir "$LOCKDIR" 2>/dev/null; then printf '%s\n' "$$" > "$LOCKDIR/pid"; return 0; fi
+    # It exists — is the owner actually a live archfrican-update? (the cmdline check rules out a
+    # PID-reuse false positive where an unrelated process now holds our old PID.)
+    local op; op="$(cat "$LOCKDIR/pid" 2>/dev/null || true)"
+    if [ -n "$op" ] && kill -0 "$op" 2>/dev/null \
+       && tr '\0' ' ' < "/proc/$op/cmdline" 2>/dev/null | grep -q 'archfrican-update'; then
+      return 1                                   # genuinely running
+    fi
+    rm -rf "$LOCKDIR"                            # stale (dead PID / reused) — reclaim
+    if mkdir "$LOCKDIR" 2>/dev/null; then printf '%s\n' "$$" > "$LOCKDIR/pid"; return 0; fi
+    return 1                                     # lost the reclaim race to another instance
+  }
+  take_lock || die "ya hay un archfrican-update corriendo — espera a que termine e inténtalo de nuevo"
+  # Best-effort cleanup on exit; the PID staleness check above is the real guarantee if we're killed.
+  trap 'rm -rf "$LOCKDIR"' EXIT
 fi
 
 warn_n=0
