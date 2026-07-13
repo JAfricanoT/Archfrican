@@ -18,5 +18,10 @@ fi
 # kill the login shell and getty would respawn the wizard in an endless loop.
 # ARCHFRICAN_REEXEC guard prevents a re-launch loop if the installer re-execs itself.
 if [[ -f /root/.archfrican/install.sh && -z "${ARCHFRICAN_REEXEC:-}" ]]; then
+  # Boot-smoke marker (CI): proves the auto-launch fired — written to the kernel log so it reaches
+  # EVERY console (incl. serial) regardless of which tty the getty attached to. Harmless on real
+  # installs (invisible kernel-log line). If .zlogin ever stops being read again (the .bash_profile
+  # bug), this line never runs → the CI boot-smoke job fails. See .github/workflows/iso.yml.
+  echo "ARCHFRICAN_AUTOLAUNCH_OK" > /dev/kmsg 2>/dev/null || true
   bash /root/.archfrican/install.sh
 fi

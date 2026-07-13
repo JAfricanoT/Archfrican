@@ -127,3 +127,74 @@ jobs:
           prerelease: true
           make_latest: false
           files: ${{ steps.iso.outputs.path }}
+
+  # Boot the built ISO headless in QEMU and assert the installer AUTO-STARTS — the one thing the
+  # structure check can't prove. The dead-`.bash_profile` bug shipped precisely because nothing ever
+  # booted the image. Separate job (needs: build): it runs AFTER the build/upload/release, so a hiccup
+  # in the boot test can never block an ISO release — it's a red flag, not a gate on shipping.
+  # Method: DIRECT KERNEL BOOT (no OVMF/bootloader — GRUB is covered by the structure check), with a
+  # serial console. The auto-launch hook (iso/airootfs/root/.zlogin) writes ARCHFRICAN_AUTOLAUNCH_OK to
+  # /dev/kmsg, which reaches serial no matter which tty the getty took — so the assertion is console-
+  # agnostic and doesn't depend on parsing the interactive installer.
+  smoke-boot:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install QEMU
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq qemu-system-x86
+
+      - name: Download the built ISO
+        uses: actions/download-artifact@v4
+        with:
+          path: iso-dl
+
+      - name: Boot headless and assert the installer auto-starts
+        run: |
+          set -euo pipefail
+          iso="$(find iso-dl -name 'archfrican-*.iso' | head -1)"
+          [ -n "$iso" ] || { echo "::error::no built ISO artifact found"; exit 1; }
+          echo "ISO: $iso"
+
+          # Direct kernel boot bypasses the bootloader; pull the kernel + initramfs out of the ISO.
+          mnt="$(mktemp -d)"; sudo mount -o loop,ro "$iso" "$mnt"
+          cp "$mnt/arch/boot/x86_64/vmlinuz-linux"     vmlinuz
+          cp "$mnt/arch/boot/x86_64/initramfs-linux.img" initramfs
+          label="$(blkid -o value -s LABEL "$iso")"
+          sudo umount "$mnt"
+          echo "archiso label: $label"
+
+          if [ -e /dev/kvm ]; then accel="-enable-kvm -cpu host"; echo "KVM: yes"; else accel="-cpu max"; echo "KVM: no (TCG — slower)"; fi
+
+          # archiso finds its squashfs on the labelled CD; console=ttyS0 so /dev/kmsg reaches serial.
+          # shellcheck disable=SC2086
+          qemu-system-x86_64 $accel -m 2560 -smp 2 \
+            -kernel vmlinuz -initrd initramfs \
+            -append "archisobasedir=arch archisolabel=$label console=ttyS0,115200 cow_spacesize=1G" \
+            -drive file="$iso",format=raw,media=cdrom,if=ide,readonly=on \
+            -display none -serial file:serial.log -no-reboot &
+          qpid=$!
+
+          ok=0
+          for _ in $(seq 1 300); do
+            if grep -qa 'ARCHFRICAN_AUTOLAUNCH_OK' serial.log 2>/dev/null; then ok=1; break; fi
+            kill -0 "$qpid" 2>/dev/null || break     # qemu exited early
+            sleep 1
+          done
+          kill "$qpid" 2>/dev/null || true; wait "$qpid" 2>/dev/null || true
+
+          if [ "$ok" = 1 ]; then
+            echo "boot-smoke: installer auto-launch fired (ARCHFRICAN_AUTOLAUNCH_OK on serial) ✓"
+          else
+            echo "::error::boot-smoke: the installer never auto-started within the timeout — the live env"
+            echo "::error::booted but .zlogin didn't run install.sh (the .bash_profile class), or it failed to boot."
+            echo "----- last 120 serial lines -----"; tail -120 serial.log 2>/dev/null || echo "(no serial output)"
+            exit 1
+          fi
+
+      - name: Upload serial log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: boot-smoke-serial-log
+          path: serial.log
+          if-no-files-found: ignore
