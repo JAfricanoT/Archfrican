@@ -20,6 +20,8 @@ elephant-symbols             # `.` symbols / emoji
 elephant-providerlist        # `;` provider switcher
 elephant-menus               # Walker's action / submenu system
 gsimplecal                   # lightweight calendar popup — opens on clock click (waybar tooltip always works without it)
+gtklock-userinfo-module      # avatar + name card on the lock screen (archfrican-lock loads it if present)
+gtklock-powerbar-module      # suspend/reboot/poweroff buttons on the lock screen (idem)
 
 # --- optional picks (uncomment what you want, or install via archfrican-defaults) ---
 # docker-desktop               # Docker Desktop GUI — conflicts with docker-compose (already installed); remove it first if you want this

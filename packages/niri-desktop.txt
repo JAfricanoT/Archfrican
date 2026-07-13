@@ -10,7 +10,8 @@ waybar                 # status bar
 fuzzel                 # launcher (styled as Spotlight)
 swaync                 # notifications + control center (Quick Settings; replaces mako)
 swayidle
-swaylock
+gtklock                # preferred locker — login-styled (ext-session-lock, themed via theme-switch); archfrican-lock
+swaylock               # fallback locker so the screen ALWAYS locks even if gtklock breaks
 awww                   # wallpaper daemon (animated); swww's official successor in extra (binary: awww-daemon)
 grim
 slurp
