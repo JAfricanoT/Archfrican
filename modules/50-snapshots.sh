@@ -44,6 +44,35 @@ fi
 if [ -d /.snapshots ]; then sudo chmod 750 /.snapshots; sudo chown :wheel /.snapshots; fi
 sudo snapper -c root set-config "ALLOW_GROUPS=wheel" || warn "couldn't grant snapper wheel access — non-root 'snapper list' will need sudo"
 
+# ---- home config: file-level Time Machine over /home (archfrican-timemachine) ----------------------
+# @home is a SEPARATE subvolume, so the root snapshots never contain user files. A dedicated 'home'
+# config snapshots /home so a user can recover a previous version of their own file. Retention is
+# deliberately conservative (a few hourly + a few daily, no weekly/monthly): btrfs snapshots are COW,
+# but home churn (node_modules, build dirs, caches) pins deleted blocks until cleanup — a tight window
+# keeps that bounded. ALLOW_GROUPS=wheel + SYNC_ACL let the user browse/restore without sudo.
+have_home_config() {
+  { sudo snapper --csvout list-configs --columns config 2>/dev/null | tail -n +2 \
+    || sudo snapper list-configs 2>/dev/null | awk 'NR>2{print $1}'; } | grep -qx home
+}
+if mountpoint -q /home && ! have_home_config; then
+  substep "creating the snapper 'home' config (file-level Time Machine over /home)"
+  sudo snapper -c home create-config /home || warn "snapper home create-config failed — home Time Machine not set up"
+fi
+if have_home_config; then
+  sudo snapper -c home set-config \
+    TIMELINE_CREATE=yes TIMELINE_CLEANUP=yes \
+    TIMELINE_LIMIT_HOURLY=5 TIMELINE_LIMIT_DAILY=5 \
+    TIMELINE_LIMIT_WEEKLY=0 TIMELINE_LIMIT_MONTHLY=0 TIMELINE_LIMIT_YEARLY=0 \
+    NUMBER_CLEANUP=yes NUMBER_LIMIT=10 NUMBER_LIMIT_IMPORTANT=5 \
+    ALLOW_GROUPS=wheel SYNC_ACL=yes \
+    || warn "couldn't tune the home snapper config"
+  [ -d /home/.snapshots ] && { sudo chmod 750 /home/.snapshots; sudo chown :wheel /home/.snapshots; }
+  # A baseline snapshot NOW, so there's immediately a version to recover from (before the first timer tick).
+  sudo snapper -c home list 2>/dev/null | awk -F'|' 'NR>2{print $1}' | grep -qE '[0-9]' \
+    || best_effort sudo snapper -c home create -d "baseline (archfrican)"
+  ok "home Time Machine active — archfrican-timemachine recovers file versions from /home"
+fi
+
 # snap-pac snapshots every pacman transaction; grub-btrfsd (the inotify daemon,
 # NOT the obsolete grub-btrfs.path) regenerates the boot menu on snapshot changes.
 # resilient_enable: one missing/renamed unit can't abort the whole safety net.
