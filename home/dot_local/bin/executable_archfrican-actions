@@ -18,14 +18,9 @@ walker_menu actions
 have fuzzel  || { note "fuzzel no está instalado"; exit 1; }
 have python3 || { note "falta python3"; exit 1; }
 
-# "Cambiar tema…" is backed by a Lua provider (menus/themes.lua), not a static .toml — it discovers
-# themes by listing ~/.archfrican/themes/*/ live, so the fallback replicates that directly instead
-# of trying to read a themes.toml that doesn't exist.
-pick_theme() {
-  local t
-  t="$(for d in "$HOME"/.archfrican/themes/*/; do [ -d "$d" ] && basename "$d"; done \
-      | fuzzel --dmenu --prompt '  tema  ')" && [ -n "$t" ] && theme-switch "$t"
-}
+# "Cambiar tema…" is backed by a Lua provider (menus/themes.lua), not a static .toml — the
+# fallback uses the shared pick_theme (archfrican-common.sh), which replicates that live
+# discovery instead of trying to read a themes.toml that doesn't exist.
 
 # run_toml_menu <file.toml> <prompt> — list its entries in fuzzel; run (or open in a terminal) the
 # chosen one, or recurse into its submenu (another sibling .toml, or the one special-cased Lua menu).

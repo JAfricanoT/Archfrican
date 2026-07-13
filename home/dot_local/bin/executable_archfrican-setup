@@ -42,8 +42,7 @@ while :; do
           | fuzzel --dmenu --prompt '  apariencia  ')" || continue
       case "$a" in
         "Cambiar tema")
-          t="$(for x in "$HOME"/.archfrican/themes/*/; do [ -d "$x" ] && basename "$x"; done \
-              | fuzzel --dmenu --prompt '  tema  ')" && [ -n "$t" ] && theme-switch "$t" ;;
+          pick_theme || true ;;   # || true: a cancelled picker must not end the setup loop (set -e)
         "Wallpaper"*) "$B/archfrican-wallpaper" ;;
         "Auto"*)      "$B/archfrican-auto-appearance" "$(flip "$B/archfrican-auto-appearance")" ;;
         "Blur"*)      "$B/archfrican-blur" "$(flip "$B/archfrican-blur")" ;;

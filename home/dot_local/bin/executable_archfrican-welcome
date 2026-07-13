@@ -24,12 +24,6 @@ if [ "${1:-}" != "--tour" ] && [ -n "$last" ] && [ "$last" != "$cur" ]; then
   exit 0
 fi
 
-pick_theme() {
-  local t
-  t="$(for d in "$ROOT"/themes/*/; do [ -d "$d" ] && basename "$d"; done | fuzzel --dmenu --prompt '  tema  ')" \
-    && [ -n "$t" ] && theme-switch "$t"
-}
-
 while :; do
   sel="$(printf '%s\n' \
     "Atajos esenciales (⌘+Space, ⌘+Shift+K/V/A)" \

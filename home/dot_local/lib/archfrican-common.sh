@@ -33,6 +33,15 @@ walker_native() {
 # probe's failure from tripping `set -e` in callers.
 walker_menu() { if walker_native; then exec walker -m "menus:$1"; fi; }
 
+# Theme picker (fuzzel) over the clone's themes/ — honors ARCHFRICAN_ROOT (dev checkout) the
+# way theme-switch itself does, so every picker offers the SAME theme set. Mirrors the live
+# discovery menus/themes.lua does natively. Returns nonzero when the user cancels.
+pick_theme() {
+  local root="${ARCHFRICAN_ROOT:-$HOME/.archfrican}" t
+  t="$(for d in "$root"/themes/*/; do [ -d "$d" ] && basename "$d"; done \
+      | fuzzel --dmenu --prompt '  tema  ')" && [ -n "$t" ] && theme-switch "$t"
+}
+
 # toml_menu_list <file.toml> — print each [[entries]]' "text" field, one per line, in file order.
 # Reads the same static menus/*.toml the native Walker/elephant provider reads, so a fuzzel fallback
 # built on these two functions can never drift from the native menu — one file, two renderers.
