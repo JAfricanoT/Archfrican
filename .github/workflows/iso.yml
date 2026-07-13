@@ -143,8 +143,8 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - name: Install QEMU
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq qemu-system-x86
+      - name: Install QEMU + libarchive (bsdtar)
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq qemu-system-x86 libarchive-tools
 
       - name: Download the built ISO
         uses: actions/download-artifact@v4
@@ -158,20 +158,24 @@ jobs:
           [ -n "$iso" ] || { echo "::error::no built ISO artifact found"; exit 1; }
           echo "ISO: $iso"
 
-          # Direct kernel boot bypasses the bootloader; pull the kernel + initramfs out of the ISO.
-          mnt="$(mktemp -d)"; sudo mount -o loop,ro "$iso" "$mnt"
-          cp "$mnt/arch/boot/x86_64/vmlinuz-linux"     vmlinuz
-          cp "$mnt/arch/boot/x86_64/initramfs-linux.img" initramfs
-          label="$(blkid -o value -s LABEL "$iso")"
-          sudo umount "$mnt"
-          echo "archiso label: $label"
+          # Direct kernel boot bypasses the bootloader; pull the kernel + initramfs out of the ISO
+          # WITHOUT mounting — GitHub runners can't set up a loop device, so bsdtar reads iso9660 directly.
+          mkdir -p extract
+          bsdtar -xf "$iso" -C extract arch/boot/x86_64/vmlinuz-linux arch/boot/x86_64/initramfs-linux.img
+          kernel="$(find extract -name vmlinuz-linux -type f | head -1)"
+          initrd="$(find extract -name initramfs-linux.img -type f | head -1)"
+          { [ -n "$kernel" ] && [ -n "$initrd" ]; } || { echo "::error::could not extract kernel/initramfs from the ISO"; exit 1; }
+          label="$(blkid -o value -s LABEL "$iso" 2>/dev/null || true)"
+          [ -n "$label" ] || label="$(file "$iso" | grep -oP "'[^']+'" | head -1 | tr -d "'")"
+          [ -n "$label" ] || { echo "::error::could not read the ISO volume label (archisolabel)"; exit 1; }
+          echo "archiso label: $label   kernel: $kernel   initrd: $initrd"
 
           if [ -e /dev/kvm ]; then accel="-enable-kvm -cpu host"; echo "KVM: yes"; else accel="-cpu max"; echo "KVM: no (TCG — slower)"; fi
 
           # archiso finds its squashfs on the labelled CD; console=ttyS0 so /dev/kmsg reaches serial.
           # shellcheck disable=SC2086
           qemu-system-x86_64 $accel -m 2560 -smp 2 \
-            -kernel vmlinuz -initrd initramfs \
+            -kernel "$kernel" -initrd "$initrd" \
             -append "archisobasedir=arch archisolabel=$label console=ttyS0,115200 cow_spacesize=1G" \
             -drive file="$iso",format=raw,media=cdrom,if=ide,readonly=on \
             -display none -serial file:serial.log -no-reboot &
