@@ -374,6 +374,18 @@ jobs:
 
           echo "modules-list-consistency: ARCHFRICAN_MODULES/module_label/module_desc/run_module/modules-on-disk all agree; module_inputs() has no stale entries"
 
+      - name: docs/COMMANDS.md documents exactly the commands that ship
+        run: |
+          set -euo pipefail
+          # Every `## <command>` heading must exist as a shipped tool and vice versa — this is
+          # how 5 retired launcher scripts stayed documented (and 4 shipped ones undocumented)
+          # for a week after the Walker migration.
+          docs_txt="$(grep -oE '^## (archfrican-[a-z0-9-]+|theme-switch|fw-allow)' docs/COMMANDS.md | sed 's/^## //' | sort -u)"
+          ship_txt="$({ ls home/dot_local/bin/ | sed -n 's/^executable_//p'; echo theme-switch; ls bin; } | sort -u)"
+          [ "$docs_txt" = "$ship_txt" ] \
+            || { echo "::error::docs/COMMANDS.md and the shipped commands disagree: $(diff <(echo "$docs_txt") <(echo "$ship_txt") | tr '\n' ' ')"; exit 1; }
+          echo "COMMANDS.md coverage: every shipped command documented, no ghost sections"
+
   keyd-config:
     runs-on: ubuntu-latest        # keyd is AUR (not in CI repos); validate the ⌘→Ctrl map STRUCTURALLY
     steps:

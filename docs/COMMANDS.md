@@ -1,7 +1,8 @@
 # Archfrican — Command Reference
 
 All user-facing CLI tools available after installation. Every command is in `$PATH`;
-most are interactive (fuzzel menu) by default and accept subcommands for scripting.
+most are interactive by default — a native Walker menu when the launcher stack is up,
+the same menu rendered in fuzzel otherwise — and accept subcommands for scripting.
 
 ---
 
@@ -520,18 +521,21 @@ archfrican-spotlight
 mode prefixes for apps, files, clipboard, calc, web, and open windows. Walker's stylesheet
 is styled from ADL tokens by `theme-switch` so it matches every other Archfrican surface.
 
-**Fuzzel fallback** (when Walker is absent): a single-column fuzzel picker with the same
-mode triggers below.
+**Walker modes** (elephant providers — these replaced the old standalone
+`archfrican-calc/find/window/websearch/emoji` scripts):
 
-| Mode trigger (fuzzel fallback) | What it does |
-|-------------------------------|-------------|
-| `Buscar archivos…` | Local file search (archfrican-find) |
-| `Buscar en la web…` | Web search with bang prefixes (archfrican-websearch) |
-| `Calculadora…` | Expression evaluator (archfrican-calc) |
-| `Ventanas abiertas…` | Window switcher across all workspaces (archfrican-window) |
-| `Portapapeles…` | Clipboard history picker (cliphist) |
-| `Emojis…` | Emoji / symbol picker (archfrican-emoji) |
-| `Acciones y ajustes…` | Archfrican actions hub (archfrican-actions) |
+| Mode | Shortcut / prefix | What it does |
+|------|-------------------|-------------|
+| `walker -m windows` | `⌘+Shift+W` / `$` | Window switcher across all workspaces |
+| `walker -m calc` | `⌘+Shift+C` / `=` | Calculator (libqalculate: units, conversions) |
+| `walker -m files` | `⌘+Shift+G` / `/` | Local file search (fd) |
+| `walker -m clipboard` | `⌘+Shift+V` / `:` | Clipboard history |
+| `walker -m websearch` | `@` prefix | Web search |
+| `walker -m symbols` | `.` prefix | Emoji / symbol picker |
+
+**Fuzzel fallback** (when Walker is absent): the full app list plus two mode entries —
+`Portapapeles…` (cliphist history) and `Acciones y ajustes…` (the archfrican-actions hub,
+which itself falls back to fuzzel and still reaches every action above).
 
 **Keyboard shortcut**: `⌘+Space`
 
@@ -553,19 +557,6 @@ display arrangement, appearance/theme, accessibility, privacy, backup, VPN, and 
 
 ---
 
-## archfrican-window
-
-Window switcher — lists every open niri window across all workspaces and focuses the
-chosen one. Keyboard shortcut: `⌘+Shift+W`.
-
-```
-archfrican-window
-```
-
-Uses niri IPC (`niri msg windows`) and jq. No daemons required.
-
----
-
 ## archfrican-layout
 
 Visual layout / snap-layout picker for niri. Shows common column widths and applies the
@@ -581,88 +572,11 @@ expel window from column.
 
 ---
 
-## archfrican-websearch
-
-Web search launcher with bang prefixes. Keyboard shortcut: `⌘+Shift+A → "web"` or via
-Spotlight. No prefix defaults to DuckDuckGo.
-
-```
-archfrican-websearch
-```
-
-**Bang prefixes**
-
-| Bang | Engine |
-|------|--------|
-| `g <query>` | Google |
-| `ddg <query>` | DuckDuckGo (default) |
-| `yt <query>` | YouTube |
-| `w <query>` | Wikipedia |
-| `aw <query>` | Arch Wiki |
-| `aur <query>` | AUR |
-| `gh <query>` | GitHub repositories |
-
-```bash
-# Example: type in the fuzzel prompt
-aw niri         # → Arch Wiki search for "niri"
-gh archfrican   # → GitHub search
-```
-
----
-
-## archfrican-calc
-
-Calculator launcher mode powered by `libqalculate` (qalc). Handles units, conversions,
-and mathematical constants. Keyboard shortcut: `⌘+Shift+C`.
-
-```
-archfrican-calc
-```
-
-Type an expression in the fuzzel prompt, get the result, and optionally copy it to the
-clipboard.
-
-```
-17 * 23                 → 391
-15 USD in EUR           → live currency conversion
-sqrt(2) in 10 decimals  → 1.4142135624
-```
-
-**Requires**: `libqalculate` (`sudo pacman -S libqalculate`)
-
----
-
-## archfrican-find
-
-Local file search using plocate. Indexes your home directory only (no root). Keyboard
-shortcut: `⌘+Shift+G`.
-
-```
-archfrican-find
-```
-
-On first run, builds an index of `$HOME` with `updatedb`. Subsequent runs use the cached
-index and refresh it in the background when older than 24 hours. Select a result to open
-it in its default application.
-
-**Requires**: `plocate` (`sudo pacman -S plocate`)
-
----
-
-## archfrican-emoji
-
-Emoji and symbol picker. Copies the chosen item to the clipboard.
-
-```
-archfrican-emoji
-```
-
-Uses `bemoji` if installed (full Unicode emoji list from the AUR), or falls back to a
-compact built-in list piped to fuzzel.
-
-```bash
-sudo paru -S bemoji    # optional: full emoji list
-```
+> **Retired commands** — `archfrican-window`, `archfrican-websearch`, `archfrican-calc`,
+> `archfrican-find` and `archfrican-emoji` were replaced by Walker's native modes
+> (see the table under [archfrican-spotlight](#archfrican-spotlight)): `walker -m
+> windows/websearch/calc/files/symbols`. The old keyboard shortcuts kept working — they
+> now open the equivalent Walker mode.
 
 ---
 
@@ -1185,3 +1099,61 @@ Sends a clickable `notify-send` notification with three actions:
 | Buscar actualizaciones | Runs `archfrican-update` in a terminal |
 
 Stamp: `~/.local/state/archfrican/welcome-shown` — delete it to re-show.
+
+---
+
+## archfrican-caffeine
+
+Idle-inhibitor toggle (the coffee-cup icon in waybar). ON stops `swayidle`, so the screen
+never auto-locks or auto-suspends — for presentations, long reads, or watching a build.
+OFF restarts `archfrican-idle`, restoring the normal lock/sleep policy.
+
+```
+archfrican-caffeine toggle    # flip the state (what the waybar click runs)
+archfrican-caffeine           # print the waybar JSON (icon + tooltip)
+```
+
+**Access via**: click the waybar icon (moon = off, coffee = on).
+
+---
+
+## archfrican-colorpicker
+
+Pick any pixel on screen and copy its hex color to the clipboard (grim + slurp +
+imagemagick — all already in the niri stack). Shows a notification with the value.
+
+```
+archfrican-colorpicker
+```
+
+**Access via**: Spotlight (app grid) or `⌘+Shift+A → "Selector de color"`.
+
+---
+
+## archfrican-notepad
+
+Persistent markdown scratchpad. The file lives at
+`~/.local/state/archfrican/notepad.md`, so it survives `chezmoi apply` and converge
+re-runs. Opens in the best available terminal editor (falls back to `xdg-open`).
+
+```
+archfrican-notepad
+```
+
+**Access via**: Spotlight (app grid).
+
+---
+
+## archfrican-weather
+
+Weather pill for waybar (wttr.in). City resolution: an explicit name in
+`~/.config/archfrican/weather`, `auto` (derive from the system timezone — the default),
+or `off` (hide the module).
+
+```bash
+echo "off"          > ~/.config/archfrican/weather   # disable
+echo "auto"         > ~/.config/archfrican/weather   # timezone-based (default)
+echo "Buenos Aires" > ~/.config/archfrican/weather   # explicit city
+```
+
+**Access via**: always visible in waybar's center (next to the clock).
