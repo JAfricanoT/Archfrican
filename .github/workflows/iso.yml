@@ -87,6 +87,10 @@ jobs:
             || { echo "::error::airootfs.sfs is missing root/.zlogin — the installer would never auto-start"; exit 1; }
           grep -q 'root/.bash_profile' /tmp/sfs-listing.txt \
             && { echo "::error::airootfs.sfs carries root/.bash_profile — a stale overlay? the live shell is zsh and never reads it"; exit 1; } || true
+          # The bundled repo must be tracked content only — never the working tree's gitignored
+          # secrets/state (answers.env holds test LUKS/user passwords).
+          grep -qE 'root/.archfrican/(tests/e2e/answers\.env|\.claude|\.remember|\.superpowers)' /tmp/sfs-listing.txt \
+            && { echo "::error::airootfs.sfs bundles gitignored working-tree files (answers.env/.claude/...) — build-iso.sh must bundle tracked content only"; exit 1; } || true
           echo "airootfs.sfs: readable via unsquashfs, contains the pre-bundled repo + the .zlogin auto-launch"
 
       # ---- artifact: always uploaded (available for ~14 days on any push) ----

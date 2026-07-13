@@ -61,17 +61,25 @@ cp -a "$HERE/iso/airootfs/." "$PROFILE_DIR/airootfs/"
 
 # ---- 5. pre-bundle the installer repo into the live environment --------------
 echo "==> Syncing installer repo into live env (/root/.archfrican)..."
-# Exclude artifacts that have no place in the live env:
-#   .git        — git metadata (the live env has no use for it)
-#   iso/        — the ISO build profile itself
-#   out/        — previously-built ISO files
-#   .DS_Store   — macOS noise
-rsync -a --delete \
-  --exclude='.git' \
-  --exclude='iso/' \
-  --exclude='out/' \
-  --exclude='.DS_Store' \
-  "$HERE/" "$PROFILE_DIR/airootfs/root/.archfrican/"
+# Bundle ONLY tracked content: `git archive` cannot leak anything .gitignore protects —
+# tests/e2e/answers.env (test LUKS/user passwords), *.log, editor/session state, worktrees —
+# which a plain rsync of the checkout would bake world-readable into airootfs.sfs.
+REPO_DEST="$PROFILE_DIR/airootfs/root/.archfrican"
+rm -rf "$REPO_DEST"; mkdir -p "$REPO_DEST"
+if git -C "$HERE" rev-parse --verify HEAD >/dev/null 2>&1; then
+  [ -z "$(git -C "$HERE" status --porcelain 2>/dev/null)" ] \
+    || echo "==> NOTE: working tree is dirty — the ISO bundles HEAD (tracked content only)"
+  git -C "$HERE" archive HEAD | tar -x -C "$REPO_DEST"
+  rm -rf "$REPO_DEST/iso" "$REPO_DEST/out"   # tracked, but no place inside the live env
+else
+  # tarball checkout (no .git): rsync honoring .gitignore + the known secret/state holders
+  rsync -a --delete \
+    --filter=':- .gitignore' \
+    --exclude='.git' --exclude='iso/' --exclude='out/' --exclude='.DS_Store' \
+    --exclude='.claude' --exclude='.superpowers' --exclude='.remember' \
+    --exclude='tests/e2e/answers.env' \
+    "$HERE/" "$REPO_DEST/"
+fi
 
 # ---- 6. build ----------------------------------------------------------------
 rm -rf "$WORK_DIR"
