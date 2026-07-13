@@ -305,8 +305,29 @@ if [ "$RUN" = 1 ]; then
     # with_heartbeat: un build AUR grande (rustdesk, etc.) compila en silencio muchos minutos — el
     # latido cada ~40s deja claro que sigue trabajando, no que se congeló. paru queda en primer
     # plano (sus prompts/sudo/revisión de PKGBUILD funcionan igual); la línea es solo un overlay.
-    with_heartbeat "actualizando paquetes AUR" paru -Sua \
-      || _note "falló un build de AUR — la actualización oficial ya aplicó; reintenta luego: paru -Sua"
+    #
+    # `script` graba la salida SIN romper la interactividad (asigna un PTY → paru conserva colores,
+    # barras de progreso, prompts) — así, si un build falla por un conflicto de archivos, podemos
+    # clasificarlo. Estos son TUS paquetes: GUIAMOS con el comando exacto y acotado, nunca pisamos
+    # a ciegas (reinstalar podría reiniciar p.ej. un rustdesk activo y cortar tu sesión remota).
+    aur_rc=0
+    if command -v script >/dev/null 2>&1; then
+      aurlog="$(mktemp)"
+      with_heartbeat "actualizando paquetes AUR" script -qec 'paru -Sua' "$aurlog" || aur_rc=$?
+      if [ "$aur_rc" != 0 ]; then
+        aur_orph=(); aur_own=(); aur_split_conflicts "$aurlog" aur_orph aur_own
+        if [ "${#aur_orph[@]}" -gt 0 ]; then
+          _note "conflicto de archivo huérfano (no lo posee ningún paquete) — es SEGURO pisarlo:"
+          for aur_f in "${aur_orph[@]}"; do printf '      %s\n' "$aur_f"; done
+          printf '  reintenta acotado:  paru -Sua'; for aur_f in "${aur_orph[@]}"; do printf " --overwrite '%s'" "$aur_f"; done; printf '\n'
+        fi
+        [ "${#aur_own[@]}" -gt 0 ] && _note "conflicto con dueño (investígalo, NO lo pises a ciegas): ${aur_own[*]}"
+      fi
+      rm -f "$aurlog"
+    else
+      with_heartbeat "actualizando paquetes AUR" paru -Sua || aur_rc=$?
+    fi
+    [ "$aur_rc" = 0 ] || _note "falló un build de AUR — la actualización oficial ya aplicó; reintenta luego: paru -Sua"
   fi
   [ "$PRUNE" = 1 ] && do_prune
   post_summary

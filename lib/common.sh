@@ -218,19 +218,56 @@ pac_install() {            # pac_install pkg1 pkg2 ...
   sudo pacman -S --needed --noconfirm "${missing[@]}"
 }
 
+# Split a captured pacman/paru log's "exists in filesystem" conflicts by ownership into two nameref
+# arrays: <orphan> = paths NO package owns (safe to --overwrite — pacman simply starts tracking
+# them), <owned> = paths a package DOES own (a real conflict; must NEVER be auto-clobbered — that
+# would corrupt pacman's ownership DB, the exact "nothing explodes" line). This is what lets the AUR
+# layer self-heal a leftover-file conflict (e.g. an orphaned .desktop from an old build) without
+# ever blindly overwriting package-owned files.
+aur_split_conflicts() {           # aur_split_conflicts <logfile> <orphan-array> <owned-array>
+  local __f="$1"; local -n __orph="$2" __own="$3"; __orph=(); __own=()
+  [ -r "$__f" ] || return 0
+  local __p
+  while IFS= read -r __p; do
+    [ -n "$__p" ] || continue
+    if pacman -Qo "$__p" >/dev/null 2>&1; then __own+=("$__p"); else __orph+=("$__p"); fi
+  done < <(grep -oaE '/[^[:space:]]+ exists in filesystem' "$__f" 2>/dev/null \
+             | sed 's/ exists in filesystem$//' | sort -u)
+}
+
 aur_install() {           # aur_install pkg1 pkg2 ...  — per-package + NON-FATAL
   # These are the cosmetic AUR layer (themes/icons/cursors/fonts/dock). AUR builds are inherently
   # fragile (upstream PKGBUILD drift, checksum changes), so one failing build must NOT abort the whole
   # first-boot resume — the core desktop is already installed. Build each on its own; warn + continue.
-  local p failed=()
+  local p failed=() log orph own ow f
   for p in "$@"; do
     pacman -Q "$p" &>/dev/null && continue
     substep "building/installing AUR package: $p"
-    # timeout: an AUR build is network (source fetch) + compile — 30min is generous for either, and
-    # a genuinely-stuck build fails exactly like any other build failure here (warn + continue).
-    # with_heartbeat: --noconfirm builds are silent for minutes; the latido shows they're alive.
-    with_heartbeat "compilando $p (AUR)" timeout 1800 paru -S --needed --noconfirm "$p" \
-      || { warn "AUR build failed (continuing): $p"; failed+=("$p"); }
+    # timeout: an AUR build is network (source fetch) + compile — 30min is generous. Capture via tee
+    # (still shown live) so a file-conflict failure can be classified + self-healed. --noconfirm has
+    # no prompts, so the pipe costs nothing. with_heartbeat: silent compiles still show a pulse.
+    log="$(mktemp)"
+    # shellcheck disable=SC2016  # $1/$2 are the bash -c positional args, deliberately not expanded here
+    if with_heartbeat "compilando $p (AUR)" \
+         bash -c 'set -o pipefail; timeout 1800 paru -S --needed --noconfirm "$1" 2>&1 | tee "$2"' _ "$p" "$log"; then
+      rm -f "$log"; continue
+    fi
+    # Failed. Self-heal ONLY an orphaned-file conflict (a leftover file no package owns): retry once,
+    # overwriting exactly those paths. A package-owned conflict is a REAL problem — reported, never touched.
+    aur_split_conflicts "$log" orph own; rm -f "$log"
+    if [ "${#orph[@]}" -gt 0 ] && [ "${#own[@]}" -eq 0 ]; then
+      warn "conflicto de archivo(s) huérfano(s) en $p (no los posee ningún paquete) — reintento pisando SOLO esos:"
+      printf '      %s\n' "${orph[@]}"
+      ow=(); for f in "${orph[@]}"; do ow+=(--overwrite "$f"); done
+      if with_heartbeat "reinstalando $p (--overwrite huérfanos)" \
+           timeout 1800 paru -S --needed --noconfirm "${ow[@]}" "$p"; then
+        ok "$p resuelto (pisados los archivos huérfanos que nadie poseía)"; continue
+      fi
+    elif [ "${#own[@]}" -gt 0 ]; then
+      warn "conflicto REAL en $p — estos archivos SÍ tienen dueño; investígalo (NO los piso):"
+      printf '      %s\n' "${own[@]}"
+    fi
+    warn "AUR build failed (continuing): $p"; failed+=("$p")
   done
   [ ${#failed[@]} -eq 0 ] && { ok "AUR layer OK"; return 0; }
   warn "AUR package(s) that did NOT build: ${failed[*]} — the desktop still works."
