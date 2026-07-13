@@ -84,6 +84,19 @@ AF_BEDROCK_PKGS=(base linux-lts linux-firmware btrfs-progs grub efibootmgr sudo 
 # (themes/tokens.defaults.sh documents this as the intended pattern).
 list_themes() { local d; for d in "$REPO_ROOT"/themes/*/; do [ -d "$d" ] && basename "$d"; done; }
 
+# Enable a locale in locale.gen: validate the charset (the name is interpolated into the
+# regexes), uncomment an existing '#<locale> …' line, or APPEND '<locale> UTF-8' when the file
+# doesn't carry it at all (a trimmed locale.gen, an exotic LANG) — without the append branch the
+# edit is a silent no-op and LANG ends up pointing at an ungenerated locale. Runs unprivileged
+# and never calls sudo itself: the ISO chroot embeds it via `declare -f` (already root), the
+# booted path (lib/host-config.sh) wraps it in `sudo bash -c`.
+enable_locale_gen() {             # enable_locale_gen <locale> [<locale.gen path>]
+  local loc="$1" gen="${2:-/etc/locale.gen}"
+  case "$loc" in *[!A-Za-z0-9._@-]*) echo "FATAL: invalid locale '$loc'" >&2; return 1;; esac
+  if grep -qE "^#\s*${loc} " "$gen"; then sed -i "s/^#\s*\(${loc} .*\)/\1/" "$gen"
+  elif ! grep -qE "^${loc} " "$gen"; then printf '%s UTF-8\n' "$loc" >> "$gen"; fi
+}
+
 # Paint the SDDM login theme from a palette: token-substitute templates/sddm.theme.conf with the
 # colors in themes/<theme>/colors.sh and write it to the system theme path (idempotent, via
 # write_system_file). The greeter runs pre-login (no ~/.config), so this MUST live under /usr/share.

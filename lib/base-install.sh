@@ -107,7 +107,10 @@ base_pacstrap() {      # base_pacstrap <ucode-or-empty> <encrypt(yes|no)>
 }
 
 # The chroot config script is STATIC: config comes via positional args (non-secret), and the
-# user's $6$ password hash comes on stdin ($(cat)) — never argv/env/file.
+# user's $6$ password hash comes on stdin ($(cat)) — never argv/env/file. The ONE injected piece
+# is enable_locale_gen (lib/common.sh), embedded as parsed function text via `declare -f` —
+# deterministic, no data interpolation — so this path and the booted-base path
+# (lib/host-config.sh apply_locale_keyboard) share the exact same locale.gen logic.
 _chroot_script() {
 cat <<'CHROOT'
 #!/usr/bin/env bash
@@ -118,11 +121,11 @@ TZ="$1"; LOCALE="$2"; HOST="$3"; U="$4"; VK="$5"; ENC="$6"; LUKS_UUID="${7:-}"
 ln -sf "/usr/share/zoneinfo/$TZ" /etc/localtime
 hwclock --systohc
 
-# LOCALE is interpolated into the sed/grep regex below; reject anything outside a locale's real
-# charset so a stray '/' or regex metacharacter can't corrupt /etc/locale.gen (and abort the install).
-case "$LOCALE" in *[!A-Za-z0-9._@-]*) echo "FATAL: invalid locale '$LOCALE'"; exit 1;; esac
-if grep -qE "^#\s*${LOCALE} " /etc/locale.gen; then sed -i "s/^#\s*\(${LOCALE} .*\)/\1/" /etc/locale.gen
-elif ! grep -qE "^${LOCALE} " /etc/locale.gen; then printf '%s UTF-8\n' "$LOCALE" >> /etc/locale.gen; fi
+CHROOT
+declare -f enable_locale_gen
+cat <<'CHROOT'
+# validate + uncomment-or-append (shared enable_locale_gen above); set -e aborts on FATAL
+enable_locale_gen "$LOCALE"
 locale-gen
 printf 'LANG=%s\n'   "$LOCALE" > /etc/locale.conf
 printf 'KEYMAP=%s\n' "$VK"     > /etc/vconsole.conf

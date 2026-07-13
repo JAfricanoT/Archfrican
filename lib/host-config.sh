@@ -46,10 +46,13 @@ apply_timezone() {                 # apply_timezone <tz>
 apply_locale_keyboard() {          # apply_locale_keyboard <locale> <xkb-layout> <vconsole-keymap>
   local loc="$1" xkb="$2" vc="$3"
   if [ -n "$loc" ]; then
-    # $loc is interpolated into a sed regex below; reject anything outside a locale's real charset so a
-    # stray '/' or regex metacharacter can't corrupt the /etc/locale.gen edit.
+    # Validate BEFORE interpolating into the sudo bash -c line (enable_locale_gen re-validates —
+    # defense in depth). The shared function (lib/common.sh, also embedded in the ISO chroot
+    # script) uncomments the locale.gen line OR appends it when absent — the sed-only version
+    # this replaces was a silent no-op on a locale.gen that didn't carry the locale.
     case "$loc" in *[!A-Za-z0-9._@-]*) die "invalid locale '$loc' (allowed chars: A-Z a-z 0-9 . _ @ -)";; esac
-    sudo sed -i "s/^#\\s*\\(${loc}\\b.*\\)/\\1/" /etc/locale.gen
+    sudo bash -c "$(declare -f enable_locale_gen); enable_locale_gen '$loc'" \
+      || die "could not enable '$loc' in /etc/locale.gen"
     sudo locale-gen
     sudo localectl set-locale "LANG=$loc"; ok "locale -> $loc"
   fi
