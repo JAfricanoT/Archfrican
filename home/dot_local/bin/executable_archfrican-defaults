@@ -6,23 +6,11 @@
 set -euo pipefail
 source "$(dirname "$0")/../lib/archfrican-common.sh"
 have fuzzel || { echo "fuzzel required" >&2; exit 1; }
-APPDIRS=(/usr/share/applications "$HOME/.local/share/applications" \
-         /var/lib/flatpak/exports/share/applications "$HOME/.local/share/flatpak/exports/share/applications")
-
-have_desktop() { local id="$1" d; for d in "${APPDIRS[@]}"; do [ -e "$d/$id" ] && return 0; done; return 1; }
+have_desktop() { local id="$1" d; for d in "${ARCHFRICAN_APPDIRS[@]}"; do [ -e "$d/$id" ] && return 0; done; return 1; }
 is_installed() { if [ "$1" = cli ]; then have "$2"; else have_desktop "$2"; fi; }   # CLI tool (cmd) vs GUI app (.desktop)
 
 list_apps() {   # "Name<TAB>id.desktop" for every visible app — the fallback ("Otra app instalada…")
-  local d f name
-  for d in "${APPDIRS[@]}"; do
-    [ -d "$d" ] || continue
-    for f in "$d"/*.desktop; do
-      [ -e "$f" ] || continue
-      grep -qi '^NoDisplay=true' "$f" && continue
-      name="$(sed -n 's/^Name=//p' "$f" | head -1)"
-      printf '%s\t%s\n' "${name:-$(basename "$f" .desktop)}" "$(basename "$f")"
-    done
-  done | sort -u
+  list_desktop_apps | cut -f1,2 | sort -u
 }
 
 do_install() {  # do_install <spec> ; spec = repo:pkgs | aur:pkgs | flatpak:appid | script:url (in a terminal)

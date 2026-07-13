@@ -23,24 +23,12 @@ TAB="$(printf '\t')"
 M_CLIP="Portapapeles…"
 M_ACT="Acciones y ajustes…"
 
-# App index: "Name<TAB>desktop-id<TAB>icon" for every visible .desktop. Used to (a) render the list
-# with icons and (b) map the chosen Name back to its launchable id. bash-3.2-safe: a temp file + awk,
-# never an associative array.
+# App index: "Name<TAB>desktop-id<TAB>icon" for every visible .desktop (the shared
+# list_desktop_apps, with the .desktop suffix stripped for gtk-launch). Used to (a) render the
+# list with icons and (b) map the chosen Name back to its launchable id. bash-3.2-safe: a temp
+# file + awk, never an associative array.
 idx="$(mktemp)"; trap 'rm -f "$idx"' EXIT
-for dir in /usr/share/applications \
-           "$HOME/.local/share/applications" \
-           /var/lib/flatpak/exports/share/applications \
-           "$HOME/.local/share/flatpak/exports/share/applications"; do
-  [ -d "$dir" ] || continue
-  for f in "$dir"/*.desktop; do
-    [ -e "$f" ] || continue
-    if grep -qiE '^(NoDisplay|Hidden)[[:space:]]*=[[:space:]]*true' "$f"; then continue; fi
-    name="$(sed -n 's/^Name=//p' "$f" | head -1)"
-    [ -n "$name" ] || continue
-    icon="$(sed -n 's/^Icon=//p' "$f" | head -1)"
-    printf '%s\t%s\t%s\n' "$name" "$(basename "$f" .desktop)" "$icon" >> "$idx"
-  done
-done
+list_desktop_apps | awk -F'\t' -v OFS='\t' '{sub(/\.desktop$/, "", $2); print}' > "$idx"
 
 # Feed fuzzel: the six modes first, then every app (alpha, de-duped by name) with its icon via the
 # dmenu icon protocol (label \0 "icon" \x1f icon-name).

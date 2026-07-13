@@ -33,6 +33,31 @@ walker_native() {
 # probe's failure from tripping `set -e` in callers.
 walker_menu() { if walker_native; then exec walker -m "menus:$1"; fi; }
 
+# The four .desktop application dirs (native + flatpak, system + user) — shared by every
+# script that enumerates launchable apps.
+ARCHFRICAN_APPDIRS=(/usr/share/applications "$HOME/.local/share/applications"
+                    /var/lib/flatpak/exports/share/applications
+                    "$HOME/.local/share/flatpak/exports/share/applications")
+
+# list_desktop_apps — one line per VISIBLE app: "Name<TAB>file.desktop<TAB>Icon" (Icon may be
+# empty; Name falls back to the file name). ONE visibility filter for the whole OS: NoDisplay
+# AND Hidden both hide — Hidden is freedesktop's "user uninstalled this" flag, and the copy in
+# archfrican-defaults used to ignore it, offering apps Spotlight correctly hid. Unsorted:
+# each consumer picks its own ordering/fields.
+list_desktop_apps() {
+  local d f name icon
+  for d in "${ARCHFRICAN_APPDIRS[@]}"; do
+    [ -d "$d" ] || continue
+    for f in "$d"/*.desktop; do
+      [ -e "$f" ] || continue
+      grep -qiE '^(NoDisplay|Hidden)[[:space:]]*=[[:space:]]*true' "$f" && continue
+      name="$(sed -n 's/^Name=//p' "$f" | head -1)"
+      icon="$(sed -n 's/^Icon=//p' "$f" | head -1)"
+      printf '%s\t%s\t%s\n' "${name:-$(basename "$f" .desktop)}" "$(basename "$f")" "$icon"
+    done
+  done
+}
+
 # Theme picker (fuzzel) over the clone's themes/ — honors ARCHFRICAN_ROOT (dev checkout) the
 # way theme-switch itself does, so every picker offers the SAME theme set. Mirrors the live
 # discovery menus/themes.lua does natively. Returns nonzero when the user cancels.
