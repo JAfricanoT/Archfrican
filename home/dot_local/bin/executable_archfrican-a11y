@@ -5,7 +5,6 @@ set -euo pipefail
 B="$HOME/.local/bin"
 gs() { timeout 5 gsettings "$@" 2>/dev/null || true; }   # timeout: gsettings can hang, not just fail, without a session bus
 source "$(dirname "$0")/../lib/archfrican-common.sh"
-themefile="$HOME/.config/.archfrican-theme"
 prevfile="$HOME/.config/.archfrican-prev-theme"
 
 sel="$(printf '%s\n' \
