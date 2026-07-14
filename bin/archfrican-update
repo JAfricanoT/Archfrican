@@ -313,7 +313,31 @@ post_summary() {
   _hd "Salud post-actualización"
   "$ROOT/bin/archfrican-doctor" 2>/dev/null || true
   print_changelog
-  printf '\n  \e[32m✓ Actualización completa.\e[0m Si cambió el kernel: sudo systemctl reboot\n\n'
+  printf '\n  \e[32m✓ Actualización completa.\e[0m\n\n'
+}
+
+# The sharp reboot case: a kernel upgrade removed the RUNNING kernel's modules from disk (pacman
+# swapped /usr/lib/modules/<old> for <new>). The running kernel can then load NO new module — veth
+# (Docker networking), etc. FAIL until reboot. That's exactly what left a user's Docker/Postgres
+# dead mid-task with only a vague "reboot if the kernel changed" hint. Detect it precisely (the
+# running kernel's module dir is gone) and offer the reboot NOW, so "update complete" really means
+# everything works. Default NO — the user may be mid-task; the choice is theirs.
+reboot_if_needed() {
+  [ -d "/usr/lib/modules/$(uname -r)" ] && return 0    # running kernel's modules still present → fine
+  local ans
+  _hd "⚠ Reinicio necesario — el kernel en ejecución se actualizó"
+  _note "corres $(uname -r), pero su carpeta de módulos ya no existe (la actualización la reemplazó)."
+  _note "este kernel NO puede cargar módulos nuevos (veth → Docker, etc.); servicios pueden fallar."
+  _note "un reinicio arranca el kernel ya en disco y todo vuelve a la normalidad."
+  if [ -t 0 ]; then
+    printf '  ¿Reiniciar ahora? [y/N] '; read -r ans
+    case "$ans" in
+      y|Y) _note "reiniciando…"; sudo systemctl reboot ;;
+      *)   printf '  Ok. Reinicia cuando puedas:  sudo systemctl reboot\n' ;;
+    esac
+  else
+    _note "reinicia cuando puedas:  sudo systemctl reboot"
+  fi
 }
 
 # ---------- dispatch ----------------------------------------------------------
@@ -367,6 +391,7 @@ if [ "$RUN" = 1 ]; then
   [ "$PRUNE" = 1 ] && do_prune
   post_summary
   post_update_validate "$before_reds"
+  reboot_if_needed
 
 elif [ "$CONVERGE" = 1 ]; then
   precheck
