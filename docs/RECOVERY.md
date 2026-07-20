@@ -172,12 +172,20 @@ journalctl -u archfrican-resume -b -1     # previous boot
 ~/.archfrican/install.sh --update
 ```
 
-**Fail-safe**: the resume guard (`lib/resume-guard.sh`) counts failed boots. After
-5 failed attempts it removes the temporary `NOPASSWD` sudoers drop-in and disables
-`archfrican-resume.service` (fail-closed). At that point:
+**Fail-safe**: the resume guard (`lib/resume-guard.sh`) counts failed boots
+(`ARCHFRICAN_RESUME_MAX_BOOTS`, default 5). After the last allowed attempt it
+touches `~/.local/state/archfrican/resume-stopped` — a user-owned marker, no
+sudo needed — and that's what actually stops the retries:
+`templates/archfrican-resume.service` has `ConditionPathExists=!` on this same
+marker, so systemd itself refuses to start the unit again on future boots.
+Removing the temporary `NOPASSWD` sudoers drop-in and `systemctl disable`-ing
+the unit still happen too, but only as best-effort cleanup — they're not what
+stops it. At that point:
 
 ```bash
-# Re-enable manually after fixing the root cause:
+# Re-enable manually after fixing the root cause (must also drop the marker,
+# otherwise ConditionPathExists=! blocks the unit from starting even if enabled):
+rm ~/.local/state/archfrican/resume-stopped
 sudo systemctl enable --now archfrican-resume.service
 
 # Or run Phase 2 directly with normal sudo:
@@ -187,7 +195,7 @@ sudo systemctl enable --now archfrican-resume.service
 **Check resume counter**:
 
 ```bash
-cat /var/lib/archfrican/resume-attempts
+cat "${XDG_STATE_HOME:-$HOME/.local/state}/archfrican/resume-attempts"
 ```
 
 ---

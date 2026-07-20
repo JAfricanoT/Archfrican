@@ -80,8 +80,11 @@ first boot
     └─ archfrican-resume.service [templates/archfrican-resume.service]
            │
            ├─ ExecStartPre: lib/resume-guard.sh
-           │      counts boots; after 5 failed boots → removes NOPASSWD sudoers,
-           │      disables unit (fail-closed)
+           │      counts boots (user-owned counter); after 5 failed boots → touches
+           │      ~/.local/state/archfrican/resume-stopped (load-bearing, no sudo).
+           │      unit's own ConditionPathExists=! on that marker is what actually
+           │      stops future boots; NOPASSWD sudoers removal + systemctl disable
+           │      are best-effort cleanup only
            │
            └─ ExecStart: install.sh --update (as wheel user, NOPASSWD window)
                   │
@@ -109,8 +112,10 @@ first boot
                          └─ mig_mark_latest() (stamp migrations current on fresh install)
 
 on success:
-    archfrican-resume.service disables itself
-    NOPASSWD sudoers drop-in removed
+    marker touched (~/.local/state/archfrican/resume-stopped) — load-bearing,
+      blocks the unit from starting again via ConditionPathExists=!
+    archfrican-resume.service disables itself / NOPASSWD sudoers drop-in removed
+      (best-effort cleanup, same framing as the fail path)
     → login to niri desktop
 ```
 
