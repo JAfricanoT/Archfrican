@@ -133,7 +133,14 @@ pre_snapshot() {
   desc="archfrican-update $(date +%Y-%m-%d) @$rev"
   # -p/--print-number returns the new snapshot's number, so the post-update validation can offer to
   # roll back to exactly THIS checkpoint if the update turns something critical red.
-  if PRE_SNAP_NUM="$(sudo snapper -c root create -p -d "$desc" 2>/dev/null)" && [ -n "$PRE_SNAP_NUM" ]; then
+  #
+  # --cleanup-algorithm number is NOT optional: without it snapper assigns no cleanup policy and
+  # NEVER prunes these, so one pre-snapshot per --run piles up forever (55 had accumulated here,
+  # each pinning COW blocks). --userdata important=yes puts them under NUMBER_LIMIT_IMPORTANT (10)
+  # instead of the shared NUMBER_LIMIT (50) pool, so a burst of snap-pac pacman snapshots can never
+  # evict your update rollback points — bounded AND always available.
+  if PRE_SNAP_NUM="$(sudo snapper -c root create --cleanup-algorithm number --userdata important=yes -p -d "$desc" 2>/dev/null)" \
+     && [ -n "$PRE_SNAP_NUM" ]; then
     _ok "pre-snapshot #$PRE_SNAP_NUM creado — un reboot revierte toda la actualización"
   else PRE_SNAP_NUM=""; _note "no pude crear el pre-snapshot (continuando)"; fi
 }

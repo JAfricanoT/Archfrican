@@ -68,8 +68,10 @@ if have_home_config; then
     || warn "couldn't tune the home snapper config"
   [ -d /home/.snapshots ] && { sudo chmod 750 /home/.snapshots; sudo chown :wheel /home/.snapshots; }
   # A baseline snapshot NOW, so there's immediately a version to recover from (before the first timer tick).
+  # --cleanup-algorithm number so snapper actually prunes it later — an untagged snapshot is never
+  # cleaned up and lingers forever (the bug that let 55 pre-update snapshots pile up on root).
   sudo snapper -c home list 2>/dev/null | awk -F'|' 'NR>2{print $1}' | grep -qE '[0-9]' \
-    || best_effort sudo snapper -c home create -d "baseline (archfrican)"
+    || best_effort sudo snapper -c home create --cleanup-algorithm number -d "baseline (archfrican)"
   ok "home Time Machine active — archfrican-timemachine recovers file versions from /home"
 fi
 
