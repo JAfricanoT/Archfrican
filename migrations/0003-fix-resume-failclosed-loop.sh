@@ -12,6 +12,13 @@ set -euo pipefail
 state="${XDG_STATE_HOME:-$HOME/.local/state}/archfrican"
 mkdir -p "$state"
 
+# Load-bearing action first, unconditionally, before any sudo call: this is the
+# one guaranteed-no-privilege step that actually stops the retry loop
+# (ConditionPathExists=! on the unit reads this same marker). Everything below
+# is best-effort cleanup that must not gate this.
+touch "$state/resume-stopped"
+printf '  \e[32m✓\e[0m wrote %s (blocks any future re-enable)\n' "$state/resume-stopped"
+
 if systemctl is-enabled --quiet archfrican-resume.service 2>/dev/null; then
   sudo systemctl disable archfrican-resume.service
   printf '  \e[32m✓\e[0m disabled archfrican-resume.service (was stuck retrying every boot)\n'
@@ -28,6 +35,3 @@ if [ -e /var/lib/archfrican/resume-attempts ]; then
   sudo rm -f /var/lib/archfrican/resume-attempts
   printf '  \e[32m✓\e[0m removed stale root-owned attempt counter\n'
 fi
-
-touch "$state/resume-stopped"
-printf '  \e[32m✓\e[0m wrote %s (blocks any future re-enable)\n' "$state/resume-stopped"
