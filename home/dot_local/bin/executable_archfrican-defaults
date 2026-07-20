@@ -13,7 +13,7 @@ list_apps() {   # "Name<TAB>id.desktop" for every visible app — the fallback (
   list_desktop_apps | cut -f1,2 | sort -u
 }
 
-do_install() {  # do_install <spec> ; spec = repo:pkgs | aur:pkgs | flatpak:appid | script:url (in a terminal)
+do_install() {  # do_install <spec> ; spec = repo:pkgs | aur:pkgs | flatpak:appid | script:url | module:name (in a terminal)
   local kind="${1%%:*}" pkg="${1#*:}"
   case "$kind" in
     repo)    ghostty -e sh -c "sudo pacman -S --needed -- $pkg; printf '\n(enter para cerrar) '; read -r _" ;;
@@ -40,6 +40,11 @@ do_install() {  # do_install <spec> ; spec = repo:pkgs | aur:pkgs | flatpak:appi
               else note "paru (AUR) no disponible"; return 1; fi ;;
     flatpak) if have flatpak; then ghostty -e sh -c "flatpak install -y flathub $pkg; printf '\n(enter para cerrar) '; read -r _"
              else note "flatpak no disponible"; return 1; fi ;;
+    # A whole phase-2 module (e.g. 67-virtualization) instead of a bare package — for features
+    # that need more than `pacman -S` (services enabled, groups added, config written). Same
+    # terminal + "yes" argument gaming/Plasma's own actions-menu install entries already use;
+    # content-addressed, so re-picking an already-installed one is a fast idempotent no-op.
+    module)  ghostty -e sh -c "'$HOME/.archfrican/install.sh' '$pkg' yes; printf '\n(enter para cerrar) '; read -r _" ;;
     # Vendors' official one-line installer (e.g. Claude Code) — more reliable than the flaky AUR
     # wrappers for fast-moving AI CLIs. URL is hardcoded in the table, never user input.
     script)  if have curl; then ghostty -e sh -c "curl -fsSL '$pkg' | bash; printf '\n(enter para cerrar) '; read -r _"
@@ -163,6 +168,11 @@ category_data() {   # category_data <slug> ; sets HOW, TARGETS, ROWS (global, fo
         "RustDesk|rustdesk.desktop|aur:rustdesk-bin"
         "AnyDesk|anydesk.desktop|aur:anydesk-bin"
       ) ;;
+    virtualizacion)
+      HOW=none; TARGETS=''
+      ROWS=(
+        "Máquinas virtuales (virt-manager)|virt-manager.desktop|module:67-virtualization"
+      ) ;;
     *) return 1 ;;
   esac
 }
@@ -197,6 +207,7 @@ CATEGORY_LABELS=(
   "browser|Navegador web" "editor|Editor / IDE" "ia-cli|IA / agentes (CLI)" "terminal|Terminal"
   "archivos|Gestor de archivos" "pdf|Visor de PDF" "imagenes|Visor de imágenes" "correo|Correo"
   "contenedores|Gestor de contenedores" "mensajeria|Mensajería" "remoto|Acceso remoto"
+  "virtualizacion|Máquinas virtuales"
 )
 
 case "${1:-}" in
@@ -207,7 +218,7 @@ case "${1:-}" in
     cat="$(printf '%s\n' \
       "Navegador web" "Editor / IDE" "IA / agentes (CLI)" "Terminal" "Gestor de archivos" \
       "Visor de PDF" "Visor de imágenes" "Correo" "Gestor de contenedores" "Mensajería" \
-      "Acceso remoto" "Control de versiones · Git…" \
+      "Acceso remoto" "Máquinas virtuales" "Control de versiones · Git…" \
       | fuzzel --dmenu --prompt '  app por defecto  ')" || exit 0
     slug=""
     case "$cat" in
@@ -223,6 +234,7 @@ case "${1:-}" in
       "Gestor de contenedores") slug=contenedores ;;
       "Mensajería") slug=mensajeria ;;
       "Acceso remoto") slug=remoto ;;
+      "Máquinas virtuales") slug=virtualizacion ;;
     esac
     [ -n "$slug" ] || exit 0
     category_data "$slug"

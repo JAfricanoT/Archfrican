@@ -970,9 +970,10 @@ archfrican-defaults
 
 Interactive fuzzel menu. Assigns all relevant MIME types for the chosen category at once.
 "Another installed app…" offers the full `xdg-mime` fallback. The "Gestor de contenedores"
-(LazyDocker, Docker Desktop), "Mensajería" (Telegram, Signal, Discord, WhatsApp), and
-"Acceso remoto" (RustDesk, AnyDesk) categories have no MIME/default-handler concept —
-picking one just installs it and confirms.
+(LazyDocker, Docker Desktop), "Mensajería" (Telegram, Signal, Discord, WhatsApp),
+"Acceso remoto" (RustDesk, AnyDesk), and "Máquinas virtuales" (virt-manager — installs the whole
+`67-virtualization` module: KVM/QEMU, libvirt, the nftables-backed default network, not just the
+package) categories have no MIME/default-handler concept — picking one just installs it and confirms.
 
 ---
 

@@ -181,11 +181,6 @@ terminal = true
 actions = { run = "sh -c '{{ .chezmoi.homeDir }}/.archfrican/install.sh 25-plasma-desktop yes; printf \"(enter para cerrar) \"; read -r _'" }
 
 [[entries]]
-text = "Instalar máquinas virtuales (KVM/virt-manager)…"
-terminal = true
-actions = { run = "sh -c '{{ .chezmoi.homeDir }}/.archfrican/install.sh 67-virtualization yes; printf \"(enter para cerrar) \"; read -r _'" }
-
-[[entries]]
 text = "Continuidad (KDE Connect + LocalSend)…"
 actions = { run = "{{ .chezmoi.homeDir }}/.local/bin/archfrican-continuity" }
 

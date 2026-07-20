@@ -416,8 +416,9 @@ key OR password always works (no lockout risk). See [docs/FIDO2-RECOVERY.md](FID
 (the same tech behind most cloud providers). No serious "more native/stable/performant"
 alternative exists on Linux; VirtualBox isn't kernel-integrated, VMware is proprietary.
 
-**Enable during install**: Phase 2 wizard asks (defaults to no).
-**Enable post-install**: `./install.sh 67-virtualization yes` or via `archfrican-actions → Instalar máquinas virtuales`
+**Not a wizard question** — unlike gaming/Plasma, it's discovered on-demand from
+`archfrican-defaults → Máquinas virtuales` (same "pick it, it installs" pattern as "Acceso remoto"),
+or directly: `./install.sh 67-virtualization yes`.
 
 **Packages** (`packages/virtualization.txt`): `qemu-desktop`, `libvirt`, `virt-manager`,
 `virt-viewer`, `edk2-ovmf` (UEFI firmware for guests), `dnsmasq` (DHCP for the default NAT

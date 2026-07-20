@@ -141,11 +141,11 @@ run_phase2() {                # run_phase2 [single-module]
     if ui_confirm "Install KDE Plasma as an additional desktop session (Windows-familiar, opt-in)?" no; then
       PLASMA=yes
     fi
-    # Virtualization (opt-in, default NO): KVM/QEMU + libvirt + virt-manager — the Linux-native,
-    # hardware-accelerated hypervisor.
-    if ui_confirm "Install virtualization support (KVM/QEMU, virt-manager)?" no; then
-      VIRTUALIZATION=yes
-    fi
+    # Virtualization: NOT a wizard question (unlike gaming/Plasma) — like "Acceso remoto",
+    # it's an on-demand install from archfrican-defaults ("Máquinas virtuales" category), which
+    # calls install.sh 67-virtualization yes directly. VIRTUALIZATION here just carries the
+    # ARCHFRICAN_UPDATE re-detection below (pacman -Q virt-manager) so a machine that already
+    # opted in keeps converging correctly.
     # FIDO2 physical-key mode (opt-in; needs a plugged key). Enroll the touch(es) now;
     # modules/60-security.sh wires PAM. Non-exclusive: your password ALWAYS still works.
     if ui_confirm "Enable a hardware security key? (touch = sudo/login; password still works)"; then
