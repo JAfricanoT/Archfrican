@@ -27,7 +27,8 @@ module_label() { case "$1" in
   25-plasma-desktop) echo "Plasma desktop";;
   30-dev) echo "Dev toolchains";; 35-apps) echo "Apps & Flatpak";; 40-theming) echo "Theming";;
   45-print) echo "Printing & scanning";; 50-snapshots) echo "Snapshots";;
-  55-multiboot) echo "Multi-boot";; 60-security) echo "Security";; 65-gaming) echo "Gaming";; 70-hygiene) echo "Hygiene";;
+  55-multiboot) echo "Multi-boot";; 60-security) echo "Security";; 65-gaming) echo "Gaming";;
+  67-virtualization) echo "Virtualization";; 70-hygiene) echo "Hygiene";;
   *) echo "$1";; esac; }
 module_desc() { case "$1" in
   00-base) echo "CachyOS repos, dual kernel (cachyos + lts), paru";;
@@ -42,6 +43,7 @@ module_desc() { case "$1" in
   50-snapshots) echo "snapper + grub-btrfs rollback";;
   55-multiboot) echo "os-prober: detect another installed OS (GRUB)";;
   65-gaming) echo "Steam, gamescope, gamemode, Proton-GE, MangoHud (opt-in)";;
+  67-virtualization) echo "KVM/QEMU + libvirt + virt-manager (opt-in)";;
   60-security) echo "firewall, dev-safe hardening, screen lock, FIDO2";;
   70-hygiene) echo "maintenance timers + weekly health check (notify, never auto-change)";;
   *) echo "";; esac; }
@@ -91,7 +93,7 @@ run_phase2() {                # run_phase2 [single-module]
   local DETECTED_GPU; DETECTED_GPU="$(detect_gpu)"
 
   # ---- defaults from live system (also the non-interactive fallback) --------
-  local HOST USER_NAME USER_PW TZ LOCALE XKB THEME GPU MULTIBOOT=no SSH_ENABLE=no GAMING=no PLASMA=no WALLPAPER=none
+  local HOST USER_NAME USER_PW TZ LOCALE XKB THEME GPU MULTIBOOT=no SSH_ENABLE=no GAMING=no PLASMA=no VIRTUALIZATION=no WALLPAPER=none
   HOST="$(hostnamectl --static 2>/dev/null || echo archfrican)"
   USER_NAME="$USER"; USER_PW=""
   TZ="$(timedatectl show -p Timezone --value 2>/dev/null || echo America/New_York)"
@@ -139,6 +141,11 @@ run_phase2() {                # run_phase2 [single-module]
     if ui_confirm "Install KDE Plasma as an additional desktop session (Windows-familiar, opt-in)?" no; then
       PLASMA=yes
     fi
+    # Virtualization (opt-in, default NO): KVM/QEMU + libvirt + virt-manager — the Linux-native,
+    # hardware-accelerated hypervisor.
+    if ui_confirm "Install virtualization support (KVM/QEMU, virt-manager)?" no; then
+      VIRTUALIZATION=yes
+    fi
     # FIDO2 physical-key mode (opt-in; needs a plugged key). Enroll the touch(es) now;
     # modules/60-security.sh wires PAM. Non-exclusive: your password ALWAYS still works.
     if ui_confirm "Enable a hardware security key? (touch = sudo/login; password still works)"; then
@@ -160,6 +167,7 @@ run_phase2() {                # run_phase2 [single-module]
     GPU="${ARCHFRICAN_GPU:-$GPU}";       MULTIBOOT="${ARCHFRICAN_MULTIBOOT:-no}"
     SSH_ENABLE="${ARCHFRICAN_SSH:-$SSH_ENABLE}"
     GAMING="${ARCHFRICAN_GAMING:-$GAMING}"
+    VIRTUALIZATION="${ARCHFRICAN_VIRTUALIZATION:-$VIRTUALIZATION}"
     log "resume: loaded wizard answers (host=$HOST user=$USER_NAME gpu=$GPU theme=$THEME)"
   else
     warn "non-interactive — using detected defaults (host=$HOST user=$USER_NAME gpu=$GPU theme=$THEME)"
@@ -174,6 +182,7 @@ run_phase2() {                # run_phase2 [single-module]
     grep -q '^GRUB_DISABLE_OS_PROBER=false' /etc/default/grub 2>/dev/null && MULTIBOOT=yes
     pacman -Q steam &>/dev/null && GAMING=yes
     pacman -Q plasma-desktop &>/dev/null && PLASMA=yes
+    pacman -Q virt-manager &>/dev/null && VIRTUALIZATION=yes
   fi
   log "GPU profile: $GPU"
 
@@ -181,7 +190,7 @@ run_phase2() {                # run_phase2 [single-module]
   # Update/converge skips the "Applying your choices" step below (identity is set once, at
   # install) — one step() call fewer than a fresh install, so the total must match or the
   # banner can never reach its own total (stuck at [14/15] forever).
-  if [ "$UPDATE" = 1 ]; then step_total 16; else step_total 17; fi
+  if [ "$UPDATE" = 1 ]; then step_total 17; else step_total 18; fi
 
   # ---- apply host/user BEFORE the modules (idempotent) ----------------------
   # Update/converge skips identity: hostname/user/tz/locale/theme are set ONCE at install, and
@@ -222,6 +231,7 @@ run_phase2() {                # run_phase2 [single-module]
   run_module 55-multiboot "$MULTIBOOT"
   run_module 60-security "$SSH_ENABLE"
   run_module 65-gaming "$GAMING"
+  run_module 67-virtualization "$VIRTUALIZATION"
   run_module 70-hygiene
 
   step "Dotfiles" "deploying your config (niri, zsh, waybar, …) with chezmoi"

@@ -201,7 +201,7 @@ Tick every box on the VM before bare metal:
 
 - [ ] Static: `bash -n` + shellcheck clean; CI green.
 - [ ] Phase 1: Btrfs + `@.snapshots` in fstab; correct disk; reboots.
-- [ ] **SEC-01:** install completes all 14 modules; no `target not found`; preflight passes.
+- [ ] **SEC-01:** install completes all 15 modules; no `target not found`; preflight passes.
 - [ ] **REL-01:** `lspci` present; VM resolves `unknown` and install proceeds; right GPU stack on real HW.
 - [ ] **DATA-02:** `grub-btrfsd.service` enabled; `snapper -c root list` works; `/.snapshots` mounted;
       snapshots appear in GRUB; `snapper rollback` reverts.

@@ -1,0 +1,9 @@
+# KVM/QEMU + libvirt + virt-manager — opt-in, modules/67-virtualization.sh
+qemu-desktop        # KVM-focused QEMU meta-package (desktop use; qemu-full is the server-oriented superset)
+libvirt              # the management daemon/API every frontend (virt-manager, virsh) talks to
+virt-manager         # GUI: create/configure/console VMs
+virt-viewer          # standalone console viewer (VMs opened outside virt-manager's own window)
+edk2-ovmf            # UEFI firmware for guests (Windows 11/Secure-Boot-aware installers need this)
+dnsmasq              # DHCP/DNS for libvirt's default NAT network (virbr0)
+swtpm                # emulated TPM 2.0 (Windows 11 guests require it)
+dmidecode            # libvirt optional dep: DMI/SMBIOS info for host capability reporting

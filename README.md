@@ -141,6 +141,10 @@ enables `[multilib]` and installs Steam, gamescope, gamemode, MangoHud, Proton-G
 `archfrican-power` (PPD ⇄ TLP, thermald on Intel). Multi-monitor, fractional scaling and HDR are managed
 with `nwg-displays`; HDR support tracks niri's evolving Wayland color management.
 
+**Virtualization (opt-in):** `~/.archfrican/install.sh 67-virtualization yes` installs KVM/QEMU +
+libvirt + virt-manager — the Linux-native, hardware-accelerated hypervisor. Wired straight into
+nftables (this repo's only firewall, no iptables anywhere) via libvirt's own nftables backend.
+
 **Continuity & backup:** opt-in **KDE Connect + LocalSend** (`archfrican-continuity`) bring the closest
 open Handoff/AirDrop — phone notifications, shared clipboard, drag-a-file-to-phone — opening only the
 ports they need. Because snapshots roll back the *system*, not your `~`, **`archfrican-backup`** adds a

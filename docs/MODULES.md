@@ -1,12 +1,12 @@
 # Archfrican — Module Reference
 
-Phase 2 installs the desktop and dev layer through 14 sequential modules. Each is
+Phase 2 installs the desktop and dev layer through 15 sequential modules. Each is
 content-addressed: it only re-runs when its input files (script + package lists + shared libs)
 change. Re-running a module manually is safe — all operations are idempotent.
 
 ```bash
 ./install.sh <module-name>        # re-run a single module
-./install.sh <module-name> yes    # pass opt-in argument (25-plasma-desktop, 55-multiboot, 65-gaming)
+./install.sh <module-name> yes    # pass opt-in argument (25-plasma-desktop, 55-multiboot, 65-gaming, 67-virtualization)
 FORCE=1 ./install.sh              # ignore .done stamps, re-run everything
 ```
 
@@ -29,6 +29,7 @@ FORCE=1 ./install.sh              # ignore .done stamps, re-run everything
 | 55-multiboot | **Opt-in** | os-prober, ntfs-3g | — |
 | 60-security | Always | nftables, pam-u2f, bubblewrap | nftables, optionally sshd |
 | 65-gaming | **Opt-in** | steam, gamescope, proton-ge | ananicy-cpp |
+| 67-virtualization | **Opt-in** | qemu-desktop, libvirt, virt-manager | libvirtd |
 | 70-hygiene | Always | (reuses base packages) | paccache, fstrim, smartd timers |
 
 ---
@@ -406,6 +407,40 @@ key OR password always works (no lockout risk). See [docs/FIDO2-RECOVERY.md](FID
 `PROTON_USE_WINED3D=1 %command%` or use Proton-GE from the compatibility dropdown.
 
 **Re-run**: `./install.sh 65-gaming yes`
+
+---
+
+## 67-virtualization — Virtualization (opt-in)
+
+**Opt-in.** KVM/QEMU + libvirt + virt-manager — the Linux-native, hardware-accelerated hypervisor
+(the same tech behind most cloud providers). No serious "more native/stable/performant"
+alternative exists on Linux; VirtualBox isn't kernel-integrated, VMware is proprietary.
+
+**Enable during install**: Phase 2 wizard asks (defaults to no).
+**Enable post-install**: `./install.sh 67-virtualization yes` or via `archfrican-actions → Instalar máquinas virtuales`
+
+**Packages** (`packages/virtualization.txt`): `qemu-desktop`, `libvirt`, `virt-manager`,
+`virt-viewer`, `edk2-ovmf` (UEFI firmware for guests), `dnsmasq` (DHCP for the default NAT
+network), `swtpm` (emulated TPM 2.0 — Windows 11 guests need it), `dmidecode`.
+
+**What it does**
+
+1. Warns (non-fatal) if the CPU lacks VT-x/AMD-V — VMs still work, just software-emulated
+2. Installs the package set above
+3. Writes `/etc/libvirt/network.conf` with `firewall_backend = "nftables"` — this repo's firewall
+   is nftables-only (`modules/60-security.sh`, no iptables/iptables-nft anywhere), so libvirt talks
+   to nftables directly instead of needing an iptables compatibility layer just for this. The
+   forward chain already scopes `ct state new iifname/oifname "virbr*" accept` for the default
+   network (virbr0) — no firewall changes needed here.
+4. Adds you to the `libvirt` group (manage VMs without `sudo` every time — needs a new login)
+5. Enables + starts `libvirtd.service` (unlike most modules, started immediately, not just
+   enabled for next boot — libvirtd isn't providing anything the running install session depends
+   on, and starting it now lets the default network's autostart flag get set below)
+6. Starts + autostarts the default NAT network (`virbr0` — DHCP/internet access for VMs)
+
+**First VM**: open virt-manager, "Create a new virtual machine", point it at an install ISO.
+
+**Re-run**: `./install.sh 67-virtualization yes`
 
 ---
 
