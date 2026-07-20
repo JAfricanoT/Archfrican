@@ -345,6 +345,8 @@ jobs:
         run: bash tests/unit/converge.sh
       - name: defaults — is_installed()/list_category() cli+desktop-file detection (11 providers depend on this)
         run: bash tests/unit/defaults.sh
+      - name: resume-guard — counter/marker never depend on sudo succeeding (the fail-closed bug)
+        run: bash tests/unit/resume-guard.sh
 
   modules-list-consistency:
     runs-on: ubuntu-latest        # 5 independent lists of module names must stay in sync, or drift silently
