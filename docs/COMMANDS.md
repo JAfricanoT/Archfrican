@@ -55,7 +55,7 @@ archfrican-update --prune       # review and remove orphaned managed packages
 
 ## archfrican-doctor
 
-System health monitor. Runs 22 checks across disk, services, packages, security,
+System health monitor. Runs 24 checks across disk, services, packages, security,
 and Archfrican config. Safe to run anytime — never modifies the system except with `--fix`.
 
 ```
@@ -89,8 +89,10 @@ archfrican-doctor [--json] [--notify] [--fix]
 **What it checks**
 
 - Failed systemd units (system + user)
+- Firewall loaded (nftables active + the `inet filter` table really present)
 - Journal errors since boot
 - Disk space (/ and /boot)
+- Boot time (flags a ballooned userspace boot — a slow/timing-out unit)
 - Snapper snapshot count
 - Btrfs scrub status
 - SMART disk health
