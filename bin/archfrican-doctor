@@ -73,7 +73,7 @@ run_all_checks() {
 # health helpers to print just the name (red) or nothing (ok/amber/skip) reuses the exact same
 # check set the report runs — no second source of truth. archfrican-update diffs the before/after
 # set to detect a regression the update introduced (a NEW red), and offer the pre-snapshot rollback.
-# shellcheck disable=SC2317  # the helper overrides below are reached indirectly via run_all_checks
+# shellcheck disable=SC2317,SC2329  # the helper overrides below are reached indirectly via run_all_checks
 if [ "$MODE" = "--red-names" ]; then
   _h_ok(){ :; }
   _h_amber(){ :; }
