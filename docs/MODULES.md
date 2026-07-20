@@ -422,24 +422,34 @@ or directly: `./install.sh 67-virtualization yes`.
 
 **Packages** (`packages/virtualization.txt`): `qemu-desktop`, `libvirt`, `virt-manager`,
 `virt-viewer`, `edk2-ovmf` (UEFI firmware for guests), `dnsmasq` (DHCP for the default NAT
-network), `swtpm` (emulated TPM 2.0 — Windows 11 guests need it), `dmidecode`.
+network), `swtpm` (emulated TPM 2.0 — Windows 11 guests need it), `dmidecode`. Plus `virtio-win`
+(AUR, best-effort) — see below.
 
 **What it does**
 
 1. Warns (non-fatal) if the CPU lacks VT-x/AMD-V — VMs still work, just software-emulated
 2. Installs the package set above
-3. Writes `/etc/libvirt/network.conf` with `firewall_backend = "nftables"` — this repo's firewall
+3. Installs `virtio-win` (AUR) — the Windows driver ISO for VirtIO devices (network/disk/etc.),
+   to `/usr/share/virtio-win/virtio-win.iso`
+4. Writes `/etc/libvirt/network.conf` with `firewall_backend = "nftables"` — this repo's firewall
    is nftables-only (`modules/60-security.sh`, no iptables/iptables-nft anywhere), so libvirt talks
    to nftables directly instead of needing an iptables compatibility layer just for this. The
    forward chain already scopes `ct state new iifname/oifname "virbr*" accept` for the default
    network (virbr0) — no firewall changes needed here.
-4. Adds you to the `libvirt` group (manage VMs without `sudo` every time — needs a new login)
-5. Enables + starts `libvirtd.service` (unlike most modules, started immediately, not just
+5. Adds you to the `libvirt` group (manage VMs without `sudo` every time — needs a new login)
+6. Enables + starts `libvirtd.service` (unlike most modules, started immediately, not just
    enabled for next boot — libvirtd isn't providing anything the running install session depends
    on, and starting it now lets the default network's autostart flag get set below)
-6. Starts + autostarts the default NAT network (`virbr0` — DHCP/internet access for VMs)
+7. Starts + autostarts the default NAT network (`virbr0` — DHCP/internet access for VMs)
 
 **First VM**: open virt-manager, "Create a new virtual machine", point it at an install ISO.
+
+**Windows guests — "can't connect to the network" during setup**: Windows has no built-in VirtIO
+driver (Linux guests do, in-kernel), so it doesn't see a network adapter at all until one is
+loaded. Attach `/usr/share/virtio-win/virtio-win.iso` as a second CD-ROM to the VM and use
+"Load driver" in the Windows installer — this keeps VirtIO's performance instead of trading down
+to a natively-compatible-but-slower model like e1000e, and only affects that one VM (Linux guests
+are unaffected either way).
 
 **Re-run**: `./install.sh 67-virtualization yes`
 

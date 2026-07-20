@@ -24,6 +24,17 @@ fi
 substep "installing KVM/QEMU + libvirt + virt-manager"
 pac_install_file "$REPO_ROOT/packages/virtualization.txt"
 
+# virtio-win (AUR, best-effort): the VirtIO NIC/disk/etc. QEMU offers by default have NO built-in
+# Windows driver (unlike Linux guests, which have them in-kernel) — without this, a Windows install
+# can't even see a network adapter. Keeping VirtIO as the default device model (not switching to a
+# slower, natively-Windows-compatible one like e1000e) is the same choice professional KVM
+# deployments make: best performance, once the driver is loaded. Installs the driver ISO to
+# /usr/share/virtio-win/virtio-win.iso — attach it as a second CD-ROM in virt-manager and use
+# "Load driver" during Windows setup (or run its installer inside the ISO after the fact). This is
+# entirely opt-in PER VM: Linux guests need nothing from this and are completely unaffected.
+substep "installing virtio-win (AUR, best-effort) — Windows guest drivers for VirtIO devices"
+aur_install virtio-win
+
 # This repo's firewall is nftables-only (modules/60-security.sh — no iptables/iptables-nft
 # anywhere), so libvirt should talk to nftables directly for its own NAT/DHCP rules instead of
 # needing an iptables compatibility layer installed just for this. modules/60-security.sh's forward
