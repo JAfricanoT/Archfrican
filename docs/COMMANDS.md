@@ -1231,3 +1231,34 @@ echo "Buenos Aires" > ~/.config/archfrican/weather   # explicit city
 ```
 
 **Access via**: always visible in waybar's center (next to the clock).
+
+---
+
+## archfrican-vm-windows
+
+Guided Windows VM creation via `virt-install`, pre-configured to dodge two classic Windows-on-KVM
+gotchas instead of hitting them through virt-manager's own wizard.
+
+```
+archfrican-vm-windows
+```
+
+Prompts (fuzzel) for: Windows version (11 / 10 / Server 2022 / Server 2019), VM name, path to the
+Windows install ISO (you download this yourself — never bundled), RAM/disk/vCPU (sensible
+defaults: 4096 MB / 60 GB / 2). Then, in a terminal:
+
+1. Copies the ISO into libvirt's storage pool if needed (`qemu:///system` VMs run as an
+   unprivileged user that can't read your home directory by default)
+2. Runs `virt-install` with:
+   - The **virtio-win driver ISO** (from `modules/67-virtualization.sh`) attached as a **second
+     CD-ROM on a SATA bus** — never VirtIO, which needs the VirtIO driver to even be read (the
+     "I can see the folder but the files inside are empty" symptom, and the actual cause behind
+     most "Windows can't connect to the network" errors during setup)
+   - `--boot uefi` + `--tpm default` (Windows 11's UEFI + TPM 2.0 requirements)
+   - The VM's own disk still on VirtIO (best performance) — Setup loads that driver from the same
+     ISO too, once it can actually read it
+
+**Requires**: `modules/67-virtualization.sh` already applied (`archfrican-defaults → Máquinas
+virtuales`, which includes `virtio-win`).
+
+**Access via**: `archfrican-actions → Crear VM de Windows…`.

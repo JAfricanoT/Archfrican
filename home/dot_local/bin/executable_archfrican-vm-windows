@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+# archfrican-vm-windows — guided Windows VM creation, pre-configured to dodge the classic KVM/QEMU
+# gotcha: the virtio-win driver ISO MUST be on a SATA bus, never VirtIO — a VirtIO CD-ROM needs the
+# VirtIO driver to even be read, which is exactly the driver you're trying to load FROM it (the "I
+# can see the folder but the files inside are empty" symptom). Also wires up what Windows 11
+# actually requires (UEFI + TPM 2.0) that a bare virt-install/virt-manager default doesn't always
+# get right. The VM's own disk still uses VirtIO (best performance) — Windows Setup can load THAT
+# driver too, from the same correctly-SATA-attached virtio-win ISO, once it can read it at all.
+# Needs modules/67-virtualization.sh already applied — install via archfrican-defaults →
+# "Máquinas virtuales" first if `virt-install`/virtio-win aren't there yet.
+set -euo pipefail
+source "$(dirname "$0")/../lib/archfrican-common.sh"
+
+VIRTIO_ISO="/var/lib/libvirt/images/virtio-win.iso"
+
+have virt-install || { note "instala virtualización primero: archfrican-defaults → Máquinas virtuales"; exit 1; }
+[ -f "$VIRTIO_ISO" ] || { note "falta $VIRTIO_ISO — instala virtualización primero (incluye virtio-win)"; exit 1; }
+case " $(id -nG) " in *" libvirt "*) ;; *) note "no estás en el grupo libvirt todavía — cerrá sesión y volvé a entrar, o esto va a fallar al conectar"; esac
+
+os_sel="$(printf 'Windows 11\nWindows 10\nWindows Server 2022\nWindows Server 2019\n' \
+    | fuzzel --dmenu --prompt '  versión de Windows  ')" || exit 0
+case "$os_sel" in
+  "Windows 11")          osv=win11 ;;
+  "Windows 10")          osv=win10 ;;
+  "Windows Server 2022") osv=win2k22 ;;
+  "Windows Server 2019") osv=win2k19 ;;
+  *) exit 0 ;;
+esac
+
+name="$(fuzzel --dmenu --prompt '  nombre de la VM  ' </dev/null)" || exit 0
+[ -n "$name" ] || exit 0
+if virsh -c qemu:///system dominfo "$name" >/dev/null 2>&1; then
+  note "ya existe una VM llamada '$name'"; exit 1
+fi
+
+iso="$(fuzzel --dmenu --prompt '  ruta al ISO de Windows (ej: /home/user/Descargas/Win11.iso)  ' </dev/null)" || exit 0
+iso="${iso/#\~/$HOME}"
+[ -f "$iso" ] || { note "no encuentro el archivo: $iso"; exit 1; }
+
+mem="$(fuzzel --dmenu --prompt '  RAM en MB (enter = 4096)  ' </dev/null)" || exit 0
+mem="${mem:-4096}"
+disk="$(fuzzel --dmenu --prompt '  disco en GB (enter = 60)  ' </dev/null)" || exit 0
+disk="${disk:-60}"
+vcpus="$(fuzzel --dmenu --prompt '  vCPUs (enter = 2)  ' </dev/null)" || exit 0
+vcpus="${vcpus:-2}"
+
+# qemu:///system's sandboxed 'libvirt-qemu' user can't read files under your home directory by
+# default (0700 perms) — copy the ISO into libvirt's own pool instead of fighting permissions,
+# same reasoning already documented in modules/67-virtualization.sh for the virtio-win ISO itself.
+pool_iso="/var/lib/libvirt/images/$(basename "$iso")"
+
+ghostty -e sh -c "
+  set -e
+  if [ ! -f '$pool_iso' ]; then
+    echo 'Copiando el ISO de Windows al pool de libvirt (puede tardar varios minutos)...'
+    sudo cp '$iso' '$pool_iso'
+    sudo chmod 644 '$pool_iso'
+  fi
+  virt-install \
+    --connect qemu:///system \
+    --name '$name' \
+    --memory '$mem' \
+    --vcpus '$vcpus' \
+    --disk size='$disk',bus=virtio \
+    --cdrom '$pool_iso' \
+    --disk path='$VIRTIO_ISO',device=cdrom,bus=sata \
+    --os-variant '$osv' \
+    --tpm default \
+    --boot uefi \
+    --graphics spice
+  printf '\n(enter para cerrar) '; read -r _
+"
+
+note "VM '$name' creada. Si Windows no detecta la red durante el setup: Load driver -> segundo CD-ROM (virtio-win) -> NetKVM\\$osv\\amd64"

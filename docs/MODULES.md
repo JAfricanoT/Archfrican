@@ -442,14 +442,29 @@ network), `swtpm` (emulated TPM 2.0 — Windows 11 guests need it), `dmidecode`.
    on, and starting it now lets the default network's autostart flag get set below)
 7. Starts + autostarts the default NAT network (`virbr0` — DHCP/internet access for VMs)
 
-**First VM**: open virt-manager, "Create a new virtual machine", point it at an install ISO.
+**First VM (Linux)**: open virt-manager, "Create a new virtual machine", point it at an install
+ISO — Linux guests have VirtIO drivers built into the kernel, no extra steps needed.
 
-**Windows guests — "can't connect to the network" during setup**: Windows has no built-in VirtIO
-driver (Linux guests do, in-kernel), so it doesn't see a network adapter at all until one is
-loaded. Attach `/var/lib/libvirt/images/virtio-win.iso` as a second CD-ROM to the VM and use
-"Load driver" in the Windows installer — this keeps VirtIO's performance instead of trading down
-to a natively-compatible-but-slower model like e1000e, and only affects that one VM (Linux guests
-are unaffected either way).
+**First VM (Windows)**: use `archfrican-vm-windows` (also reachable from `archfrican-actions →
+Crear VM de Windows…`) instead of virt-manager's wizard directly. It prompts for the Windows
+version/name/ISO path/resources, then runs `virt-install` pre-configured to dodge two classic
+Windows-on-KVM gotchas:
+
+- **The virtio-win driver ISO must be attached on a SATA bus, never VirtIO.** A VirtIO CD-ROM
+  needs the VirtIO driver to even be read — exactly the driver you're trying to load *from* it.
+  Attaching it on the wrong bus produces a very specific, confusing symptom: Windows' "Load
+  driver" browser can see the `NetKVM\<version>\amd64` folder, but every file inside it appears
+  empty. (This is what "can't connect to the network" during Windows setup usually is — Windows
+  has no built-in VirtIO network driver, unlike Linux guests, which have it in-kernel.) The VM's
+  own disk still uses VirtIO for performance — Setup loads that driver from the same,
+  correctly-SATA-attached ISO too, once it can actually read it.
+- **Windows 11 requires UEFI + TPM 2.0** — `--boot uefi` (`edk2-ovmf`) and `--tpm default`
+  (`swtpm`), wired up automatically instead of a bare VM silently failing the install's hardware
+  check.
+
+If you hit the empty-driver-folder symptom on a VM created some other way (virt-manager's own
+wizard, `virt-install` without these flags), it's almost always this: check the CD-ROM's bus in
+the VM's device list and switch it to SATA.
 
 **Re-run**: `./install.sh 67-virtualization yes`
 
