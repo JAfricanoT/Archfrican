@@ -5,7 +5,7 @@
 set -euo pipefail
 ROOT="${ARCHFRICAN_ROOT:-$HOME/.archfrican}"
 source "$(dirname "$0")/../lib/archfrican-common.sh"
-ask()  { fuzzel --dmenu --prompt "$1" </dev/null; }
+ask()  { fuzzel --dmenu --prompt-only="$1"; }
 
 do_dotfiles() {
   have chezmoi || { note "instala chezmoi"; return; }

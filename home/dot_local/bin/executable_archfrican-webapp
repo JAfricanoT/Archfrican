@@ -13,8 +13,8 @@ done
 [ -n "$BROWSER" ] || { note "instala un navegador Chromium primero:  archfrican-browser"; exit 1; }
 
 name="${1:-}"; url="${2:-}"
-[ -n "$name" ] || name="$(fuzzel --dmenu --prompt 'Nombre de la app:  ' </dev/null)" || exit 0
-[ -n "$url" ]  || url="$(fuzzel --dmenu --prompt 'URL (https://…):  ' </dev/null)" || exit 0
+[ -n "$name" ] || name="$(fuzzel --dmenu --prompt-only='Nombre de la app:  ')" || exit 0
+[ -n "$url" ]  || url="$(fuzzel --dmenu --prompt-only='URL (https://…):  ')" || exit 0
 [ -n "$name" ] && [ -n "$url" ] || exit 0
 case "$url" in http://*|https://*) ;; *) url="https://$url" ;; esac
 

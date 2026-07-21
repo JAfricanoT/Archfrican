@@ -27,7 +27,7 @@ case "${1:-menu}" in
       "Programar"*)  exec "$0" schedule ;;
     esac ;;
   init)
-    repo="$(fuzzel --dmenu --prompt 'destino (/ruta · /run/media/USB/bk · rclone:remoto:ruta):  ' </dev/null)" || exit 0
+    repo="$(fuzzel --dmenu --prompt-only='destino (/ruta · /run/media/USB/bk · rclone:remoto:ruta):  ')" || exit 0
     [ -n "$repo" ] || exit 0
     printf '%s\n' "$repo" > "$repofile"
     if [ ! -s "$passfile" ]; then ( umask 077; head -c 24 /dev/urandom | base64 > "$passfile" ); chmod 600 "$passfile"; fi

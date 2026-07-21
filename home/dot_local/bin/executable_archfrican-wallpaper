@@ -10,11 +10,8 @@ have jq || { note "instala jq"; exit 1; }
 
 img="${1:-}"
 if [ -z "$img" ]; then
-  # A real picker, not a blind "type a path": fuzzel.ini sets exit-immediately-if-empty=yes
-  # (for archfrican-spotlight), which ALSO makes an empty-stdin dmenu close instantly with no
-  # UI at all, `--prompt-only` included — there's no CLI override for that ini setting, so this
-  # sidesteps it by giving the picker real content instead of fighting it. Scans common
-  # wallpaper spots for images the user can actually browse/fuzzy-search.
+  # A real picker, not a blind "type a path" — lets you browse/fuzzy-search instead of having to
+  # already know the exact file name. Scans common wallpaper spots for candidate images.
   pics="$(xdg-user-dir PICTURES 2>/dev/null)"; dls="$(xdg-user-dir DOWNLOAD 2>/dev/null)"
   candidates=()
   # while+read, not `arr=($(find ...))`: filenames with spaces (e.g. "Screenshot from ....png",

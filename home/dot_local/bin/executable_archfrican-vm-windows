@@ -15,7 +15,18 @@ VIRTIO_ISO="/var/lib/libvirt/images/virtio-win.iso"
 
 have virt-install || { note "instala virtualización primero: archfrican-defaults → Máquinas virtuales"; exit 1; }
 [ -f "$VIRTIO_ISO" ] || { note "falta $VIRTIO_ISO — instala virtualización primero (incluye virtio-win)"; exit 1; }
-case " $(id -nG) " in *" libvirt "*) ;; *) note "no estás en el grupo libvirt todavía — cerrá sesión y volvé a entrar, o esto va a fallar al conectar"; esac
+
+# usermod -aG libvirt (done by modules/67-virtualization.sh) only takes effect in a NEW login
+# session — a process already running (this very terminal) won't see it until logout/login. Rather
+# than just warning and letting virt-install fail to connect, re-exec ourselves under the group via
+# `sg` (works immediately, no relogin needed) so the tool "just works" right after install.
+case " $(id -nG) " in
+  *" libvirt "*) ;;
+  *)
+    note "grupo libvirt no activo en esta sesión todavía — reiniciando con 'sg libvirt' para que funcione sin desloguear"
+    exec sg libvirt -c "$(printf '%q' "$0")"
+    ;;
+esac
 
 os_sel="$(printf 'Windows 11\nWindows 10\nWindows Server 2022\nWindows Server 2019\n' \
     | fuzzel --dmenu --prompt '  versión de Windows  ')" || exit 0
@@ -27,21 +38,21 @@ case "$os_sel" in
   *) exit 0 ;;
 esac
 
-name="$(fuzzel --dmenu --prompt '  nombre de la VM  ' </dev/null)" || exit 0
+name="$(fuzzel --dmenu --prompt-only='  nombre de la VM  ')" || exit 0
 [ -n "$name" ] || exit 0
 if virsh -c qemu:///system dominfo "$name" >/dev/null 2>&1; then
   note "ya existe una VM llamada '$name'"; exit 1
 fi
 
-iso="$(fuzzel --dmenu --prompt '  ruta al ISO de Windows (ej: /home/user/Descargas/Win11.iso)  ' </dev/null)" || exit 0
+iso="$(fuzzel --dmenu --prompt-only='  ruta al ISO de Windows (ej: /home/user/Descargas/Win11.iso)  ')" || exit 0
 iso="${iso/#\~/$HOME}"
 [ -f "$iso" ] || { note "no encuentro el archivo: $iso"; exit 1; }
 
-mem="$(fuzzel --dmenu --prompt '  RAM en MB (enter = 4096)  ' </dev/null)" || exit 0
+mem="$(fuzzel --dmenu --prompt-only='  RAM en MB (enter = 4096)  ')" || exit 0
 mem="${mem:-4096}"
-disk="$(fuzzel --dmenu --prompt '  disco en GB (enter = 60)  ' </dev/null)" || exit 0
+disk="$(fuzzel --dmenu --prompt-only='  disco en GB (enter = 60)  ')" || exit 0
 disk="${disk:-60}"
-vcpus="$(fuzzel --dmenu --prompt '  vCPUs (enter = 2)  ' </dev/null)" || exit 0
+vcpus="$(fuzzel --dmenu --prompt-only='  vCPUs (enter = 2)  ')" || exit 0
 vcpus="${vcpus:-2}"
 
 # qemu:///system's sandboxed 'libvirt-qemu' user can't read files under your home directory by
