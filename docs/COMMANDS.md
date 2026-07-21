@@ -1244,8 +1244,9 @@ archfrican-vm-windows
 ```
 
 Prompts (fuzzel) for: Windows version (11 / 10 / Server 2022 / Server 2019), VM name, path to the
-Windows install ISO (you download this yourself — never bundled), RAM/disk/vCPU (sensible
-defaults: 4096 MB / 60 GB / 2). Then, in a terminal:
+Windows install ISO (you download this yourself — never bundled; if the path doesn't exist yet,
+opens Microsoft's official download page for the version you picked instead of failing silently),
+RAM/disk/vCPU (sensible defaults: 4096 MB / 60 GB / 2). Then, in a terminal:
 
 1. Copies the ISO into libvirt's storage pool if needed (`qemu:///system` VMs run as an
    unprivileged user that can't read your home directory by default)
@@ -1261,4 +1262,4 @@ defaults: 4096 MB / 60 GB / 2). Then, in a terminal:
 **Requires**: `modules/67-virtualization.sh` already applied (`archfrican-defaults → Máquinas
 virtuales`, which includes `virtio-win`).
 
-**Access via**: `archfrican-actions → Crear VM de Windows…`.
+**Access via**: `archfrican-defaults → Máquinas virtuales → Crear VM de Windows (guiado)…`.

@@ -46,7 +46,20 @@ fi
 
 iso="$(fuzzel --dmenu --prompt-only='  ruta al ISO de Windows (ej: /home/user/Descargas/Win11.iso)  ')" || exit 0
 iso="${iso/#\~/$HOME}"
-[ -f "$iso" ] || { note "no encuentro el archivo: $iso"; exit 1; }
+if [ ! -f "$iso" ]; then
+  # No ISO yet — instead of dying silently on a notification easy to miss, send you straight to
+  # Microsoft's own official download page for the version you picked (per-OS: consumer media-
+  # creation page for 10/11, eval center for Server, since Server ISOs are trial downloads there).
+  case "$osv" in
+    win11)   dl_url="https://www.microsoft.com/en-us/software-download/windows11" ;;
+    win10)   dl_url="https://www.microsoft.com/en-us/software-download/windows10" ;;
+    win2k22) dl_url="https://www.microsoft.com/en-us/evalcenter/evaluate-windows-server-2022" ;;
+    win2k19) dl_url="https://www.microsoft.com/en-us/evalcenter/evaluate-windows-server-2019" ;;
+  esac
+  note "no encontré '$iso' — abriendo la página oficial de descarga. Bajalo y volvé a correr archfrican-vm-windows."
+  have xdg-open && xdg-open "$dl_url" >/dev/null 2>&1 &
+  exit 1
+fi
 
 mem="$(fuzzel --dmenu --prompt-only='  RAM en MB (enter = 4096)  ')" || exit 0
 mem="${mem:-4096}"
