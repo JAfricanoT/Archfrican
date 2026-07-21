@@ -7,7 +7,7 @@ set -euo pipefail
 source "$(dirname "$0")/../lib/archfrican-common.sh"
 have fuzzel || { echo "fuzzel required" >&2; exit 1; }
 have_desktop() { local id="$1" d; for d in "${ARCHFRICAN_APPDIRS[@]}"; do [ -e "$d/$id" ] && return 0; done; return 1; }
-is_installed() { if [ "$1" = cli ]; then have "$2"; else have_desktop "$2"; fi; }   # CLI tool (cmd) vs GUI app (.desktop)
+is_installed() { case "$1" in cli) have "$2" ;; action) return 0 ;; *) have_desktop "$2" ;; esac; }   # CLI tool (cmd) vs GUI app (.desktop) vs always-available action
 
 list_apps() {   # "Name<TAB>id.desktop" for every visible app — the fallback ("Otra app instalada…")
   list_desktop_apps | cut -f1,2 | sort -u
@@ -172,6 +172,7 @@ category_data() {   # category_data <slug> ; sets HOW, TARGETS, ROWS (global, fo
       HOW=none; TARGETS=''
       ROWS=(
         "Máquinas virtuales (virt-manager)|virt-manager.desktop|module:67-virtualization"
+        "Crear VM de Windows (guiado)…|archfrican-vm-windows|$HOME/.local/bin/archfrican-vm-windows|action"
       ) ;;
     *) return 1 ;;
   esac
@@ -193,6 +194,9 @@ apply_category() {   # apply_category <slug> <display> ; same dispatch category(
   for row in "${ROWS[@]}"; do
     IFS='|' read -r disp id spec row_how <<<"$row"; row_how="${row_how:-$HOW}"
     [ "$disp" = "$want" ] || continue
+    # action: always "installed" (never "⤓ Instalar…") — picking it just runs $spec directly,
+    # no install-check/default-assignment semantics apply (e.g. a guided helper, not an app).
+    [ "$row_how" = action ] && exec "$spec"
     if ! is_installed "$row_how" "$id"; then
       do_install "$spec" || return 0
       if ! is_installed "$row_how" "$id" && ! pkg_installed "$spec"; then note "$disp no quedó instalado"; return 0; fi
