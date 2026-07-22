@@ -159,7 +159,11 @@ fi
 # disk and it "disappears" from the boot menu though the system is fully installed.
 grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=Archfrican --recheck
 grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=Archfrican --removable --recheck
-grub-mkconfig -o /boot/grub/grub.cfg
+# timeout: same cap as lib/grub.sh's regen_grub (the shared helper every Phase-2 module uses) —
+# os-prober can't be installed yet at this point (base install hasn't run any opt-in modules), so
+# there's no live hang risk today, but capping it keeps every grub-mkconfig call site in the repo
+# consistent instead of leaving this one bedrock-installer call as the sole unguarded exception.
+timeout 300 grub-mkconfig -o /boot/grub/grub.cfg
 # Guard (same style as the cryptdevice FATAL above): abort if neither EFI binary actually landed.
 [ -f /boot/EFI/Archfrican/grubx64.efi ] || { echo 'FATAL: GRUB missing in ESP (EFI/Archfrican/grubx64.efi)'; exit 1; }
 [ -f /boot/EFI/BOOT/BOOTX64.EFI ]       || { echo 'FATAL: removable-fallback GRUB missing (EFI/BOOT/BOOTX64.EFI)'; exit 1; }
