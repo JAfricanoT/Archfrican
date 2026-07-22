@@ -141,6 +141,15 @@ category_data() {   # category_data <slug> ; sets HOW, TARGETS, ROWS (global, fo
         "gThumb|org.gnome.gThumb.desktop|repo:gthumb"
         "imv|imv.desktop|repo:imv"
       ) ;;
+    ofimatica)
+      # One id -> every target (doc/xls/ppt legacy + OOXML + ODF) works because OnlyOffice
+      # DesktopEditors is a single unified app/window for all three, unlike LibreOffice (separate
+      # Writer/Calc/Impress .desktop files per format — doesn't fit this category's one-id model).
+      HOW=mime
+      TARGETS='application/msword application/vnd.openxmlformats-officedocument.wordprocessingml.document application/vnd.ms-excel application/vnd.openxmlformats-officedocument.spreadsheetml.sheet application/vnd.ms-powerpoint application/vnd.openxmlformats-officedocument.presentationml.presentation application/vnd.oasis.opendocument.text application/vnd.oasis.opendocument.spreadsheet application/vnd.oasis.opendocument.presentation'
+      ROWS=(
+        "OnlyOffice|onlyoffice-desktopeditors.desktop|aur:onlyoffice-bin"
+      ) ;;
     correo)
       HOW=mime; TARGETS='x-scheme-handler/mailto'
       ROWS=(
@@ -209,7 +218,8 @@ apply_category() {   # apply_category <slug> <display> ; same dispatch category(
 
 CATEGORY_LABELS=(
   "browser|Navegador web" "editor|Editor / IDE" "ia-cli|IA / agentes (CLI)" "terminal|Terminal"
-  "archivos|Gestor de archivos" "pdf|Visor de PDF" "imagenes|Visor de imágenes" "correo|Correo"
+  "archivos|Gestor de archivos" "pdf|Visor de PDF" "imagenes|Visor de imágenes"
+  "ofimatica|Ofimática (Word/Excel/PowerPoint)" "correo|Correo"
   "contenedores|Gestor de contenedores" "mensajeria|Mensajería" "remoto|Acceso remoto"
   "virtualizacion|Máquinas virtuales"
 )
@@ -221,7 +231,8 @@ case "${1:-}" in
     walker_menu defaults
     cat="$(printf '%s\n' \
       "Navegador web" "Editor / IDE" "IA / agentes (CLI)" "Terminal" "Gestor de archivos" \
-      "Visor de PDF" "Visor de imágenes" "Correo" "Gestor de contenedores" "Mensajería" \
+      "Visor de PDF" "Visor de imágenes" "Ofimática (Word/Excel/PowerPoint)" "Correo" \
+      "Gestor de contenedores" "Mensajería" \
       "Acceso remoto" "Máquinas virtuales" "Control de versiones · Git…" \
       | fuzzel --dmenu --prompt '  app por defecto  ')" || exit 0
     slug=""
@@ -234,6 +245,7 @@ case "${1:-}" in
       "Gestor de archivos") slug=archivos ;;
       "Visor de PDF") slug=pdf ;;
       "Visor de imágenes") slug=imagenes ;;
+      "Ofimática (Word/Excel/PowerPoint)") slug=ofimatica ;;
       "Correo") slug=correo ;;
       "Gestor de contenedores") slug=contenedores ;;
       "Mensajería") slug=mensajeria ;;

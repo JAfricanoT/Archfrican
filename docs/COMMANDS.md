@@ -960,9 +960,9 @@ archfrican-gh-status
 ## archfrican-defaults
 
 Set default applications per category (browser, terminal, IDE, PDF viewer, image viewer,
-file manager, email, container manager, messaging, remote desktop). Smarter than
-`xdg-settings`: shows only apps you have installed, plus install shortcuts for common ones
-you don't.
+office suite, file manager, email, container manager, messaging, remote desktop). Smarter
+than `xdg-settings`: shows only apps you have installed, plus install shortcuts for common
+ones you don't.
 
 ```
 archfrican-defaults
