@@ -276,3 +276,24 @@ check_keyd() {
   if systemctl is-active --quiet keyd 2>/dev/null; then _h_ok "keyd" "active (⌘→Ctrl layer)"
   else _h_amber "keyd" "installed but not active — sudo systemctl enable --now keyd"; fi
 }
+
+# RustDesk and AnyDesk both ship their systemd service DISABLED and settle for a post-install note
+# telling you to run `systemctl enable --now`. Installed-but-inactive is the worst kind of broken:
+# the app launches, shows an ID, looks entirely healthy — while the daemon that registers this box
+# with the ID server isn't running, so every INBOUND connection fails and the only symptom appears
+# on the OTHER machine. Nothing local ever hints at it, which is exactly why this check exists.
+# AMBER. archfrican-defaults' "Acceso remoto" category now switches the daemon on when you pick the
+# app (ensure_service), so this catches boxes installed before that, or a manual `systemctl disable`.
+check_remote_desktop() {
+  _h_have systemctl || { _h_skip "remote desktop"; return; }
+  local unit found="" off=""
+  for unit in rustdesk.service anydesk.service; do
+    systemctl list-unit-files --no-legend -- "$unit" 2>/dev/null | grep -q . || continue
+    found="${found:+$found+}${unit%.service}"
+    systemctl is-enabled --quiet "$unit" 2>/dev/null && systemctl is-active --quiet "$unit" 2>/dev/null && continue
+    off="${off:+$off }$unit"
+  done
+  if [ -z "$found" ]; then _h_skip "remote desktop" "not installed"
+  elif [ -z "$off" ]; then _h_ok "remote desktop" "$found daemon active (this machine is reachable)"
+  else _h_amber "remote desktop" "$found installed but its daemon is off — nobody can connect IN: sudo systemctl enable --now $off"; fi
+}
