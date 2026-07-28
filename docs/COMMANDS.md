@@ -55,7 +55,7 @@ archfrican-update --prune       # review and remove orphaned managed packages
 
 ## archfrican-doctor
 
-System health monitor. Runs 24 checks across disk, services, packages, security,
+System health monitor. Runs 25 checks across disk, services, packages, security,
 and Archfrican config. Safe to run anytime — never modifies the system except with `--fix`.
 
 ```
@@ -1006,6 +1006,13 @@ Interactive fuzzel menu. Assigns all relevant MIME types for the chosen category
 "Acceso remoto" (RustDesk, AnyDesk), and "Máquinas virtuales" (virt-manager — installs the whole
 `67-virtualization` module: KVM/QEMU, libvirt, the nftables-backed default network, not just the
 package) categories have no MIME/default-handler concept — picking one just installs it and confirms.
+
+"Acceso remoto" does one thing more: it also switches on the app's system daemon
+(`rustdesk.service` / `anydesk.service`), which both packages ship **disabled** behind a
+post-install note. Without that daemon the machine never registers with the ID server, so the app
+looks installed and working while every *inbound* connection fails — a symptom only visible from
+the other end. Re-picking an already-installed app is the repair path for a machine in that state;
+`archfrican-doctor` also flags it (amber, "remote desktop").
 
 ---
 
