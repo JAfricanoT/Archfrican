@@ -63,6 +63,59 @@ if [ "$rc" -ne 0 ]; then _ok "list_category on an unknown slug exits non-zero (c
 out="$(run __apply contenedores 'LazyDocker' 2>&1)"
 if printf '%s\n' "$out" | grep -qi 'listo'; then _ok "apply_category(contenedores, LazyDocker): recognizes it's already installed, no install attempted"; else _no "apply_category did not report LazyDocker as ready: [$out]"; fi
 
+# ---- 5. apply_category(remoto): an ALREADY-installed app still gets its daemon switched on --------
+# RustDesk and AnyDesk both ship their systemd service DISABLED (upstream just prints a post-install
+# "run systemctl enable --now …" note nobody reads). Without that daemon the box never registers with
+# the ID server, so every INBOUND connection fails while the app itself looks perfectly installed.
+# The daemon step must therefore run on EVERY pick, not only after a fresh install — a machine where
+# the app is already installed but its service is off is exactly the broken case this repairs.
+# Stubs: systemctl reports the unit as present-but-off; ghostty logs its argv instead of opening a window.
+cat > "$HOME/.local/share/applications/rustdesk.desktop" <<'DESKTOP'
+[Desktop Entry]
+Type=Application
+Name=RustDesk
+Exec=rustdesk
+DESKTOP
+cat > "$WORK/fakebin/systemctl" <<'SYSCTL'
+#!/bin/sh
+case " $* " in
+  *" list-unit-files "*) echo "rustdesk.service disabled disabled"; exit 0 ;;
+esac
+exit 1   # is-enabled / is-active: the daemon is OFF
+SYSCTL
+cat > "$WORK/fakebin/ghostty" <<'GHOSTTY'
+#!/bin/sh
+printf '%s\n' "$*" >> "$GHOSTTY_LOG"
+GHOSTTY
+chmod +x "$WORK/fakebin/systemctl" "$WORK/fakebin/ghostty"
+export GHOSTTY_LOG="$WORK/ghostty.log"; : > "$GHOSTTY_LOG"
+run __apply remoto 'RustDesk' >/dev/null 2>&1
+if grep -q 'enable --now' "$GHOSTTY_LOG" && grep -q 'rustdesk.service' "$GHOSTTY_LOG"; then
+  _ok "apply_category(remoto, RustDesk): switches on the rustdesk.service daemon when it's off"
+else _no "apply_category(remoto, RustDesk) did not enable rustdesk.service: [$(cat "$GHOSTTY_LOG")]"; fi
+
+# ---- 6. …and is a no-op when that daemon is already enabled + running (idempotent re-pick) --------
+# list-unit-files still prints the unit here: an empty answer means "no unit shipped", which would
+# make ensure_service bail out early and produce the same empty log for the wrong reason.
+cat > "$WORK/fakebin/systemctl" <<'SYSCTL'
+#!/bin/sh
+case " $* " in
+  *" list-unit-files "*) echo "rustdesk.service enabled enabled"; exit 0 ;;
+esac
+exit 0   # is-enabled / is-active: the daemon is already up
+SYSCTL
+chmod +x "$WORK/fakebin/systemctl"
+: > "$GHOSTTY_LOG"
+run __apply remoto 'RustDesk' >/dev/null 2>&1
+if [ ! -s "$GHOSTTY_LOG" ]; then _ok "apply_category(remoto, RustDesk): no terminal spawned when the daemon is already up"
+else _no "apply_category re-enabled an already-running daemon: [$(cat "$GHOSTTY_LOG")]"; fi
+
+# ---- 7. the extra service field does not leak into row_how (every read site parses 5 fields) ------
+# The rows carrying a unit name have one field MORE than the rest; `read -r a b c d` would stuff
+# "none|rustdesk.service" into row_how and silently break is_installed()'s cli/none/desktop dispatch.
+out="$(run __list remoto)"
+if printf '%s\n' "$out" | grep -qP '^RustDesk\t1$'; then _ok "list_category(remoto): 5-field rows still parse (RustDesk reported installed)"; else _no "list_category(remoto) mis-parsed the service field: [$out]"; fi
+
 rm -rf "$WORK"
 printf '\ndefaults unit test: %d passed, %d failed\n' "$P" "$F"
 [ "$F" -eq 0 ]

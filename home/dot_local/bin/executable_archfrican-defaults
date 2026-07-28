@@ -79,6 +79,36 @@ pkg_installed() {  # did the package from this <spec> install? (repo/aur via pac
   esac
 }
 
+# A few apps are only HALF installed by their package: the daemon that does the actual work ships
+# disabled, and upstream settles for a post-install note nobody ever sees. Both remote-desktop picks
+# are like this — rustdesk-bin prints "The RustDesk daemon must be started for RustDesk to work […]
+# systemctl enable --now rustdesk", anydesk-bin the same for unattended access. Without it the box
+# never registers with the ID server, so every INBOUND connection fails (the app itself launches and
+# looks perfectly installed, which is what makes this so confusing to diagnose from the other end).
+# Runs on EVERY pick, not just after a fresh install: a machine where the app was already installed
+# with its service off is exactly the case this repairs — re-picking it in this menu is the fix.
+ensure_service() {   # ensure_service <unit> <display>
+  local unit="$1" disp="$2"
+  have systemctl || return 0
+  # No such unit (package dropped it, or a flatpak/other build) — nothing to enable, stay quiet.
+  systemctl list-unit-files --no-legend -- "$unit" 2>/dev/null | grep -q . || return 0
+  if systemctl is-enabled --quiet "$unit" 2>/dev/null && systemctl is-active --quiet "$unit" 2>/dev/null; then
+    return 0
+  fi
+  have ghostty || { note "$disp: activá su servicio con  sudo systemctl enable --now $unit"; return 0; }
+  # Positional args into the inner sh, never string-interpolated into its script text (the same
+  # pattern archfrican-vm-windows uses) — these values are hardcoded in the table above, but the
+  # quoting stays safe by construction rather than by trusting the caller.
+  # shellcheck disable=SC2016  # $1/$2 are expanded by the INNER sh, single quotes are intentional
+  ghostty -e sh -c '
+    echo "$2 necesita su servicio de sistema activo para aceptar conexiones entrantes."
+    echo "Sin él la app abre igual, pero nadie puede conectarse a esta máquina."
+    echo
+    sudo systemctl enable --now "$1" || echo "no se pudo activar $1"
+    printf "\n(enter para cerrar) "; read -r _
+  ' _ "$unit" "$disp"
+}
+
 apply_default() {  # apply_default <desktop-id> <how> [mime...] ; how = browser | mime | terminal
   local id="$1" how="$2"; shift 2
   case "$how" in
@@ -182,10 +212,12 @@ category_data() {   # category_data <slug> ; sets HOW, TARGETS, ROWS (global, fo
         "WhatsApp (web app)|archfrican-webapp-whatsapp.desktop|webapp:WhatsApp,https://web.whatsapp.com"
       ) ;;
     remoto)
+      # 5th field = the systemd unit that must be RUNNING for the app to be reachable at all; see
+      # ensure_service(). Unique to this category so far — every other row leaves it empty.
       HOW=none; TARGETS=''
       ROWS=(
-        "RustDesk|rustdesk.desktop|aur:rustdesk-bin"
-        "AnyDesk|anydesk.desktop|aur:anydesk-bin"
+        "RustDesk|rustdesk.desktop|aur:rustdesk-bin|none|rustdesk.service"
+        "AnyDesk|anydesk.desktop|aur:anydesk-bin|none|anydesk.service"
       ) ;;
     virtualizacion)
       HOW=none; TARGETS=''
@@ -199,19 +231,22 @@ category_data() {   # category_data <slug> ; sets HOW, TARGETS, ROWS (global, fo
 
 list_category() {   # list_category <slug> ; TSV: display<TAB>installed(0|1)
   category_data "$1" || return 1
-  local row disp id spec row_how
+  # svc is read even though this function ignores it: `read` stuffs everything after the 4th
+  # delimiter into the LAST variable, so parsing one field short would leave row_how holding
+  # "none|rustdesk.service" and break the cli/none/desktop dispatch in is_installed().
+  local row disp id spec row_how svc
   for row in "${ROWS[@]}"; do
-    IFS='|' read -r disp id spec row_how <<<"$row"; row_how="${row_how:-$HOW}"
+    IFS='|' read -r disp id spec row_how svc <<<"$row"; row_how="${row_how:-$HOW}"
     if is_installed "$row_how" "$id"; then printf '%s\t1\n' "$disp"; else printf '%s\t0\n' "$disp"; fi
   done
 }
 
 apply_category() {   # apply_category <slug> <display> ; same dispatch category()'s second half already did
   category_data "$1" || return 1
-  local want="$2" row disp id spec row_how
+  local want="$2" row disp id spec row_how svc
   local tgt=(); [ -n "$TARGETS" ] && read -r -a tgt <<<"$TARGETS"
   for row in "${ROWS[@]}"; do
-    IFS='|' read -r disp id spec row_how <<<"$row"; row_how="${row_how:-$HOW}"
+    IFS='|' read -r disp id spec row_how svc <<<"$row"; row_how="${row_how:-$HOW}"
     [ "$disp" = "$want" ] || continue
     # action: always "installed" (never "⤓ Instalar…") — picking it just runs $spec directly,
     # no install-check/default-assignment semantics apply (e.g. a guided helper, not an app).
@@ -226,6 +261,9 @@ apply_category() {   # apply_category <slug> <display> ; same dispatch category(
       do_install "$spec" || return 0
       if ! is_installed "$row_how" "$id" && ! pkg_installed "$spec"; then note "$disp no quedó instalado"; return 0; fi
     fi
+    # AFTER the install check and OUTSIDE it: an app that was already installed with its daemon
+    # off is the case that needs this most (see ensure_service).
+    if [ -n "$svc" ]; then ensure_service "$svc" "$disp"; fi
     if [ "$row_how" = cli ] || [ "$row_how" = none ]; then note "$disp listo ✓"
     else apply_default "$id" "$row_how" ${tgt[@]+"${tgt[@]}"}; note "Por defecto: $disp"; fi
     return 0
@@ -272,7 +310,7 @@ case "${1:-}" in
     category_data "$slug"
     local_prompt="$(printf '%s\n' "${CATEGORY_LABELS[@]}" | awk -F'|' -v s="$slug" '$1==s{print $2}')"
     entries=(); for row in "${ROWS[@]}"; do
-      IFS='|' read -r disp id spec row_how <<<"$row"; row_how="${row_how:-$HOW}"
+      IFS='|' read -r disp id spec row_how svc <<<"$row"; row_how="${row_how:-$HOW}"   # svc: see list_category
       if is_installed "$row_how" "$id"; then entries+=("$disp"); else entries+=("⤓ Instalar $disp…"); fi
     done
     [ "$HOW" = cli ] || entries+=("Otra app instalada…")
