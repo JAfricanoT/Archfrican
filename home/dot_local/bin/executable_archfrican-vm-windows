@@ -78,13 +78,18 @@ pool_iso="/var/lib/libvirt/images/$(basename "$iso")"
 # nothing pre-expanded by this shell) instead of interpolating into the string, so a quote or shell
 # metacharacter typed into any prompt can't break out and inject commands. Same idiom already used
 # by archfrican-migrate for its own free-text (git URL) prompt.
+# NB: the whole block below is a single-quoted string — no apostrophes allowed anywhere inside it,
+# not even in a comment, or the quoting breaks (caught by shellcheck the first time this was tried).
+# Copy-then-rename below: an interrupted `cp` (closed terminal, suspend, full disk) never leaves a
+# truncated file at the final path, so a re-run cannot be fooled into feeding virt-install a corrupt ISO.
 # shellcheck disable=SC2016  # $1.. are expanded by the INNER sh -c, single quotes are intentional
 ghostty -e sh -c '
   set -e
   pool_iso="$1"; iso="$2"; mem="$3"; vm_name="$4"; vcpus="$5"; disk="$6"; virtio_iso="$7"; osv="$8"
   if [ ! -f "$pool_iso" ]; then
     echo "Copiando el ISO de Windows al pool de libvirt (puede tardar varios minutos)..."
-    sudo cp "$iso" "$pool_iso"
+    sudo cp "$iso" "$pool_iso.tmp"
+    sudo mv "$pool_iso.tmp" "$pool_iso"
     sudo chmod 644 "$pool_iso"
   fi
   virt-install \

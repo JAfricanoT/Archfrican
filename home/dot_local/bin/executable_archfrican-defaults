@@ -205,7 +205,13 @@ apply_category() {   # apply_category <slug> <display> ; same dispatch category(
     [ "$disp" = "$want" ] || continue
     # action: always "installed" (never "⤓ Instalar…") — picking it just runs $spec directly,
     # no install-check/default-assignment semantics apply (e.g. a guided helper, not an app).
-    [ "$row_how" = action ] && exec "$spec"
+    # Guarded like the webapp case above: exec-ing a missing/non-executable $spec under
+    # set -euo pipefail would otherwise kill the whole archfrican-defaults process with a raw
+    # "exec: ...: No such file or directory" instead of this file's own friendly note().
+    if [ "$row_how" = action ]; then
+      [ -x "$spec" ] || { note "$disp no disponible"; return 0; }
+      exec "$spec"
+    fi
     if ! is_installed "$row_how" "$id"; then
       do_install "$spec" || return 0
       if ! is_installed "$row_how" "$id" && ! pkg_installed "$spec"; then note "$disp no quedó instalado"; return 0; fi
