@@ -17,6 +17,7 @@ do_dotfiles() {
 }
 do_keys() {
   local src; src="$(ask 'carpeta de respaldo (ej: /run/media/USB):  ')" || return
+  src="${src/#\~/$HOME}"  # fuzzel returns the literal text typed — no shell to expand a leading ~ for us
   [ -d "$src" ] || { note "no existe: $src"; return; }
   if [ -d "$src/.ssh" ]; then
     mkdir -p "$HOME/.ssh"; cp -an "$src/.ssh/." "$HOME/.ssh/" 2>/dev/null || true
