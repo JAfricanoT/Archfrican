@@ -73,26 +73,33 @@ vcpus="${vcpus:-2}"
 # same reasoning already documented in modules/67-virtualization.sh for the virtio-win ISO itself.
 pool_iso="/var/lib/libvirt/images/$(basename "$iso")"
 
-ghostty -e sh -c "
+# All of name/iso/mem/disk/vcpus/pool_iso came from free-text fuzzel prompts (or a basename
+# derived from one) — pass them as positional args to the INNER sh -c (outer string single-quoted,
+# nothing pre-expanded by this shell) instead of interpolating into the string, so a quote or shell
+# metacharacter typed into any prompt can't break out and inject commands. Same idiom already used
+# by archfrican-migrate for its own free-text (git URL) prompt.
+# shellcheck disable=SC2016  # $1.. are expanded by the INNER sh -c, single quotes are intentional
+ghostty -e sh -c '
   set -e
-  if [ ! -f '$pool_iso' ]; then
-    echo 'Copiando el ISO de Windows al pool de libvirt (puede tardar varios minutos)...'
-    sudo cp '$iso' '$pool_iso'
-    sudo chmod 644 '$pool_iso'
+  pool_iso="$1"; iso="$2"; mem="$3"; vm_name="$4"; vcpus="$5"; disk="$6"; virtio_iso="$7"; osv="$8"
+  if [ ! -f "$pool_iso" ]; then
+    echo "Copiando el ISO de Windows al pool de libvirt (puede tardar varios minutos)..."
+    sudo cp "$iso" "$pool_iso"
+    sudo chmod 644 "$pool_iso"
   fi
   virt-install \
     --connect qemu:///system \
-    --name '$name' \
-    --memory '$mem' \
-    --vcpus '$vcpus' \
-    --disk size='$disk',bus=virtio \
-    --cdrom '$pool_iso' \
-    --disk path='$VIRTIO_ISO',device=cdrom,bus=sata \
-    --os-variant '$osv' \
+    --name "$vm_name" \
+    --memory "$mem" \
+    --vcpus "$vcpus" \
+    --disk size="$disk",bus=virtio \
+    --cdrom "$pool_iso" \
+    --disk path="$virtio_iso",device=cdrom,bus=sata \
+    --os-variant "$osv" \
     --tpm default \
     --boot uefi \
     --graphics spice
-  printf '\n(enter para cerrar) '; read -r _
-"
+  printf "\n(enter para cerrar) "; read -r _
+' _ "$pool_iso" "$iso" "$mem" "$name" "$vcpus" "$disk" "$VIRTIO_ISO" "$osv"
 
 note "VM '$name' creada. Si Windows no detecta la red durante el setup: Load driver -> segundo CD-ROM (virtio-win) -> NetKVM\\$osv\\amd64"
