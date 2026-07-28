@@ -112,8 +112,26 @@ Bluetooth/pipewire entries, already pulled in by 20-niri-desktop).
 | `/etc/sddm.conf.d/10-archfrican.conf` | Wayland session, remember last user |
 | `/usr/share/backgrounds/archfrican/` | Curated Archfrican wallpapers (pickable in the install wizard) |
 | `/etc/bluetooth/main.conf.d/10-archfrican.conf` | Bluetooth auto-power-on |
+| `/etc/NetworkManager/dispatcher.d/50-archfrican-multicast` | Pins `224.0.0.0/4` to the LAN uplink (via `/usr/local/bin/archfrican-multicast-route`) so a full-tunnel VPN can't swallow LAN discovery — see below |
 | Services enabled | `sddm`, `NetworkManager`, `bluetooth`, `power-profiles-daemon` |
 | User sockets | `pipewire.socket`, `pipewire-pulse.socket`, `wireplumber.service` |
+
+**LAN multicast vs. a full-tunnel VPN**
+
+A VPN like Mullvad doesn't just add a default route — it adds a policy rule
+`from all lookup main suppress_prefixlength 0`, which hides *default* routes from the `main`
+lookup. LAN unicast still works (a `/24` survives the suppression), but every multicast group has
+no specific route in `main`, so it falls through to the VPN's table and is sent **into the tunnel**
+with the tunnel's source address. That kills LocalSend (`224.0.0.167`), mDNS/Avahi (`224.0.0.251`,
+so network printers too) and SSDP/DLNA/Chromecast (`239.255.255.250`) — *even with the VPN's own
+"local network sharing" enabled*, because that setting is a firewall exception, not a route.
+
+The symptom is asymmetric and easy to misread: **this** machine still sees its peers (LocalSend also
+sweeps the subnet over unicast HTTP) while **no peer ever sees it**. The dispatcher pins
+`224.0.0.0/4` to the LAN uplink in `main` — prefix length 4, so the suppression no longer hides it —
+restoring exactly what a VPN-less box already does. It is a no-op when no VPN is connected, is
+skipped for tunnels and container/VM bridges, and mirrors the uplink's own route metric so multicast
+follows the same interface NetworkManager prefers. Covered by `tests/unit/multicast-route.sh`.
 
 **Re-run**: `./install.sh 15-desktop-services`
 

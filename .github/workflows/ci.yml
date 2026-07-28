@@ -347,6 +347,8 @@ jobs:
         run: bash tests/unit/defaults.sh
       - name: resume-guard — counter/marker never depend on sudo succeeding (the fail-closed bug)
         run: bash tests/unit/resume-guard.sh
+      - name: multicast-route — 224.0.0.0/4 pinned to the LAN uplink, never a VPN tunnel or a bridge
+        run: bash tests/unit/multicast-route.sh
 
   modules-list-consistency:
     runs-on: ubuntu-latest        # 5 independent lists of module names must stay in sync, or drift silently

@@ -388,6 +388,34 @@ BATTERY=balanced   # profile to use on battery  (default: power-saver)
 
 ---
 
+## archfrican-multicast-route
+
+Internal helper (you rarely call it by hand): pins `224.0.0.0/4` to the LAN interface so a
+full-tunnel VPN can't swallow LAN discovery. A NetworkManager dispatcher script
+(`/etc/NetworkManager/dispatcher.d/50-archfrican-multicast`, installed by module
+`15-desktop-services`) fires it on every connection up/down.
+
+**The problem it fixes.** Mullvad, ProtonVPN, NordVPN and friends install the policy rule
+`from all lookup main suppress_prefixlength 0`, which hides *default* routes from the `main`
+lookup. LAN unicast is unaffected, but multicast groups have no specific route in `main`, so they
+fall through to the VPN's table and go **into the tunnel** — breaking LocalSend (`224.0.0.167`),
+mDNS/Avahi (`224.0.0.251`) and SSDP/DLNA/Chromecast (`239.255.255.250`). The VPN's own "local
+network sharing" toggle does **not** fix this: it is a firewall exception, not a route.
+
+The giveaway is asymmetry — your machine sees its peers, but no peer sees your machine.
+
+```
+ip route get 224.0.0.167                        # want: dev <your LAN nic>, NOT dev wg0-mullvad
+sudo archfrican-multicast-route enp3s0 up       # pin it now (replace enp3s0 with your NIC)
+sudo archfrican-multicast-route enp3s0 down     # remove the pin
+```
+
+Skipped for tunnels (`wg*`, `tun*`, `tailscale*`, …) and container/VM bridges (`docker*`,
+`virbr*`, `br-*`, …), and for any interface with no IPv4 default route. A no-op with no VPN
+connected.
+
+---
+
 ## archfrican-vpn
 
 VPN connection manager: Tailscale mesh or NetworkManager (WireGuard/OpenVPN/OpenConnect).

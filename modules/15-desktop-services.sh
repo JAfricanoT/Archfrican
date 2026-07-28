@@ -69,6 +69,27 @@ enable_service sddm.service
 substep "enabling NetworkManager (the network daemon)"
 resilient_enable NetworkManager.service
 
+# Keep LAN multicast on the LAN when a full-tunnel VPN owns the default route. A VPN's policy
+# routing (`suppress_prefixlength 0` + its own table) sends every multicast group INTO the tunnel,
+# which silently kills LocalSend/mDNS/SSDP discovery even with the VPN's own "local network
+# sharing" enabled — see the long rationale in bin/archfrican-multicast-route. Installed as a
+# root-owned COPY, not a symlink into the repo: NetworkManager runs dispatcher scripts as root and
+# the repo lives in a user-writable $HOME.
+substep "keeping LAN multicast off the VPN tunnel (LocalSend/mDNS/SSDP discovery)"
+sudo install -D -m 0755 "$REPO_ROOT/bin/archfrican-multicast-route" /usr/local/bin/archfrican-multicast-route
+write_system_file /etc/NetworkManager/dispatcher.d/50-archfrican-multicast 0755 <<'DISPATCH'
+#!/bin/sh
+# Archfrican: pin 224.0.0.0/4 to the LAN interface so a VPN tunnel can't swallow LAN discovery.
+# Logic + full rationale: /usr/local/bin/archfrican-multicast-route.
+exec /usr/local/bin/archfrican-multicast-route "$@"
+DISPATCH
+# Apply to the CURRENT uplink(s) too — otherwise the fix stays inert until the next reconnect
+# (the same "shipped but not live until reboot" trap the nftables reload in 60-security fixes).
+for _dev in $(ip -4 route show default 2>/dev/null | awk '{for (i = 1; i < NF; i++) if ($i == "dev") print $(i + 1)}' | sort -u); do
+  best_effort sudo /usr/local/bin/archfrican-multicast-route "$_dev" up
+done
+unset _dev
+
 # user audio services (socket-activated). Enable linger so they can run without a
 # graphical login; resilient_enable_user skips any unit absent on this pipewire build.
 substep "enabling audio (pipewire + wireplumber)"

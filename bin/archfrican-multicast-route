@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+# archfrican-multicast-route <iface> <action> — keep LAN multicast on the LAN, not in a VPN tunnel.
+# Invoked as root by /etc/NetworkManager/dispatcher.d/50-archfrican-multicast on every connection
+# event (modules/15-desktop-services.sh installs both, and applies it once at converge time).
+#
+# WHY. A full-tunnel VPN (Mullvad, ProtonVPN, NordVPN, a Tailscale exit node…) does not just add a
+# default route — it installs policy-routing rules of this shape:
+#     32764:  from all lookup main suppress_prefixlength 0
+#     32765:  not from all fwmark 0x…  lookup <vpn-table>
+# `suppress_prefixlength 0` makes the `main` lookup skip DEFAULT routes only. So LAN unicast still
+# resolves correctly on the LAN (192.168.1.0/24 dev enp3s0 is a /24, it survives the suppression),
+# but any destination with NO specific route in `main` — which is every multicast group — falls
+# through to the VPN table and is sent INTO the tunnel, with the tunnel's source address.
+#
+# That silently breaks every LAN discovery protocol that announces over multicast: LocalSend
+# (224.0.0.167), mDNS/Avahi (224.0.0.251, so network printers/scanners too), SSDP/DLNA/Chromecast
+# (239.255.255.250). The symptom is asymmetric and very confusing: this box still FINDS its peers
+# (LocalSend also sweeps the local subnet over unicast HTTP, which routes over the LAN fine) while
+# NO peer ever sees IT, because its own announcements never reach the wire.
+#
+# Verified live on a daily driver: with Mullvad connected AND its "local network sharing" setting
+# already set to `allow`, `ip route get 224.0.0.167` returned
+#     multicast 224.0.0.167 dev wg0-mullvad table <vpn> src 10.165.235.0
+# A VPN's LAN allowance is a FIREWALL exception — it does not add a multicast route, so it cannot
+# fix this on its own.
+#
+# FIX. Pin 224.0.0.0/4 to the LAN interface in `main`. Its prefix length is 4, not 0, so
+# `suppress_prefixlength 0` no longer hides it and the multicast lookup resolves on the LAN again.
+# This restores exactly the behaviour of a box with no VPN (where the default route already covered
+# multicast), which is why it is a harmless no-op whenever no VPN is connected.
+set -uo pipefail
+
+iface="${1:-}"; action="${2:-}"
+[ -n "$iface" ] || exit 0
+command -v ip >/dev/null 2>&1 || exit 0
+
+# Multicast belongs on the physical LAN link. Never a tunnel (pinning it there IS the bug), and
+# never a container/VM bridge (announcements would leave on a bridge no peer is listening on).
+case "$iface" in
+  lo|wg*|tun*|tap*|ppp*|tailscale*|nordlynx*|proton*|zt*|ipsec*|utun*) exit 0 ;;
+  docker*|podman*|virbr*|br-*|veth*|vmnet*|vboxnet*)                   exit 0 ;;
+esac
+
+case "$action" in
+  up|dhcp4-change)
+    # Only an uplink: the interface holding an IPv4 default route is the one whose LAN we want
+    # multicast on. An unplugged or address-less NIC has none and is left alone.
+    def="$(ip -4 route show default dev "$iface" 2>/dev/null | head -n1)"
+    [ -n "$def" ] || exit 0
+    # Mirror the interface's own default-route metric so that with Ethernet AND Wi-Fi up, multicast
+    # follows the same preferred uplink NetworkManager picked. Metric-less default routes are real
+    # (static profiles), hence the fallback rather than an empty `metric` argument.
+    metric="${def##*metric }"; metric="${metric%% *}"
+    case "$metric" in ''|*[!0-9]*) metric=1000 ;; esac
+    # del-then-replace, both best-effort: the `del` clears a route left at a now-stale metric (the
+    # uplink changed priority), which a bare `replace` would leave behind as a duplicate.
+    ip route del     224.0.0.0/4 dev "$iface" table main                   2>/dev/null
+    ip route replace 224.0.0.0/4 dev "$iface" table main metric "$metric"  2>/dev/null
+    ;;
+  down)
+    ip route del 224.0.0.0/4 dev "$iface" table main 2>/dev/null
+    ;;
+esac
+exit 0
