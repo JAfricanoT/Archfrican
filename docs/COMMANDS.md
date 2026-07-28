@@ -866,6 +866,10 @@ Wayland-native apps use text-input-v3 (no env vars needed). XWayland apps need
 Enable cross-device continuity: shared clipboard, phone notifications, file transfer
 (KDE Connect + LocalSend). Opens only the required LAN-scoped firewall ports.
 
+LocalSend needs nothing from this command — it ships on every box, so its `53317/tcp+udp`
+(LAN-scoped) already sits in the module-60 firewall baseline. This opens KDE Connect's
+`1714-1764` only.
+
 ```
 archfrican-continuity
 ```

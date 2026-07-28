@@ -365,7 +365,10 @@ plus `intel-ucode` or `amd-ucode` (auto-detected).
 **Firewall (nftables)**
 
 - Default policy: drop all inbound
-- Allowed by default: loopback, established/related, ICMP, DHCPv4/v6, mDNS (5353/udp)
+- Allowed by default: loopback, established/related, ICMP, DHCPv4/v6, mDNS (5353/udp), and
+  LocalSend (53317/tcp+udp) — the last one **LAN-scoped** (RFC1918 + link-local/ULA sources only),
+  since LocalSend ships on every box and is otherwise invisible to its peers. Nothing listens on
+  53317 while the app is closed.
 - User rules: `/etc/nftables.d/archfrican-allows.nft` (managed by `fw-allow`)
 - Safety: named table (`inet filter`) — never `flush ruleset` (Docker-safe)
 - Custom `ExecStop` in the nftables unit prevents flushing Docker/Podman tables on reload

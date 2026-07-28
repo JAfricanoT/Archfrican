@@ -21,11 +21,13 @@ allow() {  # allow <tcp|udp> <dport-spec>
   done
 }
 
-note "abriendo puertos de continuidad (KDE Connect 1714-1764, LocalSend 53317)…"
+# LocalSend's 53317/tcp+udp is NOT opened here: it ships on every box, so modules/60-security.sh
+# now carries it (identically LAN-scoped) in the firewall baseline. Re-adding it here would append
+# duplicate accept rules to $FW on every run — the dedup grep above only sees this file, not the
+# rules compiled into /etc/nftables.conf.
+note "abriendo puertos de continuidad (KDE Connect 1714-1764; LocalSend ya viene abierto)…"
 allow tcp 1714-1764
 allow udp 1714-1764
-allow tcp 53317
-allow udp 53317
 
 # KDE Connect daemon as a user service (persists across logins).
 kcd=""

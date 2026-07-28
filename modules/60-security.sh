@@ -35,6 +35,18 @@ table inet filter {
         udp sport 67 udp dport 68 accept
         udp sport 547 udp dport 546 accept
         udp dport 5353 accept
+        # LocalSend — installed on EVERY box (flatpak/apps.txt), so its ports belong in the
+        # baseline: udp/53317 is the multicast discovery channel (224.0.0.167), tcp/53317 is both
+        # the transfer socket and the /api/localsend/v2/register callback a peer uses to answer an
+        # announcement. Without these the machine is INVISIBLE to every other LocalSend device
+        # while still listing them itself (it finds them with its own outbound subnet sweep) — the
+        # exact asymmetry reported from the field. LAN-scoped (RFC1918 + link-local / ULA), never
+        # reachable from a public network, and inert while the app is closed: LocalSend is a GUI
+        # app, so nothing is listening on these ports unless the user opened it.
+        ip saddr { 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 169.254.0.0/16 } udp dport 53317 accept
+        ip saddr { 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 169.254.0.0/16 } tcp dport 53317 accept
+        ip6 saddr { fe80::/10, fc00::/7 } udp dport 53317 accept
+        ip6 saddr { fe80::/10, fc00::/7 } tcp dport 53317 accept
     }
     chain forward {
         type filter hook forward priority filter; policy drop;
