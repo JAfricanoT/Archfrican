@@ -466,10 +466,10 @@ network), `swtpm` (emulated TPM 2.0 — Windows 11 guests need it), `dmidecode`.
 **First VM (Linux)**: open virt-manager, "Create a new virtual machine", point it at an install
 ISO — Linux guests have VirtIO drivers built into the kernel, no extra steps needed.
 
-**First VM (Windows)**: use `archfrican-vm-windows` (also reachable from `archfrican-actions →
-Crear VM de Windows…`) instead of virt-manager's wizard directly. It prompts for the Windows
-version/name/ISO path/resources, then runs `virt-install` pre-configured to dodge two classic
-Windows-on-KVM gotchas:
+**First VM (Windows)**: use `archfrican-vm-windows` (also reachable from `archfrican-defaults →
+Máquinas virtuales → Crear VM de Windows (guiado)…`) instead of virt-manager's wizard directly. It
+prompts for the Windows version/name/ISO path/resources, then runs `virt-install` pre-configured
+to dodge two classic Windows-on-KVM gotchas:
 
 - **The virtio-win driver ISO must be attached on a SATA bus, never VirtIO.** A VirtIO CD-ROM
   needs the VirtIO driver to even be read — exactly the driver you're trying to load *from* it.

@@ -88,9 +88,10 @@ niri auto-reload por marcadores `// THEME-START/END` en config.kdl). fuzzel usa 
 - **ISO booteable** disponible (`build-iso.sh`); reconstrucción automática semanal en CI; ver [docs/ISO.md](ISO.md).
 - **15 módulos** de fase 2: 00-base, 10-gpu, 15-desktop-services, 20-niri-desktop, 25-plasma-desktop, 30-dev, 35-apps, 40-theming, 45-print, 50-snapshots, 55-multiboot, 60-security, 65-gaming, 67-virtualization, 70-hygiene.
 - **7 temas** disponibles: adl-dark (default), adl-light, archfrican-dark, archfrican-light, catppuccin-mocha, high-contrast, tokyo-night.
-- **44 comandos** CLI en `~/.local/bin/` (ver [docs/COMMANDS.md](COMMANDS.md)).
+- **58 comandos** CLI en `~/.local/bin/` y `~/.archfrican/bin/` (ambos en PATH; ver
+  [docs/COMMANDS.md](COMMANDS.md)).
 - `theme-switch` corre desde el symlink desplegado (`~/.local/bin` → clon del repo);
-  su idempotencia la encierra el smoke-test de CI (aplica los 9 temas ×2 y comprueba
+  su idempotencia la encierra el smoke-test de CI (aplica los 7 temas ×2 y comprueba
   que no quede ningún `${VAR}` sin renderizar) sobre ghostty/fuzzel/mako/waybar y el borde de niri.
 - Switcher reescrito **sin dependencias** (sed, no envsubst/gettext) para que no rompa en máquina nueva.
 - Todos los scripts pasan `bash -n` y `shellcheck`; todos los módulos son idempotentes.

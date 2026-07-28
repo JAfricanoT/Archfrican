@@ -93,11 +93,11 @@ swaync --help | grep widget
 
 #### Implementación (en el repo)
 - Añadir `brightnessctl` a `packages/niri-desktop.txt`
-- En `templates/swaync.config.json` agregar widget `backlight`:
+- En `home/dot_config/swaync/config.json` (dotfile de chezmoi, no una plantilla — `bin/theme-switch`
+  solo renderiza `swaync.colors.css`/`swaync.style.css`, nunca `config.json`) agregar widget `backlight`:
   ```json
   { "type": "backlight", "label": "Brillo", "icon": "display-brightness-symbolic" }
   ```
-- `bin/theme-switch` ya renderiza `~/.config/swaync/config.json` — solo añadir el widget
 
 #### DDC brillo para monitores externos
 ```bash

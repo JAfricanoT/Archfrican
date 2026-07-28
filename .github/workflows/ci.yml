@@ -180,7 +180,7 @@ jobs:
             grep -qi "$acc" "$HOME/.config/gtk-3.0/gtk.css" \
               || { echo "::error::accent $acc did not reach gtk.css for $t"; exit 1; }
           done
-          echo "theme-switch: all 9 themes render + idempotent; accent reaches GTK"
+          echo "theme-switch: all 7 themes render + idempotent; accent reaches GTK"
           # GRUB boot-menu theme.txt is a SYSTEM-path render (theme-switch writes it to /boot via sudo -n,
           # which CI can't do), so render it directly with the same token sed and assert it's fully resolved.
           for t in adl-dark adl-light archfrican-dark archfrican-light catppuccin-mocha tokyo-night high-contrast; do
@@ -190,7 +190,7 @@ jobs:
             printf '%s' "$out" | grep -qE '\$\{[A-Z_]+\}' && { echo "::error::grub.theme.txt: unrendered token for $t"; exit 1; } || true
             printf '%s' "$out" | grep -q 'selected_item_color = "#' || { echo "::error::grub.theme.txt: accent is not a hex colour for $t"; exit 1; }
           done
-          echo "grub.theme.txt: all 9 themes render with no stray tokens"
+          echo "grub.theme.txt: all 7 themes render with no stray tokens"
 
   sddm-theme:
     runs-on: ubuntu-latest        # the graphical login theme: must render for every palette + be well-formed
