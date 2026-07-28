@@ -44,7 +44,17 @@ do_install() {  # do_install <spec> ; spec = repo:pkgs | aur:pkgs | flatpak:appi
     # that need more than `pacman -S` (services enabled, groups added, config written). Same
     # terminal + "yes" argument gaming/Plasma's own actions-menu install entries already use;
     # content-addressed, so re-picking an already-installed one is a fast idempotent no-op.
-    module)  ghostty -e sh -c "'$HOME/.archfrican/install.sh' '$pkg' yes; printf '\n(enter para cerrar) '; read -r _" ;;
+    # `;`-joined commands mean the terminal's own exit status is just `read`'s (always ~0), never
+    # install.sh's real result — so instead of trusting that, compare the module's own .done stamp
+    # (lib/converge.sh/lib/phase2.sh: only (re)written by run_module on a REAL success, and the
+    # single-module `install.sh <mod> yes` path always forces a re-run+rewrite via FORCE=1, even
+    # when nothing changed) before vs after. A stale/missing stamp after running -> real failure,
+    # caught here instead of apply_category() reporting "listo" off a stale desktop-file check.
+    module)  local mstamp="${XDG_STATE_HOME:-$HOME/.local/state}/archfrican/$pkg.done" mbefore=""
+             [ -f "$mstamp" ] && mbefore="$(stat -c %Y "$mstamp" 2>/dev/null)"
+             ghostty -e sh -c "'$HOME/.archfrican/install.sh' '$pkg' yes; printf '\n(enter para cerrar) '; read -r _"
+             if [ -f "$mstamp" ] && [ "$(stat -c %Y "$mstamp" 2>/dev/null)" != "$mbefore" ]; then :
+             else note "el módulo $pkg no terminó bien — revisá la terminal"; return 1; fi ;;
     # Vendors' official one-line installer (e.g. Claude Code) — more reliable than the flaky AUR
     # wrappers for fast-moving AI CLIs. URL is hardcoded in the table, never user input.
     script)  if have curl; then ghostty -e sh -c "curl -fsSL '$pkg' | bash; printf '\n(enter para cerrar) '; read -r _"
