@@ -17,9 +17,8 @@ enable_service docker.service
 best_effort sudo usermod -aG docker "$USER"
 warn "Log out/in for docker group to take effect."
 
-substep "writing Code-OSS native-Wayland flags"
-cat > "$HOME/.config/code-flags.conf" <<'FLAGS'
---ozone-platform-hint=auto
---enable-features=UseOzonePlatform,WaylandWindowDecorations
-FLAGS
+# Electron/Chromium native-Wayland flags used to be hand-written HERE, for code-flags.conf only.
+# They are chezmoi dotfiles now (home/dot_config/*-flags.conf) so the whole family is covered —
+# Code-OSS, Cursor and Antigravity — instead of just the one this module happened to know about.
+# See home/dot_config/code-flags.conf for why it matters (XWayland + fractional scale = offset clicks).
 ok "dev module done"
