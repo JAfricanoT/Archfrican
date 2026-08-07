@@ -118,7 +118,18 @@ if [ -f "$CFG/niri/config.kdl" ]; then
          /THEME-END/{skip=0; next}
          !skip{print}
          END{ exit (skip ? 1 : 0) }' "$tmpblk" "$CFG/niri/config.kdl" > "$CFG/niri/config.kdl.new"; then
-      mv "$CFG/niri/config.kdl.new" "$CFG/niri/config.kdl"
+      # Validate-or-revert, the same guarantee archfrican-displays and archfrican-blur already give
+      # before writing this file — this was the ONE writer of config.kdl with no net. The marker
+      # guard above only proves the SPLICE was well-formed, not that the result parses: a KDL error
+      # inside the block (or a node that collides with one outside it — niri rejects a duplicate
+      # `gaps` by failing the WHOLE config, not by taking the last one) would leave the compositor
+      # with an unloadable config. Best-effort: no niri binary (CI, headless converge) just skips.
+      if ! command -v niri >/dev/null 2>&1 || niri validate -c "$CFG/niri/config.kdl.new" >/dev/null 2>&1; then
+        mv "$CFG/niri/config.kdl.new" "$CFG/niri/config.kdl"
+      else
+        echo "theme-switch: spliced niri config failed 'niri validate' — left config.kdl unchanged" >&2
+        rm -f "$CFG/niri/config.kdl.new"
+      fi
     else
       echo "theme-switch: niri splice aborted (unbalanced THEME markers) — left config.kdl unchanged" >&2
       rm -f "$CFG/niri/config.kdl.new"
