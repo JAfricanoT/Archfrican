@@ -145,6 +145,14 @@ enable_locale_gen() {             # enable_locale_gen <locale> [<locale.gen path
 render_sddm_theme() {             # render_sddm_theme <theme-name>
   local theme="$1"
   local pal="$REPO_ROOT/themes/$theme/colors.sh" tmpl="$REPO_ROOT/templates/sddm.theme.conf"
+  # 'dynamic' (the wallpaper-generated palette) lives OUTSIDE themes/ on purpose, so it needs its own
+  # path — the same special case bin/theme-switch:16-20 and apply_plasma_theme below already handle.
+  # Without it this function fell into the "missing palette -> skip" branch below for every user on a
+  # dynamic theme, leaving the SDDM greeter painted with whatever palette was current BEFORE they
+  # switched — permanently, since nothing else writes that file on the converge path.
+  if [ "$theme" = dynamic ] && [ -r "$HOME/.config/archfrican/dynamic-colors.sh" ]; then
+    pal="$HOME/.config/archfrican/dynamic-colors.sh"
+  fi
   if [ ! -r "$pal" ] || [ ! -r "$tmpl" ]; then warn "render_sddm_theme: missing $pal or $tmpl — skipping"; return 0; fi
   ( # same defaults -> palette -> per-theme tokens cascade bin/theme-switch uses: the template
     # now carries ${FONT_UI} (the Inter identity), not just palette colours.
