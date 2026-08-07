@@ -2,7 +2,9 @@
 # 4px spacing grid, motion, elevation/translucency). Colour lives in each theme's colors.sh; THIS is
 # the shared default for shape/type/motion, sourced by theme-switch for EVERY theme (and the matugen
 # 'dynamic' palette). A theme overrides only the deltas it wants via its own themes/<name>/tokens.sh
-# (e.g. macos-* restore SF + 8/12/16; high-contrast kills translucency). These feed templates through
+# (archfrican-dark/light restore 8/12/16 radii; high-contrast thickens borders + the focus ring and
+# kills translucency). A 4th layer, ~/.config/archfrican/a11y-tokens.sh, is sourced after all of
+# these and outranks them — that is where archfrican-a11y persists accommodations. These feed templates through
 # the same ${TOKEN} substitution as colours — see docs/DESIGN-LANGUAGE.md.
 #
 # NOTE: this is a top-level file, not a themes/<dir>/ — the theme pickers glob themes/*/ (directories),

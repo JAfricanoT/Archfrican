@@ -1087,7 +1087,7 @@ Interactive fuzzel menu offering:
 | High contrast: on / off | `theme-switch high-contrast` / restore previous theme |
 | Large cursor | `gsettings` cursor size 48 |
 | Normal cursor | Cursor size back to 24 |
-| Larger text | `gsettings` text-scaling-factor 1.3 |
+| Larger text | `gsettings` text-scaling-factor 1.25 |
 | Normal text | Text scaling back to 1.0 |
 | Magnifier / sticky keys (info) | Status note (no mature Wayland-native magnifier yet) |
 

@@ -146,7 +146,8 @@ export BORDER_INACTIVE="$BG_DIM"
 ### Step 2 — Override shape/type tokens (optional)
 
 `themes/tokens.defaults.sh` defines the shared non-color identity (Inter font, 7/11/15
-radius family, 4 px grid, motion). Your theme only needs to override what differs:
+radius family, 4px spacing steps on a 2px quantum, motion). Your theme only needs to override
+what differs:
 
 ```bash
 # themes/my-theme/tokens.sh  — only needed if you deviate from the defaults
@@ -157,8 +158,13 @@ export RADIUS_MD="12"
 export RADIUS_LG="16"
 ```
 
-The `macos-*` themes use this to restore SF fonts and Apple-style radii.
-The `high-contrast` theme uses it to disable translucency tokens.
+The `archfrican-dark` / `archfrican-light` themes use this to restore Apple-style 8/12/16 radii.
+The `high-contrast` theme uses it to disable translucency and to thicken `BORDER_WIDTH` /
+`FOCUS_RING_WIDTH` for low vision.
+
+A theme's `tokens.sh` is **not** the last word: `~/.config/archfrican/a11y-tokens.sh` is sourced
+after it and overrides it, so a user's accessibility settings survive every theme change. Don't
+try to defeat that layer from a theme.
 
 ### Step 3 — Test it
 

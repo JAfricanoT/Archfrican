@@ -19,14 +19,22 @@ adding or restyling anything.
 
 ## Where the identity lives
 
-Three layers, sourced by `bin/theme-switch` as a cascade (later wins):
+Four layers, sourced by `bin/theme-switch` as a cascade (later wins):
 
 1. **`themes/tokens.defaults.sh`** — the shared NON-colour identity (fonts, type scale, radius,
    spacing, motion, elevation, cursor, accent-contrast fallback). The base layer.
 2. **`themes/<name>/colors.sh`** — the theme's colour palette (the 17 colour vars + `ACCENT_FG`).
    Overrides the defaults.
-3. **`themes/<name>/tokens.sh`** *(optional)* — per-theme shape/type overrides (e.g. `macos-*`
-   restore SF fonts + 8/12/16 radii; `high-contrast` kills translucency/blur). Wins last.
+3. **`themes/<name>/tokens.sh`** *(optional)* — per-theme shape/type overrides (`archfrican-dark`
+   and `archfrican-light` restore 8/12/16 radii; `high-contrast` thickens borders and the focus
+   ring, and kills blur). Overrides the two above.
+4. **`~/.config/archfrican/a11y-tokens.sh`** *(optional)* — the user's own accessibility overrides,
+   written by `archfrican-a11y`. **Wins last, over every theme, deliberately.** An accommodation is
+   a floor, not a suggestion: before this layer existed, the gsettings block at the end of
+   `theme-switch` re-asserted the theme's `CURSOR_SIZE` on every run, so a pointer enlarged from the
+   accessibility menu was reverted by the next theme change — including the one `archfrican-a11y`
+   performs itself for "Alto contraste", by darkman's twice-daily light/dark flip, and by every
+   `archfrican-update` converge.
 
 `theme-switch` derives the substitution set by grepping every `${TOKEN}` under `templates/`, so a
 token only needs to *exist in a template* to flow through the same render path as colour. Because the
@@ -78,10 +86,16 @@ The signature progression is **7 / 11 / 15** (deliberately one px tighter than m
 | `RADIUS_PILL` | 999 | switches, avatar, dots |
 | `RADIUS_WINDOW` | 12 | niri `geometry-corner-radius` (harmonised with the 12px gap) |
 
-## Spacing — `SPACE_*` (the 4px grid)
+## Spacing — `SPACE_*` (4px steps on a 2px grid)
 
 `SPACE_XS 4 · SM 6 · MD 8 · LG 12 · XL 18 · 2XL 24`. Structural: `GAP_WINDOW 12`,
 `BORDER_WIDTH 1`, `FOCUS_RING_WIDTH 2`.
+
+The ramp is built from 4px steps, but `SM 6` and `XL 18` are deliberate half-steps — so the real
+quantum is 2px, not 4px. (This page used to claim a strict 4px grid, which those two values have
+never satisfied.) Note that `GAP_WINDOW` and `RADIUS_WINDOW` are currently **declared but unwired**:
+niri's `gaps` and `geometry-corner-radius` are still literals in `home/dot_config/niri/config.kdl.tmpl`,
+outside the spliced `THEME` block, so changing those tokens has no effect yet.
 
 ## Motion — `MOTION_*`
 
