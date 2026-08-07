@@ -7,6 +7,27 @@ gs() { timeout 5 gsettings "$@" 2>/dev/null || true; }   # timeout: gsettings ca
 source "$(dirname "$0")/../lib/archfrican-common.sh"
 prevfile="$HOME/.config/.archfrican-prev-theme"
 
+# Accessibility token overrides. gsettings alone was NOT enough: theme-switch re-asserts the theme's
+# own CURSOR_SIZE on every run, so a cursor set from this menu was reverted by the next theme change
+# — including the one "Alto contraste: activar" below performs itself, plus darkman's twice-daily
+# light/dark flip and every archfrican-update. Writing the override HERE makes it stick, because
+# theme-switch sources this file LAST in its token cascade (after the theme's own tokens.sh).
+a11ytokens="$HOME/.config/archfrican/a11y-tokens.sh"
+a11y_token() {                    # a11y_token <NAME> [value] ; no value = drop the override
+  local name="$1" val="${2:-}" tmp
+  mkdir -p "$(dirname "$a11ytokens")"
+  if [ ! -f "$a11ytokens" ]; then
+    printf '%s\n' \
+      '# Accessibility overrides — written by archfrican-a11y, sourced LAST by theme-switch so they' \
+      '# outrank every theme. An accommodation is a floor, not a suggestion. Safe to delete by hand.' \
+      > "$a11ytokens"
+  fi
+  tmp="$(mktemp)"
+  grep -v "^export $name=" "$a11ytokens" > "$tmp" || true
+  if [ -n "$val" ]; then printf 'export %s="%s"\n' "$name" "$val" >> "$tmp"; fi
+  mv "$tmp" "$a11ytokens"
+}
+
 sel="$(printf '%s\n' \
   "Lector de pantalla (Orca): alternar" \
   "Alto contraste: activar" \
@@ -28,8 +49,9 @@ case "$sel" in
   "Alto contraste: desactivar")
     theme-switch "$(cat "$prevfile" 2>/dev/null || echo "$ARCHFRICAN_DEFAULT_THEME")"
     gs set org.gnome.desktop.a11y.interface high-contrast false ;;
-  "Cursor grande")    gs set org.gnome.desktop.interface cursor-size 48; note "cursor grande" ;;
-  "Cursor normal")    gs set org.gnome.desktop.interface cursor-size 24; note "cursor normal" ;;
+  # Both halves: gsettings for RIGHT NOW, the token override so it survives the next theme-switch.
+  "Cursor grande")    a11y_token CURSOR_SIZE 48; gs set org.gnome.desktop.interface cursor-size 48; note "cursor grande" ;;
+  "Cursor normal")    a11y_token CURSOR_SIZE;    gs set org.gnome.desktop.interface cursor-size 24; note "cursor normal" ;;
   "Texto más grande") gs set org.gnome.desktop.interface text-scaling-factor 1.25; note "texto más grande" ;;
   "Texto normal")     gs set org.gnome.desktop.interface text-scaling-factor 1.0; note "texto normal" ;;
   "Magnificador"*)    note "niri aún no tiene magnificador ni sticky-keys nativos en Wayland — en seguimiento upstream." ;;

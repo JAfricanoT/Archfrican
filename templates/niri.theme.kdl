@@ -1,6 +1,11 @@
     // THEME-START (managed by theme-switch)
     focus-ring {
-        width 2
+        // Token, not a literal: themes/high-contrast/tokens.sh raises FOCUS_RING_WIDTH to 3 for
+        // low-vision users, and a hardcoded 2 here silently discarded that — the thicker ring the
+        // accessibility theme exists to provide never once reached niri. Safe to tokenise (unlike
+        // `gaps`/`geometry-corner-radius`, which live OUTSIDE these markers): focus-ring is wholly
+        // inside the spliced block, so there is no second copy to collide with.
+        width ${FOCUS_RING_WIDTH}
         active-color "${BORDER_ACTIVE}"
         inactive-color "${BORDER_INACTIVE}"
     }

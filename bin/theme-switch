@@ -35,6 +35,18 @@ if [ -r "$ROOT/themes/$THEME/tokens.sh" ]; then
   # shellcheck disable=SC1090
   source "$ROOT/themes/$THEME/tokens.sh"
 fi
+# Layer 4 — the user's own ACCESSIBILITY overrides, and they outrank every theme by design.
+# archfrican-a11y writes here (e.g. CURSOR_SIZE=48 for "Cursor grande"). Before this layer existed,
+# the gsettings block far below re-asserted the THEME's CURSOR_SIZE unconditionally, so a low-vision
+# user's larger pointer was silently reverted by every theme change — including the one triggered by
+# archfrican-a11y's OWN "Alto contraste: activar", i.e. two adjacent items in the same accessibility
+# menu cancelling each other. Also by darkman's sunrise/sunset flips (twice a day, unattended) and by
+# every archfrican-update converge. An accommodation is a floor, not a suggestion: it goes last.
+A11Y_TOKENS="${XDG_CONFIG_HOME:-$HOME/.config}/archfrican/a11y-tokens.sh"
+if [ -r "$A11Y_TOKENS" ]; then
+  # shellcheck disable=SC1090
+  source "$A11Y_TOKENS"
+fi
 
 # Variables to substitute = exactly the ${TOKEN}s the templates use (single source
 # of truth — derived, so the list can't drift or carry dead entries).
