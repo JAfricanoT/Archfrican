@@ -99,6 +99,15 @@ write_system_file() {             # write_system_file <path> [mode]   (content o
   sudo install -D -m "$mode" "$tmp" "$path"; rm -f "$tmp"; ok "wrote $path"
 }
 
+# ---- filesystem capability probe ------------------------------------------
+# Snapshots, rollback and scrub are BTRFS features. Archfrican's own base install lays down Btrfs,
+# but phase 2 also runs on an ALREADY-BOOTED Arch whose root may be ext4/xfs — and lib/preflight.sh
+# deliberately classifies "root is Btrfs" as a pf_warn, NOT a pf_fatal. So Btrfs is optional, and
+# every btrfs-only step gates on this instead of discovering it three failed snapper calls later.
+# Fails CLOSED: no findmnt / unreadable target -> not btrfs, so a probe failure degrades the
+# optional feature rather than driving btrfs-only commands at a filesystem that can't run them.
+is_btrfs() { [ "$(findmnt -no FSTYPE -- "${1:-/}" 2>/dev/null)" = btrfs ]; }
+
 # The bedrock pacstrap set — what makes a bootable Archfrican base. Single source for
 # lib/base-install.sh (fresh install) and lib/deep-clean.sh (factory reset rebuilds @ from this
 # same set, so the two can never drift). Conditional extras (cryptsetup when encrypted, the CPU

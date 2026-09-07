@@ -3,6 +3,20 @@
 source "$(dirname "$0")/../lib/common.sh"
 source "$REPO_ROOT/lib/grub.sh"
 
+# Gate: everything below is Btrfs-only. On an ext4/xfs root snapper picks a backend it cannot use
+# ("Creating config failed (/sbin/chsnap not installed)"), grub-btrfs prints "Root filesystem isn't
+# btrfs", and the post-condition at the bottom would `die` — aborting phase 2 at step 5, so security,
+# gaming, virtualization and hygiene never ran. preflight only WARNS about a non-Btrfs root, so this
+# is a machine we support: opt out with rc 3 instead. run_module reports "not selected" and does NOT
+# stamp .done, so a root later converted to Btrfs still gets its snapshots on the next run.
+if ! is_btrfs /; then
+  rootfs="$(findmnt -no FSTYPE -- / 2>/dev/null || true)"
+  warn "root filesystem is ${rootfs:-unknown}, not Btrfs — snapper/grub-btrfs need Btrfs subvolumes"
+  warn "skipping snapshots: this machine has NO rollback safety net (everything else installs normally)"
+  warn "to get it, reinstall on a Btrfs root — Archfrican's own base install (from the ISO) sets one up"
+  exit 3
+fi
+
 substep "creating the snapper root config (Btrfs snapshots)"
 
 # Exact-field, format-stable check (snapper list-configs is a bordered table, so
