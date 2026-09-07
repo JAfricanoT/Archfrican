@@ -19,16 +19,24 @@ ConditionACPower=true
 UNIT
 resilient_enable fstrim.timer
 
-substep "scheduling a monthly Btrfs scrub of / (on AC, jittered)"
-write_system_file /etc/systemd/system/btrfs-scrub@.service.d/10-archfrican.conf 0644 <<'UNIT'
+# Btrfs-only, and btrfs-progs (hence the unit) ships in the bedrock set even on an ext4 root — so
+# resilient_enable's "does the unit exist?" check would happily arm a timer that fails every month,
+# turning the health check's failed-units probe permanently red. Gate on the actual filesystem, the
+# same way lib/health.sh skips its scrub probe.
+if is_btrfs /; then
+  substep "scheduling a monthly Btrfs scrub of / (on AC, jittered)"
+  write_system_file /etc/systemd/system/btrfs-scrub@.service.d/10-archfrican.conf 0644 <<'UNIT'
 [Unit]
 ConditionACPower=true
 UNIT
-write_system_file /etc/systemd/system/btrfs-scrub@.timer.d/10-archfrican.conf 0644 <<'UNIT'
+  write_system_file /etc/systemd/system/btrfs-scrub@.timer.d/10-archfrican.conf 0644 <<'UNIT'
 [Timer]
 RandomizedDelaySec=1h
 UNIT
-resilient_enable "btrfs-scrub@-.timer"     # @- = the / subvolume (drops the redundant @home scrub)
+  resilient_enable "btrfs-scrub@-.timer"   # @- = the / subvolume (drops the redundant @home scrub)
+else
+  ok "Btrfs scrub not scheduled — root is not Btrfs (nothing to scrub)"
+fi
 
 substep "enabling SMART disk monitoring + firmware metadata refresh"
 resilient_enable smartd.service
