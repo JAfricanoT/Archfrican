@@ -88,8 +88,13 @@ precheck() {
     else _note "/boot justo (${ab:-?}M) — elimina antes un kernel viejo"; fi
   fi
 
-  command -v snapper >/dev/null 2>&1 \
-    && _ok "snapshots activos (--run crea un pre-snapshot; snap-pac marca el -Syu)"
+  # snapper being installed is NOT proof the safety net exists: on a non-Btrfs root it is present but
+  # unusable, and promising a rollback that can't happen is worse than admitting there is none.
+  if ! is_btrfs /; then
+    _note "root no es Btrfs — SIN pre-snapshot ni rollback; esta actualización no es reversible"
+  elif command -v snapper >/dev/null 2>&1; then
+    _ok "snapshots activos (--run crea un pre-snapshot; snap-pac marca el -Syu)"
+  fi
 
   if [ -f /etc/pacman.d/mirrorlist ]; then
     age=$(( ( $(date +%s) - $(stat -c %Y /etc/pacman.d/mirrorlist 2>/dev/null || echo 0) ) / 86400 ))
