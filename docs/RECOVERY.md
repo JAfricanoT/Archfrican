@@ -8,11 +8,19 @@ Ten scenarios with symptoms, causes, and exact steps.
 
 **Symptom**: machine powers on but never reaches SDDM or a shell.
 
-**Step 1 — Try a Btrfs snapshot**
+**Step 1 — Boot a Btrfs snapshot to confirm it's good**
 
 At the GRUB menu, hold `Shift` to open the menu if it auto-hides. Select
-`Archfrican Snapshots` from the submenu to boot into a known-good state.
-This works without any external media.
+`Archfrican Snapshots` from the submenu, then pick a date. This works without any
+external media.
+
+**This boots the snapshot; it does not restore it.** Snapper snapshots are
+read-only Btrfs subvolumes, so you land on a read-only `/`. Expect the machine to
+crawl — journald, systemd-tmpfiles, pacman and friends all fail their writes and
+retry. That is normal here, not a second fault. Use it to confirm the snapshot is
+the one you want, then restore it for real with **§7** below. Nothing finishes the
+restore on its own: leave it alone and every reboot lands back in the same
+read-only snapshot.
 
 **Step 2 — chroot from a live USB**
 
@@ -43,11 +51,11 @@ grub-mkconfig -o /boot/grub/grub.cfg
 
 # Regenerate initramfs
 mkinitcpio -P
-
-# Roll back to a snapshot
-snapper -c root list
-snapper -c root rollback <N>
 ```
+
+To roll back to a snapshot instead, leave the chroot — the restore is a subvolume
+swap done from the filesystem top, not `snapper rollback`. See §7, "Manual — from
+a live USB".
 
 ---
 
@@ -208,20 +216,54 @@ cat "${XDG_STATE_HOME:-$HOME/.local/state}/archfrican/resume-attempts"
 archfrican-rollback
 ```
 
-Presents a fuzzel list of snapper checkpoints with dates and commit SHAs.
-After selecting one, confirms, runs `snapper rollback <N>`, and offers to reboot.
+Presents a fuzzel list of snapper checkpoints with dates and commit SHAs. After
+you confirm, it swaps the root subvolume (`lib/rollback.sh`) and offers to reboot.
+The state you are leaving is renamed `@.rollback-<timestamp>`, not deleted, so the
+rollback is itself reversible.
+
+> **Do not use `snapper rollback` on Archfrican.** It restores by flipping the
+> Btrfs *default subvolume*, and Archfrican pins the root subvolume by path in two
+> places — `rootflags=subvol=@` on the kernel cmdline and `subvol=/@` in
+> `/etc/fstab`, both written by `lib/base-install.sh`. A pinned mount never
+> consults the default subvolume, so `snapper rollback` prints success and the
+> next boot lands in the same broken `@`.
 
 **GRUB menu** (if the system won't boot):
 
-Reboot → hold `Shift` at GRUB → `Archfrican Snapshots` → select a date.
+Reboot → hold `Shift` at GRUB → `Archfrican Snapshots` → select a date. This
+*boots* the snapshot read-only so you can check it and reach a shell — it does not
+restore it (see §1). From that shell, finish the restore with `archfrican-rollback`.
 
-**Manual snapper**:
+**Manual — from a live USB** (works even when nothing boots):
 
 ```bash
-sudo snapper -c root list
-sudo snapper -c root rollback <N>
-sudo systemctl reboot
+lsblk
+cryptsetup open /dev/nvme0n1p2 root            # if LUKS
+
+mount -o subvolid=5 /dev/mapper/root /mnt      # the filesystem TOP, not @
+ls /mnt                                        # → @  @home  @log  @pkg  @.snapshots
+
+ls -la --time-style=long-iso /mnt/@.snapshots/ # pick a snapshot
+cat /mnt/@.snapshots/<N>/info.xml              # confirm its date and description
+
+mv /mnt/@ /mnt/@.roto                          # keep the old root; do NOT delete yet
+btrfs subvolume snapshot /mnt/@.snapshots/<N>/snapshot /mnt/@
+
+umount /mnt && reboot
 ```
+
+Renaming a Btrfs subvolume is safe even while it is mounted — the live mount
+tracks the subvolid, and `subvol=@` is re-resolved at the next boot. Drop the old
+root with `btrfs subvolume delete /mnt/@.roto` only once the restored system boots.
+
+**Two things a root rollback does not cover:**
+
+- **`/boot` is a separate vfat partition and is never snapshotted.** Its kernel is
+  the current one, while `/usr/lib/modules` comes from the snapshot. If a kernel
+  update landed in between, boot fails — `arch-chroot /mnt` and run `mkinitcpio -P`
+  (or reinstall the kernel package).
+- **`@home` is a separate subvolume and is not rolled back.** For files under
+  `$HOME`, use `archfrican-timemachine` (snapper's `home` config).
 
 After rollback, `archfrican-update --run` will re-converge from the rolled-back state.
 

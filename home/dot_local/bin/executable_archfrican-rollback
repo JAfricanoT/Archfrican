@@ -7,6 +7,16 @@ set -euo pipefail
 source "$(dirname "$0")/../lib/archfrican-common.sh"
 have snapper || { note "snapper no está (módulo 50-snapshots)"; exit 1; }
 
+# The restore itself lives in the repo clone (same ARCHFRICAN_ROOT convention pick_theme uses), so
+# archfrican-update and this menu share ONE implementation. It is not `snapper rollback`: Archfrican
+# pins the root subvolume by path, which makes snapper's set-default rollback a silent no-op — see
+# the header of lib/rollback.sh.
+ARCHFRICAN_ROOT="${ARCHFRICAN_ROOT:-$HOME/.archfrican}"
+[ -r "$ARCHFRICAN_ROOT/lib/rollback.sh" ] \
+  || { note "falta $ARCHFRICAN_ROOT/lib/rollback.sh — actualizá el clon (archfrican-update)"; exit 1; }
+# shellcheck source=/dev/null
+source "$ARCHFRICAN_ROOT/lib/rollback.sh"
+
 # snapper list columns: number | type | pre# | date | user | cleanup | description | userdata
 line="$(sudo snapper -c root list 2>/dev/null \
   | awk -F'|' 'NR>2 { n=$1; d=$4; desc=$7;
@@ -18,9 +28,10 @@ case "$num" in ''|*[!0-9]*) exit 0 ;; esac
 
 confirm "revertir al snapshot $num (requiere reiniciar)" || exit 0
 
-if sudo snapper -c root rollback "$num"; then
+if archfrican_rollback_to "$num"; then
+  note "listo — al reiniciar arrancás en el snapshot $num (el estado actual queda guardado como @.rollback-*)"
   reboot="$(printf 'Reiniciar ahora\nMás tarde\n' | fuzzel --dmenu --prompt '  reiniciar  ')" || exit 0
   [ "$reboot" = "Reiniciar ahora" ] && sudo systemctl reboot
 else
-  note "el rollback falló (revisa: sudo snapper -c root rollback $num)"
+  note "el rollback falló — la raíz quedó intacta. Revisá: sudo journalctl -b | tail"
 fi

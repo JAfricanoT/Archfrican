@@ -352,6 +352,8 @@ jobs:
         run: bash tests/unit/a11y-tokens.sh
       - name: multicast-route — 224.0.0.0/4 pinned to the LAN uplink, never a VPN tunnel or a bridge
         run: bash tests/unit/multicast-route.sh
+      - name: rollback — a path-pinned root swaps subvolumes; `snapper rollback` would silently no-op
+        run: bash tests/unit/rollback.sh
       - name: snapshots-gate — a non-Btrfs root opts 50-snapshots out (rc 3), never aborts the install
         run: bash tests/unit/snapshots-gate.sh
 

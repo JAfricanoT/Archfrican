@@ -22,6 +22,8 @@ source "$ROOT/lib/converge.sh"      # drift_modules/module_hash
 source "$ROOT/lib/manifest.sh"      # prune_candidates
 # shellcheck source=/dev/null
 source "$ROOT/lib/migrate.sh"       # run_migrations/pending_migrations
+# shellcheck source=/dev/null
+source "$ROOT/lib/rollback.sh"      # archfrican_rollback_to (NOT `snapper rollback` — see its header)
 set +e +u +o pipefail               # interactive flow: many probes exit non-zero on the healthy path
 
 ARCHFRICAN_REF="${ARCHFRICAN_REF:-main}"
@@ -169,13 +171,13 @@ post_update_validate() {          # post_update_validate "<pre-update red names,
   if [ -t 0 ]; then
     printf '  ¿Revertir al pre-snapshot #%s ahora? [y/N] ' "$PRE_SNAP_NUM"; read -r ans
     case "$ans" in
-      y|Y) if sudo snapper -c root rollback "$PRE_SNAP_NUM"; then
+      y|Y) if archfrican_rollback_to "$PRE_SNAP_NUM"; then
              printf '  \e[32m✓ revertido.\e[0m Reinicia para volver al estado previo:  sudo systemctl reboot\n'
-           else _note "el rollback falló — probá:  archfrican-rollback"; fi ;;
-      *)   printf '  Ok, sin revertir. Cuando quieras:  archfrican-rollback  (o: sudo snapper -c root rollback %s)\n' "$PRE_SNAP_NUM" ;;
+           else _note "el rollback falló — la raíz quedó intacta. Probá:  archfrican-rollback"; fi ;;
+      *)   printf '  Ok, sin revertir. Cuando quieras:  archfrican-rollback\n' ;;
     esac
   else
-    _note "para revertir:  archfrican-rollback   (o: sudo snapper -c root rollback $PRE_SNAP_NUM)"
+    _note "para revertir:  archfrican-rollback"
   fi
 }
 
