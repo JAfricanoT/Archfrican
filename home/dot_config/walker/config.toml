@@ -6,7 +6,7 @@ theme = "archfrican"
 force_keyboard_focus = true         # keep typing in Walker even under niri focus-follows-mouse
 close_when_open = true              # ⌘+Space again closes it
 click_to_close = true               # click outside the box closes it
-selection_wrap = false
+selection_wrap = true               # navegación circular: arriba en el primero → último, abajo en el último → primero
 # niri implements ext-background-effect-v1, so Walker frosts JUST behind its own box (clipped) — the
 # clean way to blur a launcher without the whole-layer flatten that a niri layer-rule would cause.
 ext_background_effect_blur = true
