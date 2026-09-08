@@ -510,6 +510,11 @@ Covers ~50 actions organized by category: Configuración, Sistema, Sesión/Inter
 Herramientas, Red, Audio/Visual, Accesibilidad, Privacidad/Seguridad, Gaming,
 Continuidad/Datos, Notificaciones.
 
+**Going back**: a submenu is no longer a one-way trip. In the native Walker menu, `Escape` or
+`Alt+←` climbs back one level; in the fuzzel fallback every submenu grows a leading `←  Volver`
+entry, and cancelling out of a submenu re-shows the list you came from instead of dropping you at
+the desktop. Running an entry still closes the whole menu.
+
 ---
 
 ## theme-switch
@@ -619,6 +624,11 @@ is styled from ADL tokens by `theme-switch` so it matches every other Archfrican
 result jumps to the last, `↓` on the last jumps back to the first — no dead end at either edge. It
 applies to every Walker surface, including the native `menus:*` panels that `archfrican-actions`
 and friends open.
+
+**Going back** (`[providers.actions] fallback` in `~/.config/walker/config.toml`): inside a menu,
+`Escape` or `Alt+←` runs `menus:parent` — it climbs one level back to the list you came from instead
+of closing the launcher. `Alt+←` is bound in addition to Walker's default `Escape` because the global
+`keybinds.close` also claims `Escape`; `Alt+←` can't be shadowed and never interferes with typing.
 
 **Fuzzel fallback** (when Walker is absent): the full app list plus two mode entries —
 `Portapapeles…` (cliphist history) and `Acciones y ajustes…` (the archfrican-actions hub,
