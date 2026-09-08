@@ -2,7 +2,12 @@
 
 /* Archfrican waybar — one flat, edge-to-edge surface. Colours come from colors.css (theme-switch).
    The bar deliberately carries NO radius: it is a single plane, so grouping is expressed with space
-   and an accent underline, never with boxes or dividers.
+   and colour alone — never with boxes, dividers or underlines.
+
+   ONE type size and ONE padding for every module, left to right. The bar previously ran five
+   competing sizes (base 13, right region 12, workspaces 13, clock 14, weather 12) and two paddings
+   (workspaces 7px vs everything else 4px), which made the three regions read at visibly different
+   densities. Any new module inherits the uniform values below; resist adding a per-module size.
 
    Spacing runs at HALF the ADL 4px grid (2px margins, 2px config spacing, 6px between groups). That
    is a deliberate exception, not drift: the grid is tuned for panels holding a handful of elements,
@@ -11,7 +16,7 @@
 
 * {
   font-family: "Inter", "JetBrainsMono Nerd Font", sans-serif;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
   border: none;
   min-height: 0;
@@ -29,10 +34,7 @@ window#waybar {
 .modules-left  { padding-left: 8px; }
 .modules-right { padding-right: 8px; }
 
-/* right region is denser — smaller font */
-.modules-right * { font-size: 12px; }
-
-/* every module sits flat on the bar */
+/* every module sits flat on the bar, at the SAME size and padding as every other */
 #workspaces button,
 #window, #clock,
 #custom-privacy, #pulseaudio, #bluetooth, #network,
@@ -52,25 +54,25 @@ window#waybar {
   margin-right: 6px;
 }
 
-/* workspaces — the focused one is marked by an accent underline. box-shadow, not border-bottom:
-   a border would grow the button's box and knock the whole row out of vertical alignment. */
-#workspaces button { color: @fg_dim; padding: 1px 7px; font-size: 13px; }
+/* workspaces — focus is carried by colour and weight alone: no underline, no fill, and the same
+   padding as every other module so the left region sits at the bar's one density. */
+#workspaces button { color: @fg_dim; }
 #workspaces button.focused,
-#workspaces button.active { color: @fg; box-shadow: inset 0 -2px @accent; }
-#workspaces button:hover { color: @fg; box-shadow: inset 0 -2px alpha(@accent, 0.45); }
+#workspaces button.active { color: @accent; font-weight: 700; }
+#workspaces button:hover { color: @fg; }
 
-/* center: weather dims left, clock anchors right — separated by space, not a rule */
+/* center: weather dims left, clock anchors right — separated by space, not a rule. The clock stays
+   the bar's anchor through WEIGHT, not size: bumping its px was what made the centre read oversized
+   against the regions either side of it. */
 .modules-center #custom-weather {
-  font-size: 12px;
   color: @fg_dim;
   margin-right: 6px;
 }
 #clock {
-  font-size: 14px;
   font-weight: 700;
   letter-spacing: 0.3px;
 }
-#window { color: @fg_dim; font-weight: 500; font-size: 13px; }
+#window { color: @fg_dim; font-weight: 500; }
 
 /* hover: the module lights up in accent — no box, nothing to round */
 #custom-privacy:hover, #pulseaudio:hover, #bluetooth:hover, #network:hover,
@@ -88,6 +90,8 @@ window#waybar {
 #custom-github.attention { color: #f5c451; }
 
 /* internet reachability dot: green stable · amber unstable · red offline */
+/* The ONE size exception in the bar, and a deliberate one: this module renders a ● glyph, not text.
+   At the shared 12px the dot reads as a bullet the size of a letter; 10px keeps it a status light. */
 #custom-connectivity { font-size: 10px; }
 #custom-connectivity.online   { color: #57d9a3; }
 #custom-connectivity.unstable { color: #f5c451; }
@@ -95,7 +99,6 @@ window#waybar {
 #custom-privacy { color: #ff5f56; }
 #battery.warning { color: #f5c451; }
 #battery.critical { color: #ff5f56; }
-#tray { padding: 1px 3px; }
 
 /* dim secondary stats */
 #disk, #memory { color: @fg_dim; }
