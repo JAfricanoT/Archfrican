@@ -356,6 +356,8 @@ jobs:
         run: bash tests/unit/rollback.sh
       - name: snapshots-gate — a non-Btrfs root opts 50-snapshots out (rc 3), never aborts the install
         run: bash tests/unit/snapshots-gate.sh
+      - name: weather — a city's internal spaces survive; "New York" must not query "NewYork"
+        run: bash tests/unit/weather.sh
 
   modules-list-consistency:
     runs-on: ubuntu-latest        # 5 independent lists of module names must stay in sync, or drift silently

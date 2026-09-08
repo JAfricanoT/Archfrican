@@ -10,18 +10,27 @@
 #   echo "Buenos Aires"> ~/.config/archfrican/weather   # explicit city
 CONF="${XDG_CONFIG_HOME:-$HOME/.config}/archfrican/weather"
 
+# Read the config ONCE, trimming surrounding whitespace only. This used to be `tr -d '[:space:]'`,
+# which deletes a name's INTERNAL spaces too: "New York" became "NewYork", and wttr.in resolves that
+# — with no error, no warning — to East Kamias, Philippines. A city silently in the wrong hemisphere
+# is the worst kind of wrong, and "Buenos Aires" is an example this script's own usage text offers.
+# Only the trailing newline ever needed stripping. First line wins, so a stray second line can never
+# leak into the query.
+if [ -f "$CONF" ]; then
+    _val=$(sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e 'q' "$CONF")
+else
+    _val=auto
+fi
+# An empty (or whitespace-only) file means "unconfigured", not "query the empty string" — the latter
+# makes wttr.in geolocate by exit IP, which on a VPN reports wherever the tunnel surfaces.
+[ -z "$_val" ] && _val=auto
+
 # Explicit opt-out
-if [ -f "$CONF" ] && [ "$(tr -d '[:space:]' < "$CONF")" = off ]; then
+if [ "$_val" = off ]; then
     printf '{"text":"","class":"hidden"}\n'; exit 0
 fi
 
 # City: explicit name > timezone-derived
-if [ -f "$CONF" ]; then
-    _val=$(tr -d '[:space:]' < "$CONF")
-else
-    _val=auto
-fi
-
 if [ "$_val" != auto ]; then
     city="$_val"
 else
