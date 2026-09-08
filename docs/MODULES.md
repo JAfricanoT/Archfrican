@@ -152,6 +152,7 @@ the module for the two upstream bugs that fixed), and the screen-share portal ro
 - **Screen tools**: `swayidle`, `swaylock`, `grim`, `slurp`, `wl-clipboard`, `cliphist`, `brightnessctl`, `playerctl`
 - **Audio**: `pipewire`, `pipewire-pulse`, `pipewire-alsa`, `wireplumber`, `pavucontrol`, `easyeffects`, `qpwgraph`
 - **File management**: `nautilus`, `file-roller`, `yazi`, `gvfs`, `gvfs-mtp`, `gvfs-afc`, `udiskie`, `tumbler`
+- **Archives**: `7zip` (rar/7z/…), `zip` + `unzip` (the format everyone else expects — file-roller's zip backend, and what scripts shell out to by name)
 - **Networking**: `networkmanager`, `nm-connection-editor`, `network-manager-applet`, `tailscale`, `wireguard-tools`, `networkmanager-openvpn`, `networkmanager-openconnect`
 - **Bluetooth**: `bluez`, `bluez-utils`, `blueman`
 - **Accessibility**: `orca`, `speech-dispatcher`, `espeak-ng`
