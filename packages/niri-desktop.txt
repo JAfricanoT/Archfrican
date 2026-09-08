@@ -50,6 +50,8 @@ tumbler                    # thumbnail service
 ffmpegthumbnailer          # video thumbnails
 poppler-glib               # PDF thumbnails
 7zip                       # broad archive extraction (rar/7z/zip/…; official, replaces AUR unar)
+zip                        # create .zip — the format everyone else expects; file-roller's zip backend
+unzip                      # extract .zip — what most scripts/installers shell out to by name
 xdg-user-dirs              # ~/Downloads, ~/Pictures, …
 # Bluetooth
 bluez
