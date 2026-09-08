@@ -615,6 +615,11 @@ is styled from ADL tokens by `theme-switch` so it matches every other Archfrican
 | `walker -m websearch` | `@` prefix | Web search |
 | `walker -m symbols` | `.` prefix | Emoji / symbol picker |
 
+**Navigation wraps** (`selection_wrap = true` in `~/.config/walker/config.toml`): `↑` on the first
+result jumps to the last, `↓` on the last jumps back to the first — no dead end at either edge. It
+applies to every Walker surface, including the native `menus:*` panels that `archfrican-actions`
+and friends open.
+
 **Fuzzel fallback** (when Walker is absent): the full app list plus two mode entries —
 `Portapapeles…` (cliphist history) and `Acciones y ajustes…` (the archfrican-actions hub,
 which itself falls back to fuzzel and still reaches every action above).
