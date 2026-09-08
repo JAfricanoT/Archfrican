@@ -3,9 +3,9 @@
   "position": "top",
   "height": 34,
   "spacing": 4,
-  "margin-top": 6,
-  "margin-left": 10,
-  "margin-right": 10,
+  // No margins: the bar is one flat plane docked to the top edge. Dropping them also shrinks the
+  // layer-shell exclusive zone from 40 to 34, so windows tile 6px higher. Inner breathing room is
+  // style.css's job (.modules-left/right padding), not a gap around the surface.
   "modules-left": ["niri/workspaces", "niri/window"],
   // center island: weather pill (left) + clock anchor (right)
   "modules-center": ["custom/weather", "clock"],

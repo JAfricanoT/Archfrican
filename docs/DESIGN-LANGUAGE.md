@@ -105,7 +105,10 @@ Signature easing `cubic-bezier(0.22,0.61,0.18,1.0)` (confident, soft settle); en
 ## Elevation / translucency / cursor
 
 `OPACITY_BAR .85 · PANEL .96 · CARD .94 · TERM .92 · GLASS .80` (`ALPHA_GLASS_HEX cc` = the same .80 as a
-hex suffix for fuzzel's colours), `ELEV_BORDER .22` (hairline alpha). Frosted glass is opt-in via
+hex suffix for fuzzel's colours), `ELEV_BORDER .22` (hairline alpha). `OPACITY_BAR` reaches waybar as a
+generated colour — `templates/waybar.colors.css` folds it into `@bar_bg alpha(BG, OPACITY_BAR)` — because
+waybar's stylesheet is static and only the colour file is rendered per theme; that indirection is what lets
+high-contrast's `OPACITY_BAR 1.0` actually turn the bar opaque. Frosted glass is opt-in via
 `archfrican-blur`, which toggles niri's `background-effect { blur true }` on windows (window-rule) and on
 the **launcher** (layer-rule) — validated with `niri validate`, reverted on an older niri. It is deliberately
 NOT applied to swaync: niri blurs the *whole* layer surface (no per-card clip until apps speak
