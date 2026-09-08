@@ -4,14 +4,23 @@
 set -euo pipefail
 state="${XDG_RUNTIME_DIR:-/tmp}/archfrican-focus"
 source "$(dirname "$0")/../lib/archfrican-common.sh"
+# waybar goes through systemd, nwg-dock does not — only waybar ships a user unit (see
+# modules/20-niri-desktop.sh). That unit carries Restart=on-failure specifically because waybar's
+# config reload can segfault it upstream. Killing the bar with pkill and relaunching it with setsid
+# put it back OUTSIDE systemd: it kept running, looked fine, and had silently lost the restart
+# supervision it was given — for the rest of the session, until the next login.
 if [ -e "$state" ]; then
   rm -f "$state"
-  setsid waybar >/dev/null 2>&1 &
+  # Not `systemctl start ... || setsid waybar &`: in bash the & would background the whole || list,
+  # so the systemctl call itself would go async and its exit status could never gate the fallback.
+  if ! systemctl --user start waybar 2>/dev/null; then
+    setsid waybar >/dev/null 2>&1 &
+  fi
   setsid nwg-dock -d -i 48 >/dev/null 2>&1 &
   note "Modo normal"
 else
   : > "$state"
-  pkill -x waybar 2>/dev/null || true
+  systemctl --user stop waybar 2>/dev/null || pkill -x waybar 2>/dev/null || true
   pkill -x nwg-dock 2>/dev/null || true
   note "Modo concentración (sin barras)"
 fi
