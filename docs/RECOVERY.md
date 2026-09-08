@@ -338,25 +338,48 @@ archfrican-update --run
 
 ## 10. Reinstall without losing home data
 
-The `@home` Btrfs subvolume is independent from `@` (root). A fresh Archfrican
-install on the same disk preserves it.
+> **There is no home-preserving reinstall today.** An ISO install wipes the
+> **whole disk** — `wipefs --all`, `sgdisk --zap-all`, then `mkfs.btrfs -f` on
+> the root partition (`lib/base-install.sh`, `base_partition`/`base_format_mount`).
+> That destroys `@home` together with `@`. Picking the same disk and the same
+> passphrase does **not** keep your files: the LUKS container is re-created, not
+> reused. Back up off this machine before any reinstall.
 
-**Procedure**:
+What actually exists, cheapest first:
 
-1. Boot the Archfrican ISO.
-2. Run the installer wizard.
-3. When asked for disk: pick the same device.
-4. When asked for encryption: use the **same passphrase** (LUKS container is reused).
-5. The installer re-formats `@` (root) but **does not touch `@home`**.
-6. After Phase 2 completes, your home directory is intact.
+**a. Rebuild the system layer in place** — no wipe, no reboot, `$HOME` untouched:
 
-**What survives**: all files in `$HOME`, dotfiles, projects, photos.
+```bash
+cd ~/.archfrican && git pull
+FORCE=1 ./install.sh        # re-runs every module: packages, /etc, units, dotfiles
+```
 
-**What does not survive**: installed packages (`/usr`), `/etc` config, system state.
-Phase 2 re-installs everything from the repo anyway.
+Re-applies everything Archfrican owns. It converges toward the desired state; it
+does not reset — packages and config you added by hand outside the modules stay.
+Run `archfrican-update --prune` afterwards to drop Archfrican-managed packages
+the manifest no longer wants.
 
-**Before reinstalling**: take a backup with `archfrican-backup now` as an extra
-safety net, even if you are confident the procedure is non-destructive.
+**b. Roll the system back to a snapshot** — `@home` is a separate subvolume, so
+root snapshots never contain your files (see §7):
+
+```bash
+archfrican-rollback         # or the GRUB "Archfrican Snapshots" submenu
+```
+
+Returns `/` to a previous known-good state, not to a factory-fresh one.
+
+**c. True factory reset** — back up, wipe, restore:
+
+```bash
+archfrican-backup now       # restic, to the configured repo (must be off this disk)
+archfrican-backup list      # verify the snapshot exists BEFORE wiping anything
+# reinstall from the ISO (full-disk wipe), then on the new system:
+restic restore latest --target ~/restaurado
+```
+
+The in-place factory reset that keeps `@home` — the "deep clean" — is designed
+and scaffolded but **not shipped**: `lib/deep-clean.sh` is dry-run-only, unwired,
+and unreachable from any menu. Do not try to invoke it by hand.
 
 ---
 
@@ -398,5 +421,5 @@ does not gate itself on FIDO2 or fingerprint. If it asks again after unlock, jus
 | Bad update | `archfrican-rollback` |
 | AUR package broken | `archfrican-update --run --no-aur` |
 | Keyring expired | `sudo pacman-key --refresh-keys` |
-| Reinstall clean | Same disk + same passphrase; `@home` survives |
+| Reinstall clean | `FORCE=1 ./install.sh` in place — an ISO reinstall wipes `@home` too |
 | Screen lock frozen | TTY → `loginctl unlock-session` or `pkill gtklock` |
