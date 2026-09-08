@@ -547,9 +547,10 @@ Continuidad/Datos, Notificaciones.
 
 **Going back**: a submenu is no longer a one-way trip. `Escape` climbs one level — every submenu
 declares its `parent` in `menus/*.toml`, which is what lets Walker's built-in `menus:parent` binding
-fire. In the fuzzel fallback each submenu grows a trailing `── Volver` entry and cancelling out of
-one re-shows the list you came from instead of dropping you at the desktop. Running an entry still
-closes the whole menu — including applying a theme.
+fire. `Alt+←` is bound to the same action as a typing-safe second path, because Walker's global
+`keybinds.close` also claims `Escape`. In the fuzzel fallback each submenu grows a trailing
+`── Volver` entry and cancelling out of one re-shows the list you came from instead of dropping you
+at the desktop. Running an entry still closes the whole menu — including applying a theme.
 
 ---
 
