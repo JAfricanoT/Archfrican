@@ -77,6 +77,10 @@ anything. Run `archfrican-update --run` when you're ready. There is no auto-upda
 *nothing explodes* while you're not looking.
 
 ## Rollback
-If an update misbehaves, reboot and pick the pre-update snapshot from the grub-btrfs submenu
-(`snapper list` shows it, described `archfrican-update <date>`), then `snapper rollback` if you want
-to make it permanent.
+If an update misbehaves, run `archfrican-rollback` and pick the pre-update checkpoint (`snapper list`
+shows it, described `archfrican-update <date>`). If the machine no longer boots, reach a shell first:
+reboot → grub-btrfs submenu → boot that snapshot **read-only** → run `archfrican-rollback` from there.
+
+Booting the snapshot is not the rollback, and `snapper rollback` does not make it permanent —
+Archfrican pins the root subvolume by path, so snapper's set-default rollback never reaches the boot.
+`archfrican-rollback` does the subvolume swap that does. See [RECOVERY.md](RECOVERY.md) §7.

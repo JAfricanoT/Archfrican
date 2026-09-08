@@ -262,8 +262,15 @@ root with `btrfs subvolume delete /mnt/@.roto` only once the restored system boo
   the current one, while `/usr/lib/modules` comes from the snapshot. If a kernel
   update landed in between, boot fails — `arch-chroot /mnt` and run `mkinitcpio -P`
   (or reinstall the kernel package).
-- **`@home` is a separate subvolume and is not rolled back.** For files under
-  `$HOME`, use `archfrican-timemachine` (snapper's `home` config).
+- **`@home` is a separate subvolume and is not rolled back.** Root snapshots never
+  contain your files. To recover a file, browse snapper's `home` config directly —
+  `ALLOW_GROUPS=wheel` means no sudo is needed to read it:
+
+  ```bash
+  snapper -c home list                       # pick a snapshot number
+  ls /home/.snapshots/<N>/snapshot/          # your /home as it was
+  cp /home/.snapshots/<N>/snapshot/<file> ~/ # restore one file
+  ```
 
 After rollback, `archfrican-update --run` will re-converge from the rolled-back state.
 

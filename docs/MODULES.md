@@ -322,7 +322,7 @@ GRUB submenu for one-reboot rollback.
 4. Enables `snapper-timeline.timer` + `snapper-cleanup.timer` for automatic scheduled snapshots
 5. Enables `snap-pac` — hook that creates snapshots before/after every pacman transaction
 
-**Rollback flow**: `archfrican-rollback` (interactive) or GRUB → Archfrican Snapshots submenu → boot snapshot → `snapper rollback`.
+**Rollback flow**: `archfrican-rollback` (interactive), or GRUB → Archfrican Snapshots submenu → boot the snapshot read-only → `archfrican-rollback` from that shell. Never `snapper rollback`: it flips the Btrfs *default subvolume*, which a root pinned with `rootflags=subvol=@` never consults. `lib/rollback.sh` swaps the subvolume by path instead.
 
 **Re-run**: `./install.sh 50-snapshots`
 

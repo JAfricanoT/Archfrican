@@ -107,11 +107,17 @@ sudo pacman -S --noconfirm cowsay                   # snap-pac makes pre/post sn
 sudo snapper -c root list | tail                    # see the new snapshots
 sudo grub-mkconfig -o /boot/grub/grub.cfg           # (50-snapshots already did this)
 sudo reboot                                          # at GRUB, open "Arch Linux snapshots" submenu,
-                                                     # boot a pre-change snapshot, then from it:
-#   sudo snapper rollback   &&   sudo reboot          # you should be back to the pre-cowsay state
+                                                     # boot a pre-change snapshot (READ-ONLY — the
+                                                     # machine will crawl; that is expected), then:
+#   archfrican-rollback   &&   sudo reboot            # you should be back to the pre-cowsay state
 ```
 Pass criteria: `grub-btrfsd.service` enabled, `snapper -c root list` works, a GRUB **snapshots submenu**
-appears with bootable entries, and a `snapper rollback` from a booted snapshot reverts the system.
+appears with bootable entries, and `archfrican-rollback` from a booted snapshot reverts the system.
+
+> Do **not** validate with `sudo snapper rollback` — it flips the Btrfs default subvolume, which a root
+> pinned by `rootflags=subvol=@` never consults. It prints success and changes nothing, so using it here
+> tests the wrong mechanism and fails a safety net that is actually fine. `lib/rollback.sh` (covered by
+> `tests/unit/rollback.sh`) is the real path.
 **If `systemctl list-unit-files | grep grub-btrfs` shows a different unit name, tell me — the fix needs
 that exact name.**
 
@@ -186,9 +192,10 @@ Run these on the target and report any mismatch (they couldn't be verified off-A
 
 Before trusting this on real hardware, prove you can recover:
 1. **Boot the LTS kernel:** at GRUB, pick `linux-lts` and confirm the system boots (the dual-kernel net).
-2. **Boot a snapshot:** GRUB → "Arch Linux snapshots" → boot a pre-update snapshot (read-only).
-3. **Roll back:** from a booted snapshot, `sudo snapper rollback && sudo reboot` → confirm the system is
-   back to that earlier state.
+2. **Boot a snapshot:** GRUB → "Arch Linux snapshots" → boot a pre-update snapshot. It mounts
+   **read-only**, so expect the machine to crawl — that is the snapshot, not a fault.
+3. **Roll back:** from that booted snapshot, `archfrican-rollback && sudo reboot` → confirm the system
+   is back to that earlier state, writable, and that `@.rollback-<timestamp>` holds the state you left.
 
 If any of these three fails, the "rollback in one reboot" promise is not yet real on your hardware —
 stop and fix `50-snapshots.sh` / the GRUB config before bare-metal.
@@ -204,7 +211,7 @@ Tick every box on the VM before bare metal:
 - [ ] **SEC-01:** install completes all 15 modules; no `target not found`; preflight passes.
 - [ ] **REL-01:** `lspci` present; VM resolves `unknown` and install proceeds; right GPU stack on real HW.
 - [ ] **DATA-02:** `grub-btrfsd.service` enabled; `snapper -c root list` works; `/.snapshots` mounted;
-      snapshots appear in GRUB; `snapper rollback` reverts.
+      snapshots appear in GRUB; `archfrican-rollback` reverts (never `snapper rollback` — see §2.3).
 - [ ] **REL-02/03:** best-effort step failure warns & continues; resume hint + checkpoints work.
 - [ ] **QUAL-01:** `ghostty` installed; `⌘+Return` opens it; `verify_spawns` passed.
 - [ ] **DATA-01/03:** `~/.local/bin/theme-switch` is a symlink; all 9 themes apply from PATH; `chezmoi

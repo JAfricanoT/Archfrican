@@ -58,7 +58,7 @@ fi
 if [ -d /.snapshots ]; then sudo chmod 750 /.snapshots; sudo chown :wheel /.snapshots; fi
 sudo snapper -c root set-config "ALLOW_GROUPS=wheel" || warn "couldn't grant snapper wheel access — non-root 'snapper list' will need sudo"
 
-# ---- home config: file-level Time Machine over /home (archfrican-timemachine) ----------------------
+# ---- home config: file-level Time Machine over /home (browsed via snapper, no wrapper ships) -------
 # @home is a SEPARATE subvolume, so the root snapshots never contain user files. A dedicated 'home'
 # config snapshots /home so a user can recover a previous version of their own file. Retention is
 # deliberately conservative (a few hourly + a few daily, no weekly/monthly): btrfs snapshots are COW,
@@ -86,7 +86,7 @@ if have_home_config; then
   # cleaned up and lingers forever (the bug that let 55 pre-update snapshots pile up on root).
   sudo snapper -c home list 2>/dev/null | awk -F'|' 'NR>2{print $1}' | grep -qE '[0-9]' \
     || best_effort sudo snapper -c home create --cleanup-algorithm number -d "baseline (archfrican)"
-  ok "home Time Machine active — archfrican-timemachine recovers file versions from /home"
+  ok "home Time Machine active — 'snapper -c home list', then read /home/.snapshots/<N>/snapshot/"
 fi
 
 # snap-pac snapshots every pacman transaction; grub-btrfsd (the inotify daemon,

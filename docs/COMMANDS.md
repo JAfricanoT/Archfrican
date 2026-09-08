@@ -126,10 +126,14 @@ archfrican-rollback
 
 Interactive — shows a fuzzel list of snapper snapshots with date and description
 (descriptions include the git commit SHA from `archfrican-update --run`).
-After selection: confirms, runs `sudo snapper -c root rollback <N>`, and offers
-immediate reboot or defer.
+After selection: confirms, swaps the root subvolume (`lib/rollback.sh`), and offers
+immediate reboot or defer. The state you leave is renamed `@.rollback-<timestamp>`,
+not deleted. It is deliberately **not** `snapper rollback` — Archfrican pins the root
+subvolume by path, which makes snapper's set-default rollback a silent no-op.
 
 **Manual alternative**: reboot → hold Shift at GRUB → Archfrican Snapshots submenu.
+That *boots* a snapshot read-only so you can reach a shell; run `archfrican-rollback`
+from it to actually restore. See [RECOVERY.md](RECOVERY.md) §7.
 
 ---
 
