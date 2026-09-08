@@ -12,19 +12,46 @@
   "modules-left": ["niri/workspaces", "niri/window"],
   // center island: weather pill (left) + clock anchor (right)
   "modules-center": ["custom/weather", "clock"],
-  "modules-right": ["pulseaudio", "group/system", "group/connectivity", "group/status", "custom/power"],
+  // Only what a developer acts on stays permanently visible; everything else lives one hover away
+  // inside a drawer group. Nine elements at rest, against the twenty this row used to carry.
+  "modules-right": [
+    "pulseaudio",
+    "group/system",
+    "group/net",
+    "custom/health", "custom/github", "custom/notification", "custom/caffeine", "custom/privacy",
+    "group/systray",
+    "custom/power"
+  ],
 
+  // A `drawer` group hides all but its FIRST module, revealing the rest on hover. Two properties
+  // matter here: children-class gives the hidden modules a styling hook, and transition-left-to-right
+  // false makes a group grow INTO the empty centre rather than shoving its neighbours off the edge —
+  // which is the whole reason these live on the right.
   "group/system": {
     "orientation": "horizontal",
+    "drawer": { "transition-duration": 300, "children-class": "drawer-child", "transition-left-to-right": false },
     "modules": ["cpu", "memory", "disk", "power-profiles-daemon", "battery"]
   },
-  "group/connectivity": {
+  "group/net": {
     "orientation": "horizontal",
+    "drawer": { "transition-duration": 300, "children-class": "drawer-child", "transition-left-to-right": false },
     "modules": ["network", "bluetooth", "custom/connectivity"]
   },
-  "group/status": {
+  // Named "systray", NOT "tray": a group takes the CSS id of its name, and #tray is already owned by
+  // the tray module nested inside this very group. The collision would style both at once.
+  "group/systray": {
     "orientation": "horizontal",
-    "modules": ["custom/health", "custom/github", "custom/notification", "custom/caffeine", "custom/privacy", "tray"]
+    "drawer": { "transition-duration": 300, "children-class": "drawer-child", "transition-left-to-right": false },
+    "modules": ["custom/systray-toggle", "tray"]
+  },
+
+  // Static handle for the tray drawer: no exec, just a glyph to hover. U+F141 (fa-ellipsis-h), from
+  // the same Font Awesome subset as the rest of this config.
+  "custom/systray-toggle": {
+    "format": "{}",
+    "exec": "echo ''",
+    "interval": "once",
+    "tooltip-format": "Bandeja del sistema"
   },
 
   "niri/workspaces": { "format": "{icon}" },
@@ -37,7 +64,17 @@
   },
 
   // system stats — click cpu or memory to jump to btop
-  "cpu":    { "format": "  {usage}%", "on-click": "ghostty -e btop", "tooltip": false },
+  // cpu leads the system drawer, so it does double duty: a mute icon while the machine is calm, and
+  // its own alarm past 80% — the one module that is both the handle you hover and the alert you
+  // cannot miss. Memory and disk need no second alarm: archfrican-doctor is permanently visible now
+  // and already reports a filling disk, so duplicating that warning would only add noise.
+  "cpu": {
+    "format": "",
+    "format-critical": "  {usage}%",
+    "states": { "critical": 80 },
+    "tooltip-format": "CPU {usage}%",
+    "on-click": "ghostty -e btop"
+  },
   "memory": { "format": "  {}%",      "on-click": "ghostty -e btop", "tooltip": false },
   "disk":   { "format": "  {free}",   "tooltip-format": "{used} / {total} ({percentage_used}%)\n{path}" },
 
@@ -58,9 +95,9 @@
   },
 
   "network": {
-    "format-wifi":        "  {essid}",
-    "format-ethernet":    "  wired",
-    "format-disconnected": "  off",
+    "format-wifi":        "",
+    "format-ethernet":    "",
+    "format-disconnected": "",
     "tooltip-format-ethernet":   "{ifname} · IP {ipaddr}/{cidr}\nGateway {gwaddr}",
     "tooltip-format-wifi":       "{essid} ({signalStrength}%) · IP {ipaddr}/{cidr}\nGateway {gwaddr}",
     "tooltip-format-disconnected": "Sin red"

@@ -39,7 +39,7 @@ window#waybar {
 #window, #clock,
 #custom-privacy, #pulseaudio, #bluetooth, #network,
 #cpu, #memory, #disk, #power-profiles-daemon, #battery,
-#custom-caffeine, #custom-weather, #custom-connectivity,
+#custom-caffeine, #custom-weather, #custom-connectivity, #custom-systray-toggle,
 #custom-health, #custom-github, #custom-notification, #custom-power, #tray {
   padding: 1px 4px;
   margin: 2px 0;
@@ -49,10 +49,26 @@ window#waybar {
   font-family: "JetBrainsMono Nerd Font";
 }
 
-/* Grouping without dividers: volume | system | connectivity | status are separated by space alone. */
-#pulseaudio, #system, #connectivity {
+/* Grouping without dividers: the permanent clusters are separated by space alone. #systray takes a
+   margin on BOTH sides rather than relying on its left neighbour: #custom-privacy sits there and is
+   empty (so waybar drops it) whenever the mic and camera are idle, which is nearly always. Hanging
+   the gap off a module that usually does not exist would collapse it exactly when it is needed. */
+#pulseaudio, #system, #net {
   margin-right: 6px;
 }
+#systray { margin-left: 6px; margin-right: 6px; }
+
+/* Drawer children: revealed on hover, styled exactly like any other module — they keep their own ids,
+   so the flat rules above already apply. The class exists as a hook for the dimming below. */
+#system .drawer-child,
+#net .drawer-child,
+#systray .drawer-child {
+  color: @fg_dim;
+}
+
+/* The tray handle reads as an affordance, not a status: dim until pointed at. */
+#custom-systray-toggle { color: @fg_dim; }
+#custom-systray-toggle:hover { color: @fg; }
 
 /* workspaces — focus is carried by colour and weight alone: no underline, no fill, and the same
    padding as every other module so the left region sits at the bar's one density. */
@@ -99,6 +115,9 @@ window#waybar {
 #custom-privacy { color: #ff5f56; }
 #battery.warning { color: #f5c451; }
 #battery.critical { color: #ff5f56; }
+/* The system drawer's leader turning amber IS the alert — it is the only part of that group visible
+   while collapsed, so this colour is what carries a busy machine to the eye. */
+#cpu.critical { color: #f5c451; }
 
 /* dim secondary stats */
 #disk, #memory { color: @fg_dim; }
