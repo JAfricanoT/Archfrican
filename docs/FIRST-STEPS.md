@@ -12,7 +12,7 @@ Every item is optional — you can skip and come back any time.
 To relaunch it:
 
 ```
-⌘+Shift+A   →   "Bienvenida"
+⌘+Alt+Space   →   "Bienvenida"
 ```
 
 or directly:
@@ -41,12 +41,13 @@ The cheat sheet is always one key away:
 
 | Shortcut | Action |
 |----------|--------|
-| `⌘+Space` | Spotlight launcher (Walker) — apps, files, web, calc, clipboard |
+| `⌘+Space` | Spotlight launcher (Walker) — **apps**, files, web, calc, clipboard |
+| `⌘+Alt+Space` | Actions & settings — power, session, network, displays, themes |
 | `⌘+Return` | New terminal (Ghostty) |
 | `⌘+W` | Close window |
 | `⌘+Q` | Quit app (closes every window of the focused app) |
 | `⌘+Tab` | Mission-Control overview of all workspaces |
-| `⌘+Shift+A` | Actions hub — all Archfrican commands in one place |
+| `⌘+Shift+A` | Actions hub — alias of `⌘+Alt+Space` |
 | `⌘+Shift+K` | Key cheat sheet |
 | `⌘+Shift+V` | Clipboard history picker |
 | `⌘+Shift+N` | File manager (Nautilus) |
@@ -120,7 +121,7 @@ After installation the chosen browser is set as the system default via `xdg-sett
 For Mullvad Browser (privacy-first, Tor-compatible):
 
 ```bash
-⌘+Shift+A   →   "Mullvad Browser"
+⌘+Alt+Space   →   "Mullvad Browser"
 ```
 
 ---
@@ -239,7 +240,7 @@ Each operation is idempotent — safe to re-run if interrupted.
 For KDE Connect (phone ↔ desktop clipboard, notifications, files):
 
 ```bash
-⌘+Shift+A   →   "Continuidad / KDE Connect"
+⌘+Alt+Space   →   "Continuidad / KDE Connect"
 ```
 
 ---
@@ -249,7 +250,8 @@ For KDE Connect (phone ↔ desktop clipboard, notifications, files):
 | Task | Command |
 |------|---------|
 | All shortcuts | `⌘+Shift+K` |
-| Actions hub | `⌘+Shift+A` |
+| Apps launcher | `⌘+Space` |
+| Actions & settings | `⌘+Alt+Space` |
 | Add WiFi network | `nmtui` |
 | Install browser | `archfrican-browser` |
 | Change theme | `theme-switch <name>` |

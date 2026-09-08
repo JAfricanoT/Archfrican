@@ -22,25 +22,45 @@ have python3 || { note "falta python3"; exit 1; }
 # fallback uses the shared pick_theme (archfrican-common.sh), which replicates that live
 # discovery instead of trying to read a themes.toml that doesn't exist.
 
-# run_toml_menu <file.toml> <prompt> — list its entries in fuzzel; run (or open in a terminal) the
-# chosen one, or recurse into its submenu (another sibling .toml, or the one special-cased Lua menu).
+# Entering a submenu used to be a one-way trip: pick "Pantallas / monitores", change your mind, and
+# the whole menu was gone. BACK gives the fallback the same "go up one level" the native Walker menu
+# gets from `menus:parent` (Escape / Alt+Left — see walker/config.toml). It's plain text, so
+# toml_menu_action simply doesn't match it and the caller handles it before ever looking it up.
+BACK="←  Volver"
+
+# run_toml_menu <file.toml> <prompt> [is-submenu] — list its entries in fuzzel; run (or open in a
+# terminal) the chosen one, or recurse into its submenu (another sibling .toml, or the one
+# special-cased Lua menu).
+#
+# Exit status is the navigation verdict, because "the submenu closed" and "the submenu ran something"
+# must not look alike to the parent:
+#   0 -> went back / cancelled  ->  the caller re-shows its own list (you land where you were)
+#   2 -> an entry ran           ->  every level returns, the menu is done
+# `|| rc=$?` around the recursion keeps `set -e` out of it, since 2 is a deliberate status.
 run_toml_menu() {
-  local file="$1" prompt="$2" sel line kind value
+  local file="$1" prompt="$2" sub="${3:-}" sel line kind value rc
   [ -r "$file" ] || { note "no encuentro $(basename "$file")"; return 1; }
-  sel="$(toml_menu_list "$file" | fuzzel --dmenu --prompt "$prompt")" || return 0
-  [ -n "$sel" ] || return 0
-  line="$(toml_menu_action "$file" "$sel")"
-  [ -n "$line" ] || return 0
-  kind="${line%%$'\t'*}"; value="${line#*$'\t'}"
-  case "$kind" in
-    run)      sh -c "$value" ;;
-    terminal) ghostty -e sh -c "$value" ;;
-    submenu)
-      case "$value" in
-        themes) pick_theme ;;
-        *)      run_toml_menu "$MENUS/$value.toml" "  $value  " ;;
-      esac ;;
-  esac
+  while :; do
+    sel="$( { [ -n "$sub" ] && printf '%s\n' "$BACK"; toml_menu_list "$file"; } \
+            | fuzzel --dmenu --prompt "$prompt")" || return 0
+    [ -n "$sel" ] || return 0
+    if [ "$sel" = "$BACK" ]; then return 0; fi
+    line="$(toml_menu_action "$file" "$sel")"
+    [ -n "$line" ] || return 0
+    kind="${line%%$'\t'*}"; value="${line#*$'\t'}"
+    case "$kind" in
+      run)      sh -c "$value"; return 2 ;;
+      terminal) ghostty -e sh -c "$value"; return 2 ;;
+      submenu)
+        rc=0
+        case "$value" in
+          themes) pick_theme ;;
+          *)      run_toml_menu "$MENUS/$value.toml" "  $value  " sub || rc=$? ;;
+        esac
+        if [ "$rc" -eq 2 ]; then return 2; fi
+        ;;
+    esac
+  done
 }
 
-run_toml_menu "$MENUS/actions.toml" "  acciones  "
+run_toml_menu "$MENUS/actions.toml" "  acciones  " || true

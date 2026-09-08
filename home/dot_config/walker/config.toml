@@ -6,7 +6,7 @@ theme = "archfrican"
 force_keyboard_focus = true         # keep typing in Walker even under niri focus-follows-mouse
 close_when_open = true              # ⌘+Space again closes it
 click_to_close = true               # click outside the box closes it
-selection_wrap = false
+selection_wrap = true               # navegación circular: arriba en el primero → último, abajo en el último → primero
 # niri implements ext-background-effect-v1, so Walker frosts JUST behind its own box (clipped) — the
 # clean way to blur a launcher without the whole-layer flatten that a niri layer-rule would cause.
 ext_background_effect_blur = true
@@ -21,6 +21,21 @@ anchor_right = true
 [providers]
 default = ["desktopapplications", "calc", "websearch"]   # queried as you type
 empty = ["desktopapplications"]                          # shown before you type
+
+# Volver atrás dentro del launcher. `menus:parent` sube un nivel en un menú (⌘+Alt+Space → un
+# submenú → de vuelta al listado anterior) en vez de cerrar todo. Walker ya lo trae en Escape por
+# defecto, pero `keybinds.close` también reclama Escape, así que añadimos Alt+Left — el "atrás" de
+# toda la vida, imposible de solapar y que no interfiere con escribir en el buscador. El resto de
+# la lista replica el `fallback` por defecto de Walker: al declarar la clave se sustituye entera,
+# así que omitir una entrada la perdería.
+[providers.actions]
+fallback = [
+  { action = "menus:open", label = "abrir", after = "Nothing" },
+  { action = "menus:default", label = "ejecutar", after = "Close" },
+  { action = "menus:parent", label = "volver", bind = "Escape", after = "Nothing" },
+  { action = "menus:parent", label = "volver", bind = "alt Left", after = "Nothing" },
+  { action = "erase_history", label = "limpiar historial", bind = "ctrl h", after = "AsyncReload" },
+]
 
 # Type-a-prefix to jump into a mode (mirrors the old fuzzel modes, now first-class):
 [[providers.prefixes]]

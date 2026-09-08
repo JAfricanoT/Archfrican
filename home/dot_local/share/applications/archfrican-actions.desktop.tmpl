@@ -8,3 +8,7 @@ Icon=preferences-system
 Terminal=false
 Categories=Settings;System;
 Keywords=archfrican;acciones;ajustes;settings;actions;control;
+# Fuera del grid de apps: ⌘+Space es SOLO apps (brave, terminales, IDEs) y los ajustes del sistema
+# viven en su propia superficie, ⌘+Alt+Space. El archivo se mantiene (no se borra) para que
+# `gtk-launch archfrican-actions` y cualquier referencia por desktop-id sigan resolviendo.
+NoDisplay=true

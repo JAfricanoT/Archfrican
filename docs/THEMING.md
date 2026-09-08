@@ -18,7 +18,7 @@ The selection is saved to `~/.config/.archfrican-theme` and restored on every
 From the desktop:
 
 ```
-⌘+Shift+A   →   "Cambiar el tema"
+⌘+Alt+Space   →   "Cambiar el tema"
 ```
 
 or from the welcome tour:

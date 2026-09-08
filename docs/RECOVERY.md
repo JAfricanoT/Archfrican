@@ -122,7 +122,7 @@ sudo rm -f /etc/u2f_mappings
 To enroll a replacement key:
 
 ```bash
-⌘+Shift+A   →   "Huella / FIDO2"   →   "Agregar llave"
+⌘+Alt+Space   →   "Huella / FIDO2"   →   "Agregar llave"
 ```
 
 or directly:
