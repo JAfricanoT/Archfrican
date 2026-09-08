@@ -4,3 +4,7 @@
 @define-color fg        ${FG};
 @define-color fg_dim    ${FG_DIM};
 @define-color accent    ${ACCENT};
+/* The bar's own surface — the theme colour with OPACITY_BAR already folded in. Folded HERE and not
+   in style.css because only this file is rendered per-theme: high-contrast sets OPACITY_BAR=1.0 to
+   kill translucency, and that override only reaches the bar through a generated colour. */
+@define-color bar_bg    alpha(${BG}, ${OPACITY_BAR});
