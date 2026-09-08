@@ -1,8 +1,11 @@
 {
   "layer": "top",
   "position": "top",
-  "height": 34,
-  "spacing": 4,
+  // 30px + spacing 2: the bar is meant to read dense. Vertical air is trimmed to what the 14px clock
+  // actually needs (~25px of content), and inter-module spacing is halved — with ~20 modules on the
+  // right, every px of "spacing" is spent twenty times over.
+  "height": 30,
+  "spacing": 2,
   // No margins: the bar is one flat plane docked to the top edge. Dropping them also shrinks the
   // layer-shell exclusive zone from 40 to 34, so windows tile 6px higher. Inner breathing room is
   // style.css's job (.modules-left/right padding), not a gap around the surface.
@@ -149,7 +152,7 @@
     "tooltip-format": "{volume}% — {desc}",
     "on-click": "pavucontrol"
   },
-  "tray": { "spacing": 8 },
+  "tray": { "spacing": 4 },
   // power/system menu — nf-fa-power-off, U+F011 (see docs/superpowers/specs/2026-07-06-waybar-power-menu-design.md)
   "custom/power": {
     "format": "",
