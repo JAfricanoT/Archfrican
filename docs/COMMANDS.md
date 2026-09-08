@@ -198,7 +198,7 @@ Complements `archfrican-backup` (restic, a full offsite-capable backup): this is
 local *version history*. Needs the `home` snapper config for `/home` files — set up on install /
 `archfrican-update --converge`.
 
-**Access via**: `⌘+Shift+A → "Recuperar versión de un archivo (snapshots)…"`
+**Access via**: `⌘+Alt+Space → "Recuperar versión de un archivo (snapshots)…"`
 
 ---
 
@@ -238,7 +238,7 @@ archfrican-welcome [--tour]
 
 **State file**: `~/.local/state/archfrican/onboarded-rev` (last visited git SHA)
 
-Access via: `⌘+Shift+A → "Bienvenida/tour"` or run directly.
+Access via: `⌘+Alt+Space → "Bienvenida/tour"` or run directly.
 
 ---
 
@@ -504,7 +504,9 @@ The equivalent of Spotlight Actions or an omarchy-menu.
 archfrican-actions
 ```
 
-**Keyboard shortcut**: `⌘+Shift+A` (configured in niri)
+**Keyboard shortcut**: `⌘+Alt+Space` (`⌘+Shift+A` is kept as an alias). This is the *settings*
+surface — power, session, network, displays, themes, backup — deliberately separate from
+`⌘+Space`, which is the *apps* launcher.
 
 Covers ~50 actions organized by category: Configuración, Sistema, Sesión/Interfaz,
 Herramientas, Red, Audio/Visual, Accesibilidad, Privacidad/Seguridad, Gaming,
@@ -630,9 +632,13 @@ and friends open.
 of closing the launcher. `Alt+←` is bound in addition to Walker's default `Escape` because the global
 `keybinds.close` also claims `Escape`; `Alt+←` can't be shadowed and never interferes with typing.
 
-**Fuzzel fallback** (when Walker is absent): the full app list plus two mode entries —
-`Portapapeles…` (cliphist history) and `Acciones y ajustes…` (the archfrican-actions hub,
-which itself falls back to fuzzel and still reaches every action above).
+**Apps only** — `⌘+Space` lists apps (plus the calc/web/file modes above). System settings live on
+their own key, `⌘+Alt+Space` (`archfrican-actions`), so the app grid is not diluted by power, network
+and display entries. The `Acciones y ajustes` and `Asistente de configuración` desktop entries are
+`NoDisplay=true` for the same reason.
+
+**Fuzzel fallback** (when Walker is absent): the full app list plus the `Portapapeles…` mode entry
+(cliphist history). System settings are deliberately absent here too — use `⌘+Alt+Space`.
 
 **Keyboard shortcut**: `⌘+Space`
 
@@ -650,7 +656,7 @@ archfrican-setup
 Covers: default apps (browser, IDE, PDF, image viewer), language/locale/keyboard,
 display arrangement, appearance/theme, accessibility, privacy, backup, VPN, and more.
 
-**Access via**: `⌘+Shift+A → "Configurar el sistema"`
+**Access via**: `⌘+Alt+Space → "Asistente de configuración (todo)…"`
 
 ---
 
@@ -1106,7 +1112,7 @@ Interactive fuzzel menu offering:
 | Normal text | Text scaling back to 1.0 |
 | Magnifier / sticky keys (info) | Status note (no mature Wayland-native magnifier yet) |
 
-Access via: `⌘+Shift+A → "Accesibilidad"` or run directly.
+Access via: `⌘+Alt+Space → "Accesibilidad"` or run directly.
 
 ---
 
@@ -1254,7 +1260,7 @@ imagemagick — all already in the niri stack). Shows a notification with the va
 archfrican-colorpicker
 ```
 
-**Access via**: Spotlight (app grid) or `⌘+Shift+A → "Selector de color"`.
+**Access via**: Spotlight (app grid) or `⌘+Alt+Space → "Selector de color"`.
 
 ---
 

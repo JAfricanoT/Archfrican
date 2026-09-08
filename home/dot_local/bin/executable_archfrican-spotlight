@@ -4,7 +4,6 @@
 # below if Walker/elephant aren't installed, so ⌘+Space never dies. Type to filter; prefixes jump modes.
 set -euo pipefail
 source "$(dirname "$0")/../lib/archfrican-common.sh"
-B="$HOME/.local/bin"
 
 # ── Walker path (preferred) ──────────────────────────────────────────────────────────────────────────
 if have walker && have elephant; then
@@ -20,8 +19,9 @@ TAB="$(printf '\t')"
 
 # Mode shortcuts. Kept verbatim so the returned selection routes unambiguously; each gets a real
 # freedesktop icon (below) so they sit alongside the apps as first-class Spotlight results.
+# System settings deliberately do NOT appear here: ⌘+Space is apps (+ launcher modes), and the
+# control surface — power, network, displays, themes — is its own key, ⌘+Alt+Space.
 M_CLIP="Portapapeles…"
-M_ACT="Acciones y ajustes…"
 
 # App index: "Name<TAB>desktop-id<TAB>icon" for every visible .desktop (the shared
 # list_desktop_apps, with the .desktop suffix stripped for gtk-launch). Used to (a) render the
@@ -30,11 +30,10 @@ M_ACT="Acciones y ajustes…"
 idx="$(mktemp)"; trap 'rm -f "$idx"' EXIT
 list_desktop_apps | awk -F'\t' -v OFS='\t' '{sub(/\.desktop$/, "", $2); print}' > "$idx"
 
-# Feed fuzzel: the six modes first, then every app (alpha, de-duped by name) with its icon via the
-# dmenu icon protocol (label \0 "icon" \x1f icon-name).
+# Feed fuzzel: the launcher modes first, then every app (alpha, de-duped by name) with its icon via
+# the dmenu icon protocol (label \0 "icon" \x1f icon-name).
 build_list() {
   printf '%s\0icon\x1fedit-paste\n'                 "$M_CLIP"
-  printf '%s\0icon\x1fpreferences-system\n'         "$M_ACT"
   sort -t "$TAB" -k1,1 -u "$idx" | while IFS="$TAB" read -r name _id icon; do
     if [ -n "$icon" ]; then printf '%s\0icon\x1f%s\n' "$name" "$icon"; else printf '%s\n' "$name"; fi
   done
@@ -56,6 +55,5 @@ launch_app() {
 
 case "$sel" in
   "$M_CLIP") sh -c 'cliphist list | fuzzel --dmenu --prompt "   " | cliphist decode | wl-copy' ;;
-  "$M_ACT")  "$B/archfrican-actions" ;;
   *)         launch_app "$sel" ;;
 esac
