@@ -22,6 +22,23 @@ the env (`ARCHFRICAN_AUTOPILOT=1` + `ARCHFRICAN_ISO_ARMED=1` + `ARCHFRICAN_ISO_G
 (CI enforces it) and autopilot also requires the exact-device confirm — so none of this can fire from a
 normal run on a real machine. Use only in a disposable VM.
 
+## Also here: `rollback-drill.sh` — read-only, for a REAL machine
+Unrelated to `selftest.sh` and its opposite in every way: no VM, no gates, nothing destructive.
+
+```bash
+bash tests/e2e/rollback-drill.sh      # prompts for sudo (mount only)
+```
+
+It resolves every path `archfrican_rollback_to` (`lib/rollback.sh`) would touch on the machine you
+run it on and confirms they exist — device, root subvolume, snapshot subvolume, and that the newest
+snapshot really holds a complete root. It mounts the filesystem top **`ro`** and never renames,
+snapshots or deletes anything.
+
+Why it exists: `tests/unit/rollback.sh` stubs `sudo`/`btrfs`/`findmnt`, so it proves the *decisions*
+(swap vs. `snapper rollback`, the brick guard) but can never prove the *paths*. A rollback that gets
+those wrong is discovered at the worst possible moment. Run this after any change to
+`lib/rollback.sh`; it is step 0 of the recovery drills in [docs/VALIDATION.md](../../docs/VALIDATION.md).
+
 ## Prerequisites
 - A **UEFI/OVMF** VM (UTM, VirtualBox with EFI enabled, or qemu `-bios OVMF`), ≥4 GB RAM, a **throwaway
   ≥25 GB disk**, networking up.

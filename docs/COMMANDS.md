@@ -55,7 +55,7 @@ archfrican-update --prune       # review and remove orphaned managed packages
 
 ## archfrican-doctor
 
-System health monitor. Runs 27 checks across disk, services, packages, security,
+System health monitor. Runs 26 checks across disk, services, packages, security,
 and Archfrican config. Safe to run anytime — never modifies the system except with `--fix`.
 Root-needing probes use `sudo -n` and report `needs sudo` rather than a green they
 could not verify.

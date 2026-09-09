@@ -78,6 +78,33 @@ jobs:
           fi
           echo "deepclean-safety: dry-run default OK, fixed allowlist OK, no full-disk-wipe verbs"
 
+  doctor-checks:
+    runs-on: ubuntu-latest        # every check doctor calls must exist, and the docs must count them right
+    steps:
+      - uses: actions/checkout@v4
+      - name: run_all_checks calls nothing undefined, and COMMANDS.md's count matches
+        run: |
+          set -euo pipefail
+          # 1. A check registered in run_all_checks but never defined in lib/health.sh is a
+          #    "command not found" line in the middle of a health report — errexit is deliberately
+          #    off there, so it degrades silently instead of failing loudly. Cheap to catch here.
+          missing=0
+          for fn in $(sed -n '/^run_all_checks() {/,/^}/p' bin/archfrican-doctor \
+                      | grep -oE '\bcheck_[a-z_]+' | sort -u); do
+            grep -q "^${fn}() {" lib/health.sh \
+              || { echo "::error::bin/archfrican-doctor calls ${fn}, undefined in lib/health.sh"; missing=1; }
+          done
+          [ "$missing" -eq 0 ] || exit 1
+          # 2. The "Runs N checks" line is hand-maintained and has drifted every time a check landed
+          #    (25 documented vs 26 real, then 27 vs 28). Pin it to the code.
+          actual="$(sed -n '/^run_all_checks() {/,/^}/p' bin/archfrican-doctor \
+                    | grep -oE '\bcheck_[a-z_]+' | sort -u | wc -l)"
+          documented="$(grep -oE 'Runs [0-9]+ checks' docs/COMMANDS.md | grep -oE '[0-9]+' | head -1)"
+          [ -n "$documented" ] || { echo "::error::docs/COMMANDS.md has no 'Runs N checks' line"; exit 1; }
+          [ "$actual" = "$documented" ] \
+            || { echo "::error::doctor runs $actual checks, docs/COMMANDS.md says $documented"; exit 1; }
+          echo "doctor-checks: $actual checks, all defined, count documented correctly"
+
   migrations-idempotent:
     runs-on: ubuntu-latest        # the converge update path: migrations must be fresh-safe + idempotent
     steps:
@@ -412,6 +439,8 @@ jobs:
         run: bash tests/unit/desktop-visibility.sh
       - name: bar-mode — waybar's two mode fragments stay in sync; one include only (a second deep-merges)
         run: bash tests/unit/bar-mode.sh
+      - name: disk-health — SMART resolves through dm-crypt; TRIM blocked by the mapper is caught, not skipped
+        run: bash tests/unit/disk-health.sh
 
   modules-list-consistency:
     runs-on: ubuntu-latest        # 5 independent lists of module names must stay in sync, or drift silently

@@ -191,13 +191,27 @@ Run these on the target and report any mismatch (they couldn't be verified off-A
 ## 4. Recovery drills (validate the safety net itself)
 
 Before trusting this on real hardware, prove you can recover:
+
+0. **Dry drill (read-only, costs nothing):**
+
+   ```bash
+   bash tests/e2e/rollback-drill.sh
+   ```
+
+   Resolves every path `archfrican_rollback_to` would touch on *this* machine and confirms they
+   exist — device, root subvolume, snapshot subvolume, and that the newest snapshot really holds a
+   complete root. It mounts the filesystem top `ro` and never renames, snapshots or deletes
+   anything. Run it after any change to `lib/rollback.sh`. `tests/unit/rollback.sh` stubs
+   sudo/btrfs/findmnt, so it can prove the *decisions* but never the *paths*; this closes that gap
+   without spending a reboot.
+
 1. **Boot the LTS kernel:** at GRUB, pick `linux-lts` and confirm the system boots (the dual-kernel net).
 2. **Boot a snapshot:** GRUB → "Arch Linux snapshots" → boot a pre-update snapshot. It mounts
    **read-only**, so expect the machine to crawl — that is the snapshot, not a fault.
 3. **Roll back:** from that booted snapshot, `archfrican-rollback && sudo reboot` → confirm the system
    is back to that earlier state, writable, and that `@.rollback-<timestamp>` holds the state you left.
 
-If any of these three fails, the "rollback in one reboot" promise is not yet real on your hardware —
+If any of these fails, the "rollback in one reboot" promise is not yet real on your hardware —
 stop and fix `50-snapshots.sh` / the GRUB config before bare-metal.
 
 ---
