@@ -1,4 +1,9 @@
 name = "pantallas"
+# The only menu with two inbound submenu links (actions and setup). elephant's `parent` is a single
+# static string, not a navigation stack, so back always lands here — the hub reached by the keybind,
+# which is the way most people get in. Arriving from the setup wizard and going back therefore lands
+# one menu over rather than where you came from; that is elephant's model, not a local choice.
+parent = "actions"
 name_pretty = "Pantallas"
 icon = "video-display"
 fixed_order = true
