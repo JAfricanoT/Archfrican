@@ -324,6 +324,54 @@ jobs:
       - name: FIDO2 PAM selfcheck + version guard (fixture-based, no key needed)
         run: bash tests/unit/fido2.sh
 
+  desktop-entries:
+    runs-on: ubuntu-latest        # the .desktop files are read by Walker, Kickoff, gtk-launch and MIME
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq desktop-file-utils
+      - name: shipped .desktop entries are spec-valid (one documented deviation)
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/apps
+          # Only template expression in these files is the home dir; substitute it rather than
+          # pulling chezmoi into CI just to render four entries.
+          for f in home/dot_local/share/applications/*.desktop.tmpl; do
+            sed 's#{{ \.chezmoi\.homeDir }}#/home/tester#g' "$f" > "/tmp/apps/$(basename "$f" .tmpl)"
+          done
+          rc=0
+          for f in /tmp/apps/*.desktop; do
+            # THE ONE ALLOWED DEVIATION: desktop-file-validate errors on NotShowIn/OnlyShowIn values
+            # that are not in the freedesktop registry, and "niri" is not registered — the registry
+            # predates the compositor. But `niri` is exactly what the session sets in
+            # XDG_CURRENT_DESKTOP (DesktopNames=niri in /usr/share/wayland-sessions/niri.desktop),
+            # and every implementation compares those tokens verbatim. The spec-pure alternative,
+            # "X-niri", satisfies the linter and never matches anything, i.e. it silently does
+            # nothing. Correctness beats the lint here; everything else must still be clean.
+            out="$(desktop-file-validate "$f" 2>&1 | grep -v 'unregistered value "niri"' || true)"
+            if grep -q '^.*: error:' <<< "$out"; then
+              echo "::error::$(basename "$f"): $out"; rc=1
+            fi
+          done
+          exit "$rc"
+      - name: control surfaces are session-scoped, never blanket-hidden
+        run: |
+          set -euo pipefail
+          A=home/dot_local/share/applications
+          # NoDisplay hides an entry EVERYWHERE, including the Plasma session — which installs no
+          # niri binds, no waybar and no Walker (modules/25-plasma-desktop.sh), so a hidden entry
+          # there has no graphical route left at all. NotShowIn is the session-scoped key that says
+          # what is actually meant: "not in the launcher that already has a key for this".
+          if grep -rlE '^NoDisplay[[:space:]]*=[[:space:]]*true' "$A"/; then
+            echo "::error::a shipped .desktop uses NoDisplay=true; use NotShowIn=<session>; so the Plasma session keeps a route"; exit 1
+          fi
+          if ! grep -qE '^NotShowIn=.*niri' "$A/archfrican-actions.desktop.tmpl"; then
+            echo "::error::archfrican-actions must stay out of the niri app grid (NotShowIn=niri;) — it opens a launcher, and ⌘+Shift+A and the ',' prefix already reach it"; exit 1
+          fi
+          if grep -qE '^(NotShowIn|OnlyShowIn|NoDisplay|Hidden)=' "$A/archfrican-setup.desktop.tmpl"; then
+            echo "::error::archfrican-setup must stay visible in every session — it is the first-run wizard, and a keybind is not a discovery route"; exit 1
+          fi
+          echo "desktop-entries: control surfaces session-scoped, first-run wizard visible everywhere"
+
   unit-logic:
     runs-on: ubuntu-latest        # pure bash, fixture/mock-based — no hardware, no disks, no root
     steps:
@@ -358,8 +406,10 @@ jobs:
         run: bash tests/unit/snapshots-gate.sh
       - name: weather — a city's internal spaces survive; "New York" must not query "NewYork"
         run: bash tests/unit/weather.sh
-      - name: actions-menu — fuzzel fallback navigation: back is last, running closes, failures are loud
+      - name: actions-menu — fuzzel fallback navigation (back is last, running closes, failures are loud)
         run: bash tests/unit/actions-menu.sh
+      - name: desktop-visibility — one filter for both launchers (NoDisplay/Hidden/NotShowIn/OnlyShowIn)
+        run: bash tests/unit/desktop-visibility.sh
       - name: bar-mode — waybar's two mode fragments stay in sync; one include only (a second deep-merges)
         run: bash tests/unit/bar-mode.sh
 
