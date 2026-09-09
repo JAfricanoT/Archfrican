@@ -90,7 +90,9 @@ class=ok; [ "$H_AMBER" -gt 0 ] && class=amber; [ "$H_RED" -gt 0 ] && class=red
 
 case "$MODE" in
   --json)
-    text=""; [ "$issues" -gt 0 ] && text=" $issues"
+    # Glyph + count, not a bare count: this badge sits in a row beside cpu's "24%", and two naked
+    # numbers side by side identify neither. Empty when healthy, so the module hides itself.
+    text=""; [ "$issues" -gt 0 ] && text="$(printf '\xef\x88\x9e') $issues"
     case "$class" in
       ok)    tip="System healthy";;
       amber) tip="$H_AMBER item(s) to review — click for details";;
