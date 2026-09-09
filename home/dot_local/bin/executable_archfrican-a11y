@@ -12,7 +12,11 @@ prevfile="$HOME/.config/.archfrican-prev-theme"
 # — including the one "Alto contraste: activar" below performs itself, plus darkman's twice-daily
 # light/dark flip and every archfrican-update. Writing the override HERE makes it stick, because
 # theme-switch sources this file LAST in its token cascade (after the theme's own tokens.sh).
-a11ytokens="$HOME/.config/archfrican/a11y-tokens.sh"
+# Must resolve to the SAME path theme-switch reads (bin/theme-switch, A11Y_TOKENS) — it honours
+# XDG_CONFIG_HOME, so this has to as well. When the two disagreed, a session with XDG_CONFIG_HOME
+# pointing outside ~/.config wrote the override here and read it from there: the accommodation was
+# dropped in silence, which is the exact failure this whole layer exists to prevent.
+a11ytokens="${XDG_CONFIG_HOME:-$HOME/.config}/archfrican/a11y-tokens.sh"
 a11y_token() {                    # a11y_token <NAME> [value] ; no value = drop the override
   local name="$1" val="${2:-}" tmp
   mkdir -p "$(dirname "$a11ytokens")"
