@@ -65,15 +65,21 @@ window#waybar {
    (4.66:1 dark, 3.69:1 light, 15.91:1 high-contrast) — no translucent tint in any palette does.
 
    Hung on .drawer-child rather than :hover on purpose. These elements are only VISIBLE while the
-   drawer is open, so the class is a reliable proxy for "expanded" whichever gesture opens it. A
-   :hover rule would have been wrong the moment click-to-reveal landed: it would paint the marker
-   when the pointer merely crosses a closed group. The tray keeps @fg — third-party icons have their
-   own colours and recolouring them communicates nothing. */
-#system .drawer-child,
-#net .drawer-child {
+   drawer is open, so the class tracks the real state, whereas a :hover rule would paint the marker
+   whenever the pointer merely crossed a closed group.
+
+   The selector has to reach the LABEL. waybar's widget tree puts that class on an anonymous wrapper
+   — widget.drawer-child > label#memory.module — and every module label above sets `color: @fg`
+   explicitly, which beats a colour merely inherited from a parent. Styling the wrapper alone does
+   nothing at all. Naming the label also outranks the plain `#memory` rule, so the accent lands.
+
+   The tray keeps @fg: those icons belong to third-party apps and carry their own colours, so
+   recolouring them communicates nothing. */
+#system .drawer-child label,
+#net .drawer-child label {
   color: @accent;
 }
-#systray .drawer-child { color: @fg; }
+#systray .drawer-child label { color: @fg; }
 
 /* Handles read as affordances, not as status: dim until pointed at. Both of them share the signature
    deliberately — repetition is what teaches "the dim ones open things". */
