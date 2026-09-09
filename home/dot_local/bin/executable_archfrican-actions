@@ -22,25 +22,58 @@ have python3 || { note "falta python3"; exit 1; }
 # fallback uses the shared pick_theme (archfrican-common.sh), which replicates that live
 # discovery instead of trying to read a themes.toml that doesn't exist.
 
-# run_toml_menu <file.toml> <prompt> — list its entries in fuzzel; run (or open in a terminal) the
-# chosen one, or recurse into its submenu (another sibling .toml, or the one special-cased Lua menu).
+# Entering a submenu used to be a one-way trip: pick "Pantallas / monitores", change your mind, and
+# the whole menu was gone. BACK gives the fallback the same "go up one level" the native Walker menu
+# gets from `menus:parent` once the menu declares a `parent` (menus/*.toml). It's plain text, so
+# toml_menu_action never matches it and the loop handles it before ever looking it up.
+#
+# It sits LAST. fuzzel preselects the first row, so a back entry at the top means the first Enter
+# after opening a submenu walks straight back out — a trapdoor where an affordance was intended.
+# Escape is the fast path; this row is for discovery. Shape matches archfrican-setup's "── Terminar"
+# so pseudo-entries stay one family across the two menus rather than two.
+BACK="── Volver"
+
+# RAN carries the navigation verdict: an entry actually executed, so every level should return and
+# the menu is done. Deliberately a global rather than an exit status — making the caller test
+# run_toml_menu (`|| rc=$?`, or a trailing `|| true`) puts the entire call tree in a tested context,
+# and bash then suspends errexit for everything inside it, `sh -c "$value"` included. That turns a
+# failed action into a silent exit 0. The script sources archfrican-common.sh precisely to inherit
+# `set -euo pipefail`; a navigation protocol must not quietly switch it off.
+RAN=0
+
+# run_toml_menu <file.toml> <prompt> [is-submenu] — list its entries in fuzzel; run (or open in a
+# terminal) the chosen one, or recurse into its submenu (another sibling .toml, or the one
+# special-cased Lua menu). Always returns 0: a non-zero return would abort the parent under errexit.
 run_toml_menu() {
-  local file="$1" prompt="$2" sel line kind value
-  [ -r "$file" ] || { note "no encuentro $(basename "$file")"; return 1; }
-  sel="$(toml_menu_list "$file" | fuzzel --dmenu --prompt "$prompt")" || return 0
-  [ -n "$sel" ] || return 0
-  line="$(toml_menu_action "$file" "$sel")"
-  [ -n "$line" ] || return 0
-  kind="${line%%$'\t'*}"; value="${line#*$'\t'}"
-  case "$kind" in
-    run)      sh -c "$value" ;;
-    terminal) ghostty -e sh -c "$value" ;;
-    submenu)
-      case "$value" in
-        themes) pick_theme ;;
-        *)      run_toml_menu "$MENUS/$value.toml" "  $value  " ;;
-      esac ;;
-  esac
+  local file="$1" prompt="$2" sub="${3:-}" sel line kind value
+  [ -r "$file" ] || { note "no encuentro $(basename "$file")"; return 0; }
+  while :; do
+    # The BACK row goes last, but the group's exit status is its LAST command, and under pipefail a
+    # non-zero there sinks the whole pipeline and looks exactly like a cancelled fuzzel. `if` returns
+    # 0 when the condition is false; a bare `[ -n "$sub" ] && printf` would not.
+    sel="$( { toml_menu_list "$file"; if [ -n "$sub" ]; then printf '%s\n' "$BACK"; fi; } \
+            | fuzzel --dmenu --prompt "$prompt")" || return 0   # Escape: up one level, or close at root
+    [ -n "$sel" ] || return 0
+    if [ "$sel" = "$BACK" ]; then return 0; fi
+    line="$(toml_menu_action "$file" "$sel")" || { note "no pude leer $(basename "$file")"; return 0; }
+    [ -n "$line" ] || return 0
+    kind="${line%%$'\t'*}"; value="${line#*$'\t'}"
+    case "$kind" in
+      run)      sh -c "$value"      || note "falló: $sel";            RAN=1; return 0 ;;
+      terminal) ghostty -e sh -c "$value" || note "no pude abrir la terminal"; RAN=1; return 0 ;;
+      submenu)
+        case "$value" in
+          # Applying a theme is running an entry: close, like every other action. Cancelling the
+          # picker is not, so it falls through and the list you came from is drawn again.
+          themes) if pick_theme; then RAN=1; return 0; fi ;;
+          *)      run_toml_menu "$MENUS/$value.toml" "  $value  " sub ;;
+        esac
+        if [ "$RAN" -eq 1 ]; then return 0; fi
+        ;;
+    esac
+  done
 }
 
+# Guard the entry point rather than the recursion, so a missing root menu is still a real failure.
+[ -r "$MENUS/actions.toml" ] || { note "no encuentro actions.toml"; exit 1; }
 run_toml_menu "$MENUS/actions.toml" "  acciones  "
