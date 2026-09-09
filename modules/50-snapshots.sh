@@ -86,7 +86,7 @@ if have_home_config; then
   # cleaned up and lingers forever (the bug that let 55 pre-update snapshots pile up on root).
   sudo snapper -c home list 2>/dev/null | awk -F'|' 'NR>2{print $1}' | grep -qE '[0-9]' \
     || best_effort sudo snapper -c home create --cleanup-algorithm number -d "baseline (archfrican)"
-  ok "home Time Machine active — 'snapper -c home list', then read /home/.snapshots/<N>/snapshot/"
+  ok "home Time Machine active — 'archfrican-versions' recovers a previous version of any file"
 fi
 
 # snap-pac snapshots every pacman transaction; grub-btrfsd (the inotify daemon,

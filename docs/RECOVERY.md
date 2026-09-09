@@ -263,14 +263,15 @@ root with `btrfs subvolume delete /mnt/@.roto` only once the restored system boo
   update landed in between, boot fails — `arch-chroot /mnt` and run `mkinitcpio -P`
   (or reinstall the kernel package).
 - **`@home` is a separate subvolume and is not rolled back.** Root snapshots never
-  contain your files. To recover a file, browse snapper's `home` config directly —
-  `ALLOW_GROUPS=wheel` means no sudo is needed to read it:
+  contain your files. Use `archfrican-versions` — file-level history over the same
+  snapshots, which restores a *copy* by default and never touches the original:
 
   ```bash
-  snapper -c home list                       # pick a snapshot number
-  ls /home/.snapshots/<N>/snapshot/          # your /home as it was
-  cp /home/.snapshots/<N>/snapshot/<file> ~/ # restore one file
+  archfrican-versions                  # pick a file, then a version
+  archfrican-versions ~/notas.md       # that file — also recovers a DELETED one
   ```
+
+  See [COMMANDS.md](COMMANDS.md#archfrican-versions).
 
 After rollback, `archfrican-update --run` will re-converge from the rolled-back state.
 
