@@ -1272,16 +1272,33 @@ archfrican-caffeine           # print the waybar JSON (icon + tooltip)
 
 ## archfrican-bar-mode
 
-Expands or collapses **every** waybar drawer group at once — the button beside the tray
+Two independent waybar layout settings: **density** and **shape**.
+
+**Density** expands or collapses every drawer group at once — the button beside the tray
 handle. Collapsed is the default: `system`, `net` and the tray each show one leader icon
 and reveal the rest on hover. Expanded puts all their members on the bar permanently.
 
 ```
-archfrican-bar-mode status      # waybar JSON for the button (glyph + class)
-archfrican-bar-mode toggle      # flip between the two modes (what the click runs)
-archfrican-bar-mode collapsed   # hover to reveal each group (default)
-archfrican-bar-mode expanded    # every group's members visible at once
+archfrican-bar-mode status          # waybar JSON for the button (glyph + class)
+archfrican-bar-mode toggle          # flip between the two modes (what the click runs)
+archfrican-bar-mode collapsed       # hover to reveal each group (default)
+archfrican-bar-mode expanded        # every group's members visible at once
+archfrican-bar-mode shape           # print the current shape
+archfrican-bar-mode shape toggle    # flip shape: flat <-> islands
+archfrican-bar-mode shape flat      # one continuous surface, edge to edge (default)
+archfrican-bar-mode shape islands   # three floating surfaces over the wallpaper
 ```
+
+**Shape** is the second, independent setting: `flat` is one plane docked to the top edge;
+`islands` splits it into three rounded surfaces (left · centre · right) with the wallpaper
+showing between them. It works the same way — a symlink, `~/.config/waybar/shape.css`,
+pointing into `~/.config/waybar/shapes/`. There is no bar button for it, because it is a
+set-once preference; reach it from **`archfrican-setup` → Apariencia → Forma de la barra**.
+
+Every surface rule lives in the two shape files and **none** in `style.css`. That is forced,
+not tidiness: GTK accepts `@import` only at the top of a stylesheet, so imported rules always
+come before the importing file's own and lose to any of them at equal specificity. A shape
+rule left in `style.css` would make the other shape silently unable to override it.
 
 The mode is a symlink, `~/.config/waybar/mode.jsonc`, pointing at one of two fragments in
 `~/.config/waybar/modes/`. Switching repoints the link and sends waybar SIGUSR2, which

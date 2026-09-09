@@ -137,5 +137,50 @@ else
   _ok 'an unknown command exits nonzero'
 fi
 
+# ---- 11. the shape files exist and disagree about surfaces ---------------------------------------
+SHAPESRC="$ROOT/home/dot_config/waybar/shapes"
+STYLE="$ROOT/home/dot_config/waybar/style.css"
+mkdir -p "$XDG_CONFIG_HOME/waybar/shapes"
+cp "$SHAPESRC"/flat.css "$SHAPESRC"/islands.css "$XDG_CONFIG_HOME/waybar/shapes/" 2>/dev/null
+if grep -q 'border-radius' "$SHAPESRC/islands.css" && ! grep -q 'border-radius' "$SHAPESRC/flat.css"; then
+  _ok 'islands rounds its regions, flat does not'
+else
+  _no 'the two shapes no longer differ on radius — one of them is not doing its job'
+fi
+
+# ---- 12. style.css imports the shape and defines NO surface of its own ----------------------------
+# GTK takes @import only at the top of a stylesheet, so imported rules always come BEFORE the
+# importing file's own and lose to any of them at equal specificity. A surface rule left in style.css
+# would make the other shape silently unable to override it — measured, not theorised.
+grep -q '@import "shape.css"' "$STYLE" \
+  && _ok 'style.css imports shape.css' || _no 'style.css does not import shape.css'
+if sed -n '/^window#waybar {/,/^}/p' "$STYLE" | grep -q 'background'; then
+  _no 'style.css sets window#waybar background; islands.css could never override it'
+else
+  _ok 'style.css leaves the window background to the shape file'
+fi
+if grep -qE '^\.modules-(left|right) *\{[^}]*padding' "$STYLE"; then
+  _no 'style.css sets a .modules-* edge inset; the shape file could never override it'
+else
+  _ok 'style.css leaves the region insets to the shape file'
+fi
+
+# ---- 13. shape: default, toggle both ways, and healing -------------------------------------------
+SHAPE_LINK="$XDG_CONFIG_HOME/waybar/shape.css"
+rm -f "$SHAPE_LINK"
+[ "$(run shape)" = "flat" ] && _ok 'a missing shape link reports flat' || _no "missing shape link reported: $(run shape)"
+run status >/dev/null
+[ "$(readlink "$SHAPE_LINK")" = "shapes/flat.css" ] \
+  && _ok 'a missing shape link is healed to flat' || _no "shape link not healed: $(readlink "$SHAPE_LINK" || echo none)"
+run shape toggle >/dev/null
+[ "$(run shape)" = "islands" ] && _ok 'shape toggle: flat -> islands' || _no "shape did not become islands: $(run shape)"
+run shape toggle >/dev/null
+[ "$(run shape)" = "flat" ] && _ok 'shape toggle: islands -> flat' || _no "shape did not return to flat: $(run shape)"
+case "$(readlink "$SHAPE_LINK")" in
+  shapes/*) _ok 'shape link target is relative' ;;
+  *)        _no "shape link target is not relative: $(readlink "$SHAPE_LINK")" ;;
+esac
+if run shape nonsense >/dev/null 2>&1; then _no 'an unknown shape exited 0'; else _ok 'an unknown shape exits nonzero'; fi
+
 printf '\n  %d passed, %d failed\n' "$P" "$F"
 [ "$F" -eq 0 ]

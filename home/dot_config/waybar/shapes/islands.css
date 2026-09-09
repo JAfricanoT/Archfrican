@@ -1,0 +1,26 @@
+/* Bar shape: ISLANDS — three floating surfaces (left · centre · right) over a transparent bar, with
+   the wallpaper showing between them. The counterpart to flat.css; see that file for why every shape
+   rule lives out here and none in style.css.
+
+   The bar surface moves OFF the window and onto the three regions. window#waybar must go transparent
+   for that to read as floating: leaving it painted would put the islands on a plate. */
+window#waybar {
+  background: transparent;
+}
+
+.modules-left,
+.modules-center,
+.modules-right {
+  background: @bar_bg;
+  border: 1px solid alpha(@fg_dim, 0.16);
+  border-radius: 12px;
+  /* 3px top and bottom leaves 24px islands inside the 30px bar. Going taller means raising the bar's
+     own height, which lives in config.jsonc — at which point switching shape stops being a CSS-only
+     change and starts rebuilding every module. Not worth it for 2px. */
+  margin: 3px 0;
+  padding: 0 6px;
+}
+
+/* The outer two float clear of the screen edge; the centre one is already centred. */
+.modules-left  { margin-left: 8px; }
+.modules-right { margin-right: 8px; }

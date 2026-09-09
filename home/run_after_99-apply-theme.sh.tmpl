@@ -26,6 +26,13 @@ bar_link="$HOME/.config/waybar/mode.jsonc"
 if [ ! -e "$bar_link" ]; then          # -e follows symlinks, so this catches dangling ones too
   [ -f "$HOME/.config/waybar/modes/collapsed.jsonc" ] && ln -sfn modes/collapsed.jsonc "$bar_link"
 fi
+# Same contract for the bar's shape. style.css imports shape.css and defines no surface of its own,
+# so a missing link here costs the bar its entire background — silently, since a missing @import is
+# only a warning. Flat is the default; islands is the opt-in.
+shape_link="$HOME/.config/waybar/shape.css"
+if [ ! -e "$shape_link" ]; then
+  [ -f "$HOME/.config/waybar/shapes/flat.css" ] && ln -sfn shapes/flat.css "$shape_link"
+fi
 
 theme="$(cat "$HOME/.config/.archfrican-theme" 2>/dev/null || echo archfrican-dark)"
 [ -x "$ARCHFRICAN_ROOT/bin/theme-switch" ] || exit 0   # repo clone absent: nothing to do

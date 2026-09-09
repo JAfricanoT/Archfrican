@@ -38,7 +38,10 @@ while :; do
         Guardar*)   "$B/archfrican-displays" save ;;
       esac ;;
     "Apariencia"*)
+      # The bar-shape row states the CURRENT shape rather than offering a bare "toggle": with only two
+      # values, naming the one you are in is what tells you which way the switch goes.
       a="$(printf '%s\n' "Cambiar tema" "Wallpaper / theming dinámico" "Auto claro/oscuro (alternar)" "Blur (alternar)" \
+            "Forma de la barra  ·  $("$B/archfrican-bar-mode" shape 2>/dev/null || echo flat) (alternar)" \
           | fuzzel --dmenu --prompt '  apariencia  ')" || continue
       case "$a" in
         "Cambiar tema")
@@ -46,6 +49,7 @@ while :; do
         "Wallpaper"*) "$B/archfrican-wallpaper" ;;
         "Auto"*)      "$B/archfrican-auto-appearance" "$(flip "$B/archfrican-auto-appearance")" ;;
         "Blur"*)      "$B/archfrican-blur" "$(flip "$B/archfrican-blur")" ;;
+        "Forma"*)     "$B/archfrican-bar-mode" shape toggle ;;
       esac ;;
     "Energía"*)           "$B/archfrican-power" ;;
     "Red / VPN"*)

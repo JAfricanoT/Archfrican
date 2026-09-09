@@ -1,8 +1,17 @@
 @import "colors.css";
+/* shape.css is a symlink to shapes/flat.css or shapes/islands.css — flipped by archfrican-bar-mode,
+   seeded by run_after_99-apply-theme.sh. It owns the bar's SURFACE: window background, region
+   backgrounds, radius, borders and edge insets. None of that may be duplicated below, because GTK
+   accepts @import only at the top of a stylesheet, so imported rules always come first and lose to
+   any rule of equal specificity in this file. A shape rule left here would make the other shape
+   silently unable to override it. */
+@import "shape.css";
 
-/* Archfrican waybar — one flat, edge-to-edge surface. Colours come from colors.css (theme-switch).
-   The bar deliberately carries NO radius: it is a single plane, so grouping is expressed with space
-   and colour alone — never with boxes, dividers or underlines.
+/* Archfrican waybar — type, spacing and state colour. The SHAPE (flat plane or three islands) lives
+   in shapes/, imported above.
+
+   Flat is the default and the identity: a single plane carries NO radius, so grouping is expressed
+   with space and colour alone — never with boxes, dividers or underlines.
 
    ONE type size and ONE padding for every module, left to right. The bar previously ran five
    competing sizes (base 13, right region 12, workspaces 13, clock 14, weather 12) and two paddings
@@ -22,17 +31,11 @@
   min-height: 0;
 }
 
-/* The bar IS the surface — one background, not three islands. @bar_bg already carries OPACITY_BAR,
-   so high-contrast (1.0) renders it opaque without a second rule here. */
+/* Foreground only — the background belongs to the shape file. @bar_bg there already carries
+   OPACITY_BAR, so high-contrast (1.0) renders opaque without a second rule anywhere. */
 window#waybar {
-  background: @bar_bg;
   color: @fg;
 }
-
-/* The three regions are pure layout now: no background, no border, no radius. Only the outer two
-   inset their contents so the first and last module never touch the screen edge. */
-.modules-left  { padding-left: 8px; }
-.modules-right { padding-right: 8px; }
 
 /* every module sits flat on the bar, at the SAME size and padding as every other */
 #workspaces button,

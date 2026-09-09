@@ -1,0 +1,16 @@
+/* Bar shape: FLAT — the default. One continuous surface docked to the top edge, no radius, no gaps.
+   archfrican-bar-mode flips ~/.config/waybar/shape.css between this file and islands.css.
+
+   Every shape rule lives in these two files and NONE in style.css, and that is forced rather than
+   tidy. GTK takes @import only at the top of a stylesheet, so an imported rule always comes BEFORE
+   the importing file's own rules — and loses to any of them at equal specificity. Leaving the flat
+   shape in style.css would therefore make islands.css unable to override it, silently. Neither shape
+   in the base file means neither can lose. */
+window#waybar {
+  background: @bar_bg;
+}
+
+/* The regions are pure layout here: no surface of their own. Only the outer two inset their contents,
+   so the first and last module clear the screen edge. */
+.modules-left  { padding-left: 8px; }
+.modules-right { padding-right: 8px; }
