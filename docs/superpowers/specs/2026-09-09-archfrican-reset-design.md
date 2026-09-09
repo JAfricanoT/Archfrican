@@ -1,520 +1,341 @@
-# `archfrican-reset` — asistente de reparación y restablecimiento (diseño)
+# Reparar y restablecer sin comandos — diseño
 
-## Contexto
+## Qué se pidió y qué se entrega
 
 El usuario pidió que el procedimiento de factory reset —conservando o no sus archivos— se
-simplificara hasta que "no tenga que estar metiendo comandos". Hoy no existe ningún reset
-guiado: `docs/RECOVERY.md` §10 documentaba un procedimiento que preservaba `/home` y era
-falso (corregido en `2ac3a20` — el instalador ISO hace `wipefs --all` + `sgdisk --zap-all` +
-`mkfs.btrfs -f`, `lib/base-install.sh:55-80`).
+simplificara hasta que "no tenga que estar metiendo comandos". `docs/RECOVERY.md` §10
+documentaba un procedimiento que preservaba `/home` y era falso; corregido en `2ac3a20`.
 
-Este documento diseña `archfrican-reset`: un asistente de cuatro niveles accesible desde el
-menú de acciones. Cuatro agentes diseñaron sus partes en paralelo; un panel de cinco expertos
-(pérdida de datos, factor humano, arquitectura, fiabilidad operativa, testabilidad) arbitró los
-ocho conflictos entre ellos y encontró dos rutas críticas a pérdida total que el diseño
-original no veía. Las resoluciones del panel están incorporadas aquí, no anexadas.
+**Este documento es la segunda versión.** La primera (`fd5b9cc`) especificaba un asistente de
+cuatro niveles con `lib/reset.sh`, binario propio, menú propio y cuatro ficheros de test. Un
+comité de cinco revisores —implementador, verificador de hechos, privilegios, dominio y
+abogado del diablo— la desmontó. El resumen de por qué está en §7; lo que sobrevive es esto:
 
-**No confundir con el "deep clean"** (`lib/deep-clean.sh`, factory reset en sitio preservando
-`@home`): ese es otro proyecto, con su Fase 0 construida y su Fase 1 especificada en
-`docs/superpowers/specs/2026-07-03-deepclean-fase1-boot-mechanism-design.md`, sin trigger. El
-Nivel 4 de este asistente es exactamente el hueco reservado para él.
+**Dos entradas de menú sobre código que ya existe, más seis arreglos a bugs vivos.** Sin
+subsistema nuevo. El grueso del valor con una fracción de la superficie.
 
 ---
 
-## 1. Los cuatro niveles
+## 1. Lo que ya existe y no hay que construir
 
-| Entrada del menú | Cols | Qué hace | Qué pierdes |
-|---|---|---|---|
-| `Reparar el sistema  ·  no borra archivos` | 40 | Re-aplica módulos y dotfiles | Ediciones locales a dotfiles gestionados (se copian antes) |
-| `Restablecer  ·  tus archivos se quedan` | 38 | + quita paquetes fuera del manifiesto y huérfanos | Lo anterior + paquetes instalados a mano |
-| `Preparar borrado total  ·  necesita USB` | 39 | Respalda, verifica y graba el USB de instalación | El USB se formatea **hoy**; el disco, al arrancar desde él |
-| `Limpieza profunda  ·  aún no disponible` | 39 | Explica qué hará y qué usar mientras tanto | — |
+`bin/archfrican-update` ya tiene `--converge` (`:33`), que re-aplica config y dotfiles sin
+actualizar paquetes, y `do_prune()` (`:312`), que poda con `prune_candidates`
+(`lib/manifest.sh:52-68`) en el orden correcto: converge primero (`:375`), poda después
+(`:405`). Ya tiene lock con clave de PID (`:53-70`), pre-snapshot (`:149`), changelog, y
+entrada en el menú de acciones (`actions.toml.tmpl:35-42`).
+
+El delta real entre "lo que hay" y "reparar / restablecer sin comandos" son cuatro cosas:
+
+1. `FORCE=1`, para ignorar las estampas cuando el sistema está roto pero el repo no cambió.
+2. Copiar a un lado los dotfiles editados **antes** de que el converge los pise.
+3. Marcar el snapshot para que se distinga de los automáticos.
+4. Dos entradas de menú con el texto correcto.
+
+---
+
+## 2. Las dos entradas
+
+| Texto (`actions.toml.tmpl`) | Cols | Ejecuta |
+|---|---|---|
+| `Reparar el sistema  ·  no borra archivos` | 40 | `archfrican-update --repair` |
+| `Restablecer  ·  tus archivos se quedan` | 38 | `archfrican-update --repair --prune` |
+
+Ambas con `terminal = true` y el envoltorio `sh -c '…; printf "\n(enter para cerrar) "; read -r _'`
+que ya usan `:35-42`: el flujo pide contraseña de sudo y el Y/N de pacman, y sin TTY se cuelga
+o muere mudo.
+
+Van junto a `Revertir actualización (rollback)…` (`:196`), donde ya está agrupada la
+recuperación — no al principio del hub, que empieza por `Bloquear pantalla`.
 
 **Restricción dura de anchura.** `templates/fuzzel.ini:9-10` fija `width=46` y `lines=12`, y
-`card()` (`executable_archfrican-welcome:11`) mete cada línea como una fila de `--dmenu`, que
-fuzzel **no envuelve: trunca**. Ningún `text` puede pasar de **41 caracteres** y ninguna
-tarjeta de **12 líneas**. El nombre originalmente aprobado, `Restablecer a fábrica · conserva
-tus archivos`, son 47 caracteres: se cortaba dejando en pantalla "fábrica" y borrando la
-salvedad — el peor resultado posible, y la razón por la que se descartó.
+fuzzel trunca las filas de `--dmenu` en vez de envolverlas. Con iconos activos (`:8`) el
+presupuesto útil ronda los **41 caracteres**; los dos textos de arriba caben (40 y 38).
 
-**`subtext` es invisible en el fallback.** `toml_menu_list` (`archfrican-common.sh:78-79`)
-imprime solo `text`. La consecuencia va siempre en `text`; el `subtext` solo amplía.
-
----
-
-## 2. Arquitectura
-
-### `lib/reset.sh` — modelada sobre `lib/rollback.sh`, NO sobre `lib/deep-clean.sh`
-
-`lib/rollback.sh` no usa ni un helper de `lib/common.sh`, y por eso
-`executable_archfrican-rollback:18` puede sourcearla sola. `lib/deep-clean.sh:7` declara lo
-contrario ("Sourced after lib/common.sh"), y `lib/common.sh:4` es `set -euo pipefail` a nivel
-de archivo: bajo un menú, **cada fuzzel cancelado (rc 1) mataría el asistente en silencio**. El
-repo ya tropezó con esto dos veces y lo dejó escrito (`tests/unit/deep-clean.sh:21`,
-`bin/archfrican-update:26`).
-
-**Reglas duras:**
-- `lib/reset.sh` es autocontenida. Devuelve códigos de retorno; **nunca `die`**.
-- No sourcea `lib/common.sh` ni `lib/deep-clean.sh`, y no toca `DC_GO` /
-  `ARCHFRICAN_DEEPCLEAN_ARMED` — dos gates que comparten shell colapsan en uno
-  (`lib/deep-clean.sh:15-23`).
-- `prune_candidates` (`lib/manifest.sh:52-68`) se reutiliza tal cual, nunca se reimplementa.
-  No necesita `REPO_ROOT` ni `read_pkg_list` pese a la cabecera de `lib/manifest.sh:11` — esos
-  son de `write_manifest`, que `lib/reset.sh` **nunca** debe llamar (lo hace el converge,
-  `lib/phase2.sh:277`).
-- **No hay wrappers dry-run genéricos.** Los Niveles 1-2 no escriben en bloques. La única
-  operación que los necesita es `rs_write_iso`, y ahí basta una guarda dentro de esa función
-  (`ARCHFRICAN_RESET_ARMED`, default `0`). Tres wrappers genéricos para un solo call site es
-  donde nace la deriva.
-
-### `~/.local/bin/archfrican-reset` — capa de menú
-
-Guard obligatorio, copiado literal de `executable_archfrican-rollback:14-18`: default
-`$HOME/.archfrican`, `[ -r ... ]` + `note` + exit si falta. `ARCHFRICAN_ROOT` es una feature
-declarada (`bin/theme-switch:8`, `docs/VALIDATION.md:83`): se respeta, no se defiende contra ella.
-
-Como el reset **ejecuta `$REPO_ROOT/install.sh`**, un clon viejo aplica un estado deseado
-obsoleto. `--update` no hace `git pull` (correcto: eso es trabajo de `archfrican-update`), así
-que la pantalla del Nivel 1 **muestra el commit que va a aplicar**
-(`git -C "$ROOT" log -1 --format='%h %s'`).
-
-### `home/dot_config/elephant/menus/restablecer.toml.tmpl`
-
-La puerta en `actions.toml.tmpl` va junto a `Revertir actualización (rollback)…` (`:196`), no
-arriba: el hub es `fixed_order = true` y agrupa la recuperación al final.
-
-**La puerta es `actions = { run = ... }`, nunca `submenu =`.** Con `submenu`, Walker renderiza
-el TOML nativamente y el script nunca corre — se perdería la detección de un restablecimiento
-interrumpido y el estado real del respaldo. Es lo que ya hace `archfrican-setup:14`.
-
-**Los Niveles 1 y 2 llevan `terminal = true`.** El Nivel 2 pide contraseña de sudo y el Y/N de
-`pacman -Rns`: sin TTY se cuelga o muere mudo. El diseño original solo se lo puso al Nivel 1.
+> El nombre "Restablecer a fábrica · conserva tus archivos" se descartó por longitud: son 47
+> caracteres y se trunca a `Restablecer a fábrica  ·  conserva tus ar`. La salvedad no
+> desaparece —se corta a mitad de palabra—, pero truncar una promesa de conservación en la
+> entrada vecina a una destructiva no es aceptable. "Fábrica" además es, en vocabulario de
+> consumo, el término del borrado total.
 
 ---
 
-## 3. Nivel 1 — Reparar
+## 3. `archfrican-update --repair`
+
+Flag nuevo en el parser que ya existe (`:31-38`). Implica `--converge`, y añade:
 
 ```
-rs_lock                                   # mismo lockdir que archfrican-update
-rs_dotfile_edits  → preview + copia write-once a ~/.local/state/archfrican/reset-<ts>/dotfiles/
-rs_snapshot root  --cleanup-algorithm number --userdata important=yes
-FORCE=1 bash "$REPO_ROOT/install.sh" --update
-archfrican-doctor
+rs_pacman_unlocked          || ofrecer liberar db.lck            (§5.6)
+rs_dotfile_edits            → preview + copia write-once          (§5.1)
+pre_snapshot con -u important=yes                                 (§5.5)
+FORCE=1 en el entorno del converge
 ```
 
-`FORCE=1`, no selectivo por drift: `drift_modules` (`lib/converge.sh:68-75`) compara *inputs
+`FORCE=1` y no selectivo por drift: `drift_modules` (`lib/converge.sh:68-75`) compara *inputs
 del repo* contra el hash estampado, así que un sistema roto con el repo intacto no muestra
-drift y `--update` lo saltaría todo (`lib/phase2.sh:58`). Reparar existe justo para el caso "el
-estampado miente".
+drift y el converge lo saltaría todo (`lib/phase2.sh:58`). Reparar existe justo para el caso
+"el estampado miente".
 
-`--update` y no `install.sh` a secas: pone `ARCHFRICAN_UPDATE=1 ARCHFRICAN_NONINTERACTIVE=1`
-(`install.sh:79-81`), sin wizard y sin re-aplicar identidad (`lib/phase2.sh:199-215`).
+No hace `git pull`: eso es `--run`. Reparar re-aplica **el clon que ya tienes**, y la salida lo
+dice mostrando el commit (`git -C "$ROOT" log -1 --format='%h %s'`).
 
-**Puerta condicional** (C3): si `rs_dotfile_edits` devuelve 0 archivos, ejecuta sin preguntar.
-Si devuelve N>0, una sola pantalla que los nombra. El permiso se pide solo cuando hay algo que
-perder, que es la única forma de que no se devalúe.
+`--repair --prune` es el segundo nivel: lo anterior más `do_prune`, ya corregido según §5.2.
 
----
-
-## 4. Nivel 2 — Restablecer
-
-```
-1. rs_lock  +  systemd-inhibit --what=sleep:shutdown:idle
-2. preview (solo lectura) — cancelar aquí no deja rastro
-3. copia write-once de los dotfiles editados   ← ANTES del converge, que los destruye
-4. rs_snapshot root  +  rs_snapshot home
-5. FORCE=1 install.sh --update                 ← repara, aplica dotfiles, REESCRIBE el manifiesto
-6. clausura real de la poda → confirmar → pacman -Rs
-7. huérfanos recalculados → confirmar → pacman -Rs
-8. archfrican-doctor + aviso de reinicio
-```
-
-**Converger antes de podar.** `prune_candidates` es relativo al manifiesto
-(`lib/manifest.sh:59`), y el manifiesto solo se reescribe al final del converge
-(`lib/phase2.sh:277`) con los opt-ins re-detectados en vivo (`:180-186`). Podar antes borra
-contra un estado obsoleto. Mismo orden que `archfrican-update --run` (`:375` vs `:405`).
-**Este orden vive en el código con su comentario-porqué**, o un futuro refactor de
-`write_manifest` lo rompe en silencio.
-
-**Huérfanos después de la poda**, porque `-Rs` arrastra dependencias y crea huérfanos nuevos.
-
-**No hay `chezmoi apply --force` propio**: ya lo hace el converge (`lib/phase2.sh:244`).
+**Puerta condicional.** Si `rs_dotfile_edits` devuelve 0 ficheros, ejecuta sin preguntar. Si
+devuelve N>0, una pantalla que los nombra antes de seguir. El permiso se pide solo cuando hay
+algo que perder.
 
 ---
 
-## 5. Nivel 3 — Preparar borrado total
+## 4. Lo que se descarta, y por qué
 
-**El asistente sí destruye hoy: formatea el USB.** El diseño original afirmaba "no borra nada
-en la máquina"; es falso. El `dd` es inmediato, irreversible y sin snapshot. La escalera de
-gates es proporcional a *eso*, y el borrado del disco del sistema ocurre después, en
-`lib/base-install.sh` tras su propio `confirm_wipe` (`lib/disk.sh:78-97`).
+**El Nivel 3 ("preparar borrado total": respaldar, descargar la ISO, grabar el USB).**
 
-### Escalera de gates
+No existe ningún release taggeado: `git tag -l` da `nightly` y dos `backup/*`; `gh release list`
+da una sola entrada, la prerelease `nightly` del 2026-07-19. El diseño prohibía usar nightly
+—su propio cuerpo dice "Not validated — use a tagged release" (`iso.yml:127`)— y prohibía
+degradar. **Habría muerto en su segundo peldaño el 100 % de las veces.**
 
-| # | Peldaño | Qué lo hace imposible por accidente |
-|---|---|---|
-| 1 | Tarjeta explicativa | Abre información, no la acción |
-| 2 | Preflight | Sin red / sin `restic` / sin candidatos ⇒ muere con diagnóstico, sin alternativa degradada |
-| 3 | Respaldo verificado | `archfrican-backup verify` + snapshot creado en esta sesión. Única salida: escribir `SIN RESPALDO` completo |
-| 4 | Posesión de la passphrase | Ver §7 — verificación de posesión, no transcripción |
-| 5 | Elección del destino | Lista por sustracción; muestra LABEL/FSTYPE/uso de cada candidato |
-| 6 | Nombre escrito | `escribe BORRAR para formatear el USB <modelo>` |
-| 7 | Armado en runtime | `ARCHFRICAN_RESET_ARMED` default `0`; se arma solo tras 3-6 |
+Además su valor real eran dos cosas —"verifica tu respaldo antes" y "no elijas el disco
+equivocado"— envueltas en reimplementar `dd` con más pasos: parseo de la API de GitHub, caché
+`.part`, `df ≥ 1,1×`, regex de etiqueta duplicada desde `build-iso.sh:46`, relectura de serial,
+verificación por sha256. Cuatro dependencias externas nuevas en un camino destructivo, para
+llegar a un instalador que ya tiene su propio `confirm_wipe` (`lib/disk.sh:78-97`).
 
-### Verificación del respaldo — dueño único (C2, 5-0)
+Se retoma cuando exista un release taggeado, y entonces como checklist que verifica el respaldo
+y lista los candidatos, no como grabador.
 
-**`archfrican-backup verify` es el único que habla con restic.** El asistente consume códigos
-de salida; no reimplementa nada. Razón dura, no estética: la verificación del diseño original
-fallaba *abierta* (dispositivo indeterminable ⇒ pasa) mientras `verify` falla *cerrada*
-(`same_disk=unknown` ⇒ rc 5). Con dos implementaciones, la insegura es la que queda en el
-camino destructivo.
+**El Nivel 4 (limpieza profunda, bloqueada).** `docs/RECOVERY.md` ya dice que deep-clean está
+diseñado, sin cablear e inalcanzable. Una entrada permanente que no hace nada, en un menú de 12
+filas y junto a las destructivas, sienta el peor precedente posible ahí: que una entrada de
+este menú puede no hacer nada.
 
-Lo que se queda en `lib/reset.sh`: la relación entre el repo y **el disco que se va a
-reinstalar**, que no es necesariamente el de `$HOME` y que `verify` no puede conocer.
-
-`restic check` es **obligatorio** aquí (C1). El argumento del coste era falso: medido, 0,9 s en
-un repo local de 820 MB / 50 000 ficheros; "horas" describe `--read-data`, que nunca se corre
-por defecto. Lo que sí hay que manejar es que `check` toma lock exclusivo y devuelve **rc 11**
-ante un lock rancio de cualquier backup interrumpido, mientras las demás comprobaciones pasan:
-rc 11 abre una rama con botón **«Desbloquear el respaldo»** que corre `restic unlock` tras
-comprobar si el PID sigue vivo en este host.
-
-### Selección del destino
-
-Candidato ⇔ `TYPE=disk` **Y** (`RM=1` **o** `HOTPLUG=1` **o** `TRAN=usb`) **Y** no
-`loop*`/`zram*`/`sr*` **Y** no protegido. El OR porque muchos SSD externos reportan `RM=0`.
-
-**Conjunto protegido** = disco de `/`, `/boot`, `/home`, **y el del repo restic anclado por
-`by-id`/serial en el momento de la verificación** (§7, F2). Se excluye por disco entero, nunca
-por partición. Si el sistema arranca de un USB, ese disco es removible *y* protegido: la
-sustracción lo elimina sin caso especial. Cero candidatos ⇒ muere con el volcado de `lsblk` y
-la lista de exclusiones; **nunca degrada a ofrecer el disco del sistema**.
-
-### ISO
-
-Release taggeado, nunca `nightly` (su propio cuerpo dice "Not validated", `iso.yml:127`).
-Nombre con fecha (`build-iso.sh:16,47`) ⇒ hay que parsear `browser_download_url` de la API con
-`python3` (ya es dependencia dura del menú, `executable_archfrican-actions:19`). Manejar 403
-por rate limit anónimo.
-
-Verificación posible: TLS, `Content-Length` vs bytes escritos, tamaño ≥ 300 MiB (la constante
-de `iso.yml:62`), y `blkid -o value -s LABEL` casando `^ARCHFRICAN_[0-9]{6}$`
-(`build-iso.sh:46`) — esto mata la página HTML de error guardada como `.iso` y la descarga
-truncada. **La autenticidad no se puede verificar** (no hay checksum publicado; el único ancla
-es el TLS de GitHub). Se dice en pantalla.
-
-Caché en `${XDG_CACHE_HOME:-$HOME/.cache}/archfrican/iso/`, descarga a `.part` con
-`-C - --retry 3`, renombrado solo al completar. `df` ≥ 1,1× antes de empezar.
-
-### Grabado
-
-Pre-vuelo: `blockdev --getsize64` ≥ tamaño ISO (si no, negarse **antes** de escribir — un `dd`
-truncado deja un USB que parece grabado y no arranca), y desmontar particiones del objetivo.
-**Releer modelo+serial inmediatamente antes del `dd` y abortar si cambió**: un replug entre el
-gate 6 y la escritura reordena los nombres de kernel (§7, F3).
-
-`ghostty -e sh -c "sudo dd ... status=progress oflag=direct conv=fsync"`, con el rc capturado a
-fichero — una terminal que se cierra no informa de nada. Verificación por relectura:
-`blockdev --flushbufs` y comparar sha256 del prefijo escrito contra el fichero local.
-
-### Final
-
-No se promete arrancar directo al USB: `efibootmgr --bootnext` no puede apuntar a un
-dispositivo sin entrada NVRAM previa. Se ofrece `systemctl reboot --firmware-setup` (ya usado
-en `executable_archfrican-secureboot:11`) y se dice que hay que elegir el USB en el firmware.
-
-La tarjeta final **no se titula «USB listo»**: el usuario que va a vender el portátil leería
-ahí un permiso para parar, y vendería el disco con sus datos. Se titula `Falta lo importante`,
-y abre con `Todavía no se ha borrado nada.`
+**Nota de prioridad.** Deep-clean *es* lo que se pidió: reset conservando `/home`, sin USB y sin
+comandos. Su Fase 0 está construida (`lib/deep-clean.sh`) y su Fase 1 especificada desde
+2026-07-03 sin implementar. Terminar esa fase aporta más que cualquier envoltorio alrededor de
+su ausencia.
 
 ---
 
-## 6. Nivel 4 — Limpieza profunda (bloqueada)
+## 5. Los arreglos — cada uno su commit, todos antes de las entradas de menú
 
-Tarjeta con tres partes: qué hará, por qué no todavía (le falta el mecanismo de arranque en
-modo rescate), y la alternativa (`Restablecer · tus archivos se quedan`). Nunca un `note()` de
-error: una notificación efímera se lee como avería.
+### 5.1 · La copia previa de dotfiles (la única pérdida silenciosa que queda)
 
-Cuando la Fase 1 del deep-clean aterrice, este nivel es su trigger — el hueco que su propio
-spec difiere a "Fase 3". **`lib/reset.sh` no sourcea `lib/deep-clean.sh`** (§2).
+Cualquier converge ejecuta `chezmoi init --apply --force --source "$REPO_ROOT/home"`
+(`lib/phase2.sh:244`). `--force` sobrescribe sin preguntar todo dotfile gestionado con
+ediciones locales, y ejecuta los borrados de `home/.chezmoiremove` (5 rutas hoy; su propia
+regla dice que la lista crece con cada eliminación bajo `home/`).
 
----
+**Nada de esto lo revierte un rollback**, porque vive en `@home` y `lib/rollback.sh` solo
+intercambia el subvolumen root. La copia previa es la única red.
 
-## 7. Correcciones obligatorias antes de escribir código
+- Listar con **`chezmoi status --include=all --source "$REPO_ROOT/home" -p absolute`**.
+  `--include=files,dirs,remove` **oculta `symlinks` y `scripts`** —verificado—, y el repo tiene
+  `home/dot_local/bin/symlink_theme-switch.tmpl` y `home/run_after_99-apply-theme.sh.tmpl`.
+  `all` es el default y es el correcto.
+- **Columna 2** (lo que hará `apply`), códigos `A`/`D`/`M`. La columna 1 depende del boltdb
+  persistente y no se debe usar.
+- `-p absolute` evita parsear rutas con espacios: `awk '{print $2}'` las parte,
+  `cut -c4-` no.
+- **Fallo cerrado con matiz:** un `--source` inexistente da rc=1, pero un `--source` que existe
+  y está **vacío** da **rc=0 con lista vacía** — el silencio peligroso. Comprobar que el
+  directorio contiene entradas antes de aceptar una lista vacía.
+- Copia **write-once** a `$XDG_STATE_HOME/archfrican/reset-<ts>/dotfiles/`, con marcador
+  `.done`. Tras un converge parcial las ediciones ya no existen: repetir la copia guardaría la
+  versión del repo sobre la buena.
+- **El converge solo corre si la copia terminó**, verificado por conteo.
+- Los ficheros que regenera `run_after_99-apply-theme.sh.tmpl` (los de `.chezmoiignore`) son
+  invisibles a `chezmoi status` incluso con `--include=all` —verificado— y también se pierden.
+  Se copian desde una lista literal y se nombran en el preview.
 
-Hallazgos del panel, todos verificados contra el código o reproducidos. Ninguno es opcional.
+### 5.2 · `-Rns` → `-Rs`, y enseñar la clausura real
 
-### Críticos — rutas a pérdida total con todas las puertas satisfechas
+`bin/archfrican-update:320` corre hoy `sudo pacman -Rns "${cand[@]}"`. Dos problemas, en código
+que ya se ejecuta:
 
-**F1 · El preview es ciego a los borrados.** `chezmoi status --include=files` **oculta las filas
-`D`**, y `apply --force` sí las ejecuta. `home/.chezmoiremove` tiene 5 rutas hoy y su propia
-regla dice que la lista crece con cada eliminación bajo `home/`. La copia previa —única
-mitigación, porque el rollback de root no alcanza `@home`— no copiaría nada de eso.
-→ **Usar `--include=files,dirs,remove`**, y ejecutar el converge **solo si la copia terminó
-bien, verificada por conteo**.
+- **`-n` borra los ficheros de configuración del paquete sin dejar `.pacsave`.** El comentario
+  de esa línea ("pacman itself refuses unsafe removals") es cierto para dependencias rotas y no
+  dice nada de `/etc`. → **`-Rs`**.
+- **`-s` arrastra la clausura de dependencias**, así que el usuario aprueba N nombres y se
+  ejecutan bastantes más. `prune_candidates` garantiza que los *nombrados* no tienen
+  dependientes (`lib/manifest.sh:65`), no que la clausura sea segura.
+  → Previsualizar con **`pacman -Rs --print`** sobre la lista completa de una sola vez.
+  (`-Rns --print` **no existe**: pacman rechaza `--nosave` con `--print`.)
 
-**F2 · El disco del respaldo se desprotege al desmontarse.** El conjunto protegido se deriva de
-montajes vivos. `findmnt -no SOURCE --target <ruta-inexistente>` devuelve vacío con rc=1, así
-que tras desenchufar el disco de respaldo —cosa que el propio flujo pide, para liberar el
-puerto— reaparece como candidato de destino y el `dd` lo sobrescribe.
-→ **Anclar el `by-id`/serial del disco del repo en el momento de la verificación** y prohibirlo
-como destino durante toda la sesión; además, sondear el destino en busca de un repo restic
-(`config` + `data/`) antes de escribir.
+La comprobación **no puede ser "la clausura ⊆ managed.txt"**: la clausura contiene por
+construcción dependencias arrastradas que nunca estuvieron en el manifiesto, así que ese
+subconjunto fallaría siempre y la poda no correría nunca. La regla computable es de
+violaciones: **rechazar si algún miembro de la clausura es explícito fuera de los candidatos,
+está en `manifest.txt`, o está en la lista literal de abajo.**
 
-### Altos
-
-**F3 · El filtro no distingue un pendrive vacío del disco de datos**, y el pre-vuelo desmonta lo
-que encuentre — la última señal de que ahí había algo. El objetivo se referencia por nombre de
-kernel, que es inestable ante replug.
-→ Mostrar LABEL/FSTYPE/uso de cada candidato; clave estable (`by-id`); relectura de serial
-antes del `dd`.
-
-**F4 · `rs_subset_of` acota nombres, no la clausura de `-Rns`.** `prune_candidates` garantiza
-que los paquetes *nombrados* no tienen dependientes, pero `-s` arrastra la clausura: el usuario
-aprueba 14 nombres y se ejecutan ~80 desinstalaciones. Y `-n` borra los `/etc` editados a mano
-**sin dejar `.pacsave`**.
-→ Obtener la clausura real con `--print`, correr guard **y** subset sobre ella, y usar **`-Rs`
-sin `-n`**.
-
-**F5 · El guard del kernel está muerto y falla abierto.** Reproducido en la máquina del usuario:
-`pacman -Qqo "/usr/lib/modules/$(uname -r)/vmlinuz"` → `error: No package owns …`, salida vacía,
-rc=1, porque el kernel en ejecución (6.18.39) es anterior al instalado (6.18.50) — el estado
-normal tras actualizar sin reiniciar. Además la premisa es falsa: ningún kernel ha estado nunca
-en `packages/*.txt` (se instalan en `modules/00-base.sh:56`), así que la puerta `managed.txt`
-(`lib/manifest.sh:60`) ya los excluye.
-→ Fallar cerrado: si el sondeo no resuelve, `rs_guard_never_remove` devuelve rc≠0 y el llamador
-aborta la poda (no `die` — §2 prohíbe que `lib/reset.sh` mate al asistente). Preferir además el
-patrón de lista literal de `lib/deep-clean.sh:49-61`, estrictamente más fuerte que un sondeo
-dinámico.
-
-**F6 · `db.lck` deja al usuario sin salida sin comandos.** Si el converge muere a golpes durante
-`pacman -S`, todo pacman falla después: converge, poda, update y doctor. No hay ni un manejo de
-`db.lck` en el repo.
-→ Detectarlo y ofrecer liberarlo tras comprobar que ningún pacman vive.
-
-**F7 · El Nivel 2 sin `terminal = true`** se cuelga pidiendo sudo sin TTY (ya incorporado en §2).
-
-**F8 · El reset no puede borrar `$PHASE2_STATE`.** Comparte directorio con el marcador de
-`lib/resume-guard.sh:20-23` y el `ConditionPathExists=!` de `templates/archfrican-resume.service:23`,
-cuyo `systemctl disable` es best-effort. Borrarlo re-arma un `install.sh` **completo** —no
-`--update`— sin TTY en el siguiente arranque, y ese camino sí re-aplica identidad.
-→ Invariante explícita en el código.
-
-### Medios
-
-**F9 · Los archivos que regenera `home/run_after_99-apply-theme.sh.tmpl`** (`fuzzel.ini`,
-`gtklock/style.css`, `gtk.css`, `qt6ct.conf`, colores de waybar/swaync) están en
-`.chezmoiignore` y son invisibles a `chezmoi status`. "Tus ajustes se quedan" es falso para
-exactamente los que un usuario que personaliza edita a mano. → Nombrarlos en el preview.
-
-**F10 · La passphrase en claro junto al repo destruye el cifrado.** `executable_archfrican-backup:33`
-la genera con `umask 077` + `chmod 600` deliberadamente; escribirla en el USB de destino
-convierte un disco robado en el `$HOME` completo. → Nunca en el destino.
-
-**F11 · El gate de la passphrase es impasable como transcripción.** Son 32 caracteres aleatorios
-(`head -c 24 /dev/urandom | base64`): pedir retipearlos produce cinco fallos y empuja al escape
-`SIN RESPALDO`. → Verificar **posesión**: que el usuario guarde el fichero en otro medio y el
-asistente lo lea de vuelta desde ahí.
-
-**F12 · El cálculo de antigüedad falla abierto.** Con el reloj atrasado, un snapshot viejo da
-edad negativa ⇒ "fresco" ⇒ autoriza el borrado. → Edad negativa o absurda (>3650 días) ⇒ `stale`.
-
-**F13 · El lock necesita más que ampliar el grep.** El `trap 'rm -rf "$LOCKDIR"' EXIT`
-(`bin/archfrican-update:70`) es incondicional: copiado tal cual, un reset que pierda una carrera
-borraría el lock ajeno. → Liberar solo si `$LOCKDIR/pid == $$`. Y ampliar el grep de `:61` a
-`archfrican-(update|reset)`, sin lo cual `archfrican-update` declara rancio un reset vivo y lo
-pisa: dos converges y un `pacman -Syu` simultáneos.
-
-**F14 · Snapshots desalojables.** La config `root` de snapper nunca recibe `NUMBER_LIMIT` (solo
-`home`, `modules/50-snapshots.sh:76-82`) ⇒ defaults 50/10. Sin `--userdata important=yes`, la
-ráfaga de snap-pac del converge puede desalojar el punto de retorno que «Deshacer» promete.
-
-**F15 · La copia de dotfiles debe ser write-once.** Tras un `chezmoi --force` parcial, las
-ediciones locales ya no existen: repetirla guardaría la versión del repo sobre la copia buena.
-El resume nunca puede re-ejecutarla.
-
-**F16 · El sello de reanudación debe registrar "converge completado", no el índice de paso.**
-Reanudar en "poda" tras un converge muerto a medias poda contra un manifiesto viejo — lo que
-§4 prohíbe. Sin esa prueba, el resume reempieza en el converge.
-
-### Interacciones
-
-`archfrican-update-check.timer` es horario y está vivo: puede disparar durante un converge y
-robar el lock. Además del grep, silenciar su notificación mientras el lock esté tomado.
-`archfrican-backup.timer` (`Persistent=true`) puede fotografiar un `$HOME` a medio reescribir.
-Y no hay inhibidor de suspensión: `systemd-inhibit --what=sleep:shutdown:idle` alrededor del
-flujo, dentro de `rs_lock`.
-
----
-
-## 8. «Deshacer» — la promesa honesta (C4, 5-0)
-
-Un snapshot de snapper cubre `@`. El layout es `@ @home @log @pkg @.snapshots`
-(`lib/base-install.sh:82`) y `/boot` es la ESP FAT (`:90`). Entonces **no** revierte: los
-dotfiles y las estampas de módulos (viven en `@home`), `grub.cfg` (la ESP no es btrfs), ni
-`/var/log` y la caché de pacman (subvolúmenes aparte). Y deja el sistema descuadrado —paquetes
-de antes, estampas de después—, un estado que `drift_modules` **no puede detectar** porque
-compara repo contra estampas, no estampas contra realidad.
-
-Tarjeta (12 líneas, ninguna >44 columnas):
-
-```
-Volver atrás
-
-Recupero tus programas y los ajustes del
-sistema tal como estaban. Hay que reiniciar.
-
-Dos cosas no vuelven solas:
-  ·  Tus ficheros de configuración: te los
-     copio a Documentos al terminar.
-  ·  Al arrancar te pediré «Reparar» una vez
-     para dejar todo en hora.
-
-Tus fotos y documentos siguen intactos.
+```sh
+RS_NEVER_REMOVE=(base linux-cachyos linux-cachyos-headers linux-lts linux-lts-headers
+                 linux-firmware btrfs-progs grub efibootmgr sudo networkmanager systemd
+                 pacman zram-generator cryptsetup mkinitcpio niri sddm)
 ```
 
-Esa promesa **exige mecanismo**, no solo texto:
-- Al hacer rollback, copiar `~/.local/state/archfrican/reset-<ts>/dotfiles/` a
-  `~/Ajustes-anteriores-<fecha>/`. Sin eso la frase es mentira.
-- `archfrican_rollback_to` deja una miga en `@home` (sobrevive al swap de root) que
-  `archfrican-reset` convierte al arrancar en «Termina de deshacer · 1 paso».
-- **No ofrecer «Deshacer»** si `rs_snapshot` falló, si el root no es Btrfs, o con batería
-  crítica: la ventana de `lib/rollback.sh:92-99` es la única forma de que el equipo no arranque.
+Literal, nunca computada — el patrón de `DEEPCLEAN_DELETE_SUBVOLS` (`lib/deep-clean.sh:53`). El
+sondeo dinámico del kernel que la primera versión proponía **falla abierto**: en esta máquina
+`pacman -Qqo "/usr/lib/modules/$(uname -r)/vmlinuz"` devuelve `error: No package owns`, stdout
+vacío y rc=1, porque el kernel en ejecución tiene distinto pkgrel que el instalado — el estado
+normal tras actualizar sin reiniciar.
 
-`grub.cfg` no se menciona en la tarjeta: no revertirlo no tiene consecuencia observable, y
-nombrarlo solo asusta.
+`niri` está hoy en `managed.txt` con `Required By: None`: si algún día sale de `packages/*.txt`,
+es candidato legítimo y `-Rs` se llevaría el escritorio. De ahí la lista.
 
----
+### 5.3 · `load()` mata el script en silencio
 
-## 9. Confirmaciones (C6, 5-0)
+`home/dot_local/bin/executable_archfrican-backup:12-15`: la última orden de la función es
+`[ -r "$passfile" ] && export RESTIC_PASSWORD_FILE="$passfile"`. Si el fichero no es legible
+devuelve 1, la función devuelve 1, y como se invoca como comando simple (`:34`, `:38`, `:45`,
+`:46`) bajo `set -euo pipefail` (`:6`), `errexit` mata el script. **Reproducido en aislamiento:
+exit=1, sin imprimir nada.**
 
-`confirm()` (`archfrican-common.sh:10-14`) imprime `Sí, …` como **primera** línea y fuzzel
-preselecciona la primera: un Enter perdido confirma. Afecta a dos mecanismos distintos, no uno:
-el helper lo usan **5 scripts** (`secureboot:15`, `rollback:29`, `plymouth:32`, `versions:85`,
-`tpm-unlock:28`), y `actions.toml.tmpl` lleva el `printf` incrustado en **3 entradas** (cerrar
-sesión, reiniciar, apagar).
+Duele justo donde más importa: sistema recién reinstalado, el usuario recuperó `restic-repo` de
+una nota pero no tiene `restic-pass` a mano, y `archfrican-backup restore` se cierra sin decir
+palabra. → `return 0` explícito y un `note` cuando falta la clave.
 
-**Añadir `confirm_destructive()` con `Cancelar` primero**, sin tocar los llamadores existentes
-en el mismo commit: invertir lo benigno entrena el dedo al revés, y `case "Sí,"*`
-(`archfrican-common.sh:13`) depende del orden.
+### 5.4 · `now` miente con su exit code
 
-**Reservar las mayúsculas para una sola cosa**: el texto que hay que teclear. Seis gritos
-(`SE PIERDE TODO`, `TUS ARCHIVOS SE QUEDAN`, …) hacen que el usuario deje de oírlos.
+`:40-44`: el fallo está dentro de un `if`, así que `set -e` no se activa y el script sale 0. El
+timer queda `active(exited)`, `check_failed_units` (`lib/health.sh:15-22`) nunca lo ve, y el
+chequeo semanal (`modules/70-hygiene.sh`) da verde sobre un respaldo roto hace semanas.
 
----
+→ Salir 1 al fallar, y escribir la salida de restic a
+`$XDG_STATE_HOME/archfrican/backup.log` (append con timestamp, recortado con `tail`) en vez de
+`/dev/null`, para que el fallo sea diagnosticable.
 
-## 10. Alcance — lo que se corta
+### 5.5 · El snapshot de retorno
 
-Decidido con el usuario (2a). **Fuera:**
+`pre_snapshot` (`bin/archfrican-update:149`) ya usa `--cleanup-algorithm number`. Añadir
+`-u important=yes` **no lo protege**: mueve el snapshot a un cubo independiente cuyo límite por
+defecto es 10, que varios resets desalojan igual. Y `NUMBER_CLEANUP` **por defecto es `no`**,
+así que hay que leer la config real de `root` antes de asumir que el algoritmo corre.
 
-- **El job `reset-safety-gate`.** Su grep central es auto-satisfactorio: prohíbe `of=/dev/sd`
-  literal, pero el código escribe `of=/dev/$dev` — una variable. Nunca aparece, ni en código
-  correcto ni en código catastrófico: el gate pasa siempre. `deepclean-safety-gate`
-  (`ci.yml:65-79`) sí funciona porque `DEEPCLEAN_DELETE_SUBVOLS=(...)` es un literal que el
-  código contiene. En su lugar: una línea añadiendo los tests nuevos al job `unit-logic`.
-- **El checksum de la ISO en CI.** Es cadena de suministro, no reset. Un `.sha256` del mismo
-  Actions sobre el mismo TLS no añade raíz de confianza; añade tres sitios donde el par puede
-  descuadrarse. `rs_iso_looks_valid` ya mata los dos fallos reales.
-- **`note()` con urgencia.** Toca una función que consumen 29 archivos para un solo llamador
-  nuevo. `notify-send -u critical` local en `archfrican-backup` resuelve lo mismo.
-- **`SuccessExitStatus=2` + su migración + el mapeo rc 3→2.** Empezar con 0/1.
+Lo que sí se hace: descripción reconocible ("antes de reparar" / "antes de restablecer"), para
+que `archfrican-rollback` —que lista `número · fecha · descripción` (`:24`)— la muestre. Sin
+eso, "Deshacer" pide al usuario adivinar un número.
 
-**Dentro, y explícitamente conservado:** `archfrican-backup restore` de verdad. Cortarlo dejaba
-al usuario escribiendo `restic restore` a mano justo después de reinstalar, que es donde la
-premisa de "sin comandos" más importa.
+### 5.6 · `db.lck`
 
-`restore` restaura **siempre a un directorio de staging** (`~/Restaurado-<ts>/`), nunca sobre
-`$HOME`: (a) `restic restore` sobrescribe sin deshacer; (b) un fallo a mitad sobre un `$HOME`
-vivo deja mitad viejo / mitad nuevo indistinguibles; (c) hay ficheros de sesión abiertos; (d)
-el repo ya tomó esta decisión en `archfrican-versions:65-89`. Mover a `$HOME` es un segundo
-paso explícito con `cp -a --backup=numbered`.
+Si el converge muere a golpes durante `pacman -S`, todo pacman falla después: converge, poda,
+update y doctor. **No hay ni un manejo de `db.lck` en el repo**, así que no hay salida sin
+escribir comandos — lo contrario de lo que esta feature promete.
 
----
+→ `rs_pacman_unlocked`: rc 0 libre, rc 1 bloqueado con un pacman vivo, rc 2 bloqueado y
+huérfano (ofrecible al usuario). Se comprueba antes del converge.
 
-## 11. Arreglos previos, en commits aparte
+### 5.7 · El lock
 
-Decidido con el usuario (3a): van **antes** de la feature, cada uno con sus tests.
+`take_lock` (`bin/archfrican-update:54-67`) filtra el dueño con `grep -q 'archfrican-update'`
+(`:61`). Como `--repair` es el mismo binario, este caso concreto está cubierto — pero el grep
+sigue siendo frágil ante cualquier consumidor futuro, y hay dos correcciones reales:
 
-1. **`load()` mata el script en silencio** (`executable_archfrican-backup:12-15`). La última
-   orden es `[ -r "$passfile" ] && export …`; si el fichero no es legible devuelve 1, la
-   función devuelve 1, y bajo `set -euo pipefail` `errexit` mata `now`/`list`/`restore` sin
-   imprimir nada. **Reproducido en aislamiento: exit=1, sin salida.** → `return 0` explícito +
-   `note` cuando falta la clave.
-2. **`now` miente con su exit code** (`:40-44`). El fallo está dentro de un `if`, así que
-   `set -e` no se activa y el script sale 0. Cadena: el timer queda `active(exited)`,
-   `check_failed_units` (`lib/health.sh:16-23`) nunca la ve, y el chequeo semanal
-   (`modules/70-hygiene.sh:62-83`) da verde sobre un respaldo roto hace semanas. → Salir 1 y
-   escribir log a `$XDG_STATE_HOME/archfrican/backup.log` en vez de `/dev/null`.
-3. **`archfrican-backup verify`** — subcomando nuevo, contrato de exit codes 0-5 y stdout
-   `clave=valor` con las mismas claves en todos los casos. Sin fuzzel, sin ghostty.
-4. **El grep del lock** (`bin/archfrican-update:61`) + la liberación condicional del trap (F13).
-5. **`confirm_destructive()`** (§9).
-6. **El guard del kernel** (F5), si se conserva algún sondeo dinámico en el repo.
+- El `trap 'rm -rf "$LOCKDIR"' EXIT` (`:70`) se instala **después** de `take_lock || die`, así
+  que perder la carrera nunca llega al trap: el riesgo que la primera versión describía no
+  existe tal como lo describía. Aun así, liberar solo si `$LOCKDIR/pid == $$` es correcto y
+  barato.
+- `LOCKDIR="${XDG_RUNTIME_DIR:-/tmp}/…"` (`:53`): dos invocaciones, una con `XDG_RUNTIME_DIR` y
+  otra sin él, usan lockdirs distintos y **ambas ganan**. Anclar a una ruta única.
 
----
+### 5.8 · `restore` de verdad
 
-## 12. Tests
+`:46` no restaura: abre una terminal, lista snapshots e imprime el comando que el usuario
+tendría que teclear. Es exactamente donde "sin comandos" más importa — después de reinstalar,
+en un sistema nuevo, con el usuario nervioso.
 
-Cuatro archivos nuevos, registrados en `unit-logic` (`ci.yml:327-361`). Patrones existentes:
-fixture + contador de invocaciones (`tests/unit/deep-clean.sh:32-49`), stubs de `pacman`/`sudo`
-(`tests/unit/manifest.sh:27,75-80`), stub en PATH (`tests/unit/weather.sh:30-43`), transcripción
-de llamadas (`tests/unit/rollback.sh:48-88`).
+Restaura **siempre a un directorio de staging** (`~/Restaurado-<ts>/`), nunca sobre `$HOME`:
+`restic restore` sobrescribe sin deshacer; un fallo a mitad sobre un `$HOME` vivo deja mitad
+viejo y mitad nuevo indistinguibles; y hay ficheros de sesión abiertos. Mover a `$HOME` es un
+segundo paso explícito con `cp -a --backup=numbered`, que deja `archivo.~1~` en cada colisión.
 
-**El test imprescindible**, si solo pudiera existir uno: `rs_list_usb_targets` con el disco del
-sistema en `sdc` y `sdc RM=1 HOTPLUG=1 TRAN=usb` (arranque desde USB), asertando salida
-`sdb sda` y **ni una mención de `sdc`**. Es el único fallo que destruye sin consentimiento: los
-otros seis peldaños no lo cubren, porque el nombre tecleado en el gate 6 es el que la lista
-mostró — si la lista está mal, la confirmación confirma el error con toda ceremonia.
+En el caso post-reinstalación `$HOME` está vacío y el merge es no-op, así que el staging no
+cuesta nada.
 
-Otros que atrapan regresiones reales:
-- `rs_dotfile_edits` con fixture que incluye `D` y una ruta con espacios; y **rc≠0, nunca lista
-  vacía, si falta `--source`** (una lista vacía silenciosa significa "nada que respaldar" y el
-  `--force` destruye).
-- `rs_subset_of` con la clausura real, no con los nombres.
-- `rs_remove_packages`: sin args ⇒ rc 2 y cero invocaciones de pacman; con args, argv capturado
-  **sin `--noconfirm`** y **sin `-n`**.
-- `rs_verify_backup` falso cuando el conjunto de snapshots posterior == anterior.
-- Frontera de antigüedad: 6d23h ⇒ ok, 7d01h ⇒ stale, futuro ⇒ stale.
-- Sin armar, `rs_write_iso` ejecuta **cero** comandos reales.
-- Gate `reset-menu-shape` (python `tomllib`, ya dependencia): cada `text` ≤ 41 caracteres, la
-  puerta es `run =` y no `submenu =`, y cada `run` apunta a un fichero existente.
-
-**Cubrible con esfuerzo, y vale la pena:** `losetup` sobre un archivo disperso de 4 GiB en
-`tests/e2e/`, con `rs_write_iso` **armado** contra él y `rs_verify_written` de verdad. Convierte
-la pieza más peligrosa en aserción real sin hardware.
-
-**Descubierto, declarado:** que ese USB arranque en un firmware concreto; que fuzzel
-preseleccione la primera línea (se testea el dato —`Cancelar` es la línea 1—, no el widget);
-que el usuario lea la tarjeta.
+*(Precedente: `archfrican-versions` restaura junto al original con sufijo, no sobre él. El
+principio es el mismo aunque el mecanismo difiera.)*
 
 ---
 
-## 13. Accesibilidad
+## 6. El riesgo que ninguna versión del diseño vio: rollback y kernel
 
-`archfrican-a11y:55` ("Texto más grande") solo escribe
-`org.gnome.desktop.interface text-scaling-factor`, que **fuzzel no honra**: su fuente viene de
-`templates/fuzzel.ini:5`, generada por `theme-switch`. Quien pidió texto grande lee las
-advertencias de pérdida total a 14 px. Fuera del alcance de esta feature arreglarlo; dentro,
-mitigarlo: cada `text` cabe sin elipsis y ninguna información crítica depende de la segunda
-línea.
+**Esto no es del código nuevo. `archfrican-rollback` ya está desplegado.**
 
-**Orca no ve fuzzel** (no expone AT-SPI): un usuario ciego no puede usar ninguna de estas
-pantallas. Mitigación gratuita: los cuatro niveles se invocan por argumento
-(`archfrican-reset reparar|restablecer|preparar|limpieza`), recorribles en terminal.
+`/boot` es la ESP vfat (`lib/base-install.sh:90`) y contiene los `vmlinuz` e `initramfs` de
+todos los kernels. `/usr/lib/modules` vive en `@`. Ningún snapshot de root cubre `/boot`.
 
-`executable_archfrican-rollback:16,32,36` usa **voseo** contra el tuteo del resto; el Nivel 2
-desemboca justo ahí y el cambio de persona se nota. Corregir en el mismo pase.
+Un rollback que cruce una actualización de kernel arranca el `vmlinuz` **nuevo** contra un `@`
+cuyo `/usr/lib/modules/<versión>` no existe. En esta máquina el desajuste ya está presente sin
+rollback ninguno:
+
+```
+kernel corriendo:  6.18.50-1-lts
+módulos en disco:  6.18.50-2-lts, 7.2.3-1-cachyos
+```
+
+→ Antes de ofrecer «Deshacer», comprobar que el snapshot contiene los módulos del `vmlinuz` que
+hay en `/boot`. Si no, negarlo o encadenar reinstalación del kernel + `mkinitcpio -P`.
+
+Va en su propio commit, independiente de esta feature, porque arregla algo que ya puede dejar
+un equipo sin arrancar.
 
 ---
 
-## 14. Riesgos que no se eliminan, solo se declaran
+## 7. Por qué la primera versión no se construye
 
-- Las ediciones a dotfiles se pierden salvo por la copia previa; el rollback de root no las
+Registro de lo que encontró el comité, para que no se re-derive:
+
+- **Sin release taggeado** ⇒ el Nivel 3 muere en su segundo peldaño siempre (§4).
+- **El conjunto protegido salía vacío en instalación cifrada.** `findmnt -no SOURCE --target /`
+  devuelve `/dev/mapper/root[/@]`: hay que quitar el sufijo y recorrer LUKS→partición→disco. El
+  diseño decía "cero candidatos ⇒ muere" y nada sobre "cero protegidos ⇒ muere". La función que
+  impedía grabar sobre el disco de sistema **fallaba abierta en la configuración por defecto**.
+- **El peldaño de armado no era un gate**: `ARCHFRICAN_RESET_ARMED` se auto-armaba en el mismo
+  proceso que protegía, al contrario que `ARCHFRICAN_DEEPCLEAN_ARMED`, que es un opt-in externo
+  con su default afirmado en CI (`ci.yml:72-74`).
+- **`ARCHFRICAN_STATE_DIR` es override por entorno** (`lib/manifest.sh:13`), así que la lista
+  que llega a `sudo pacman -Rs` la decide el entorno. Vale igual para `--prune` hoy.
+- **Borrar `$PHASE2_STATE` re-arma una ventana `NOPASSWD`**: ese directorio contiene
+  `resume-stopped`, que es el `ConditionPathExists=!` de `templates/archfrican-resume.service:23`.
+  Invariante: el reset nunca borra ese directorio.
+- **El `dd` especificado no llevaba `bs=`** — 450× más lento, medido. Una ISO habría tardado
+  más de 15 minutos sobre SSD.
+- **`systemd-inhibit --what=sleep:shutdown:idle` no cubre el cierre de tapa**
+  (`LidSwitchIgnoreInhibited` es `yes` por defecto), y no existe como "toma el lock y sal": solo
+  envuelve un comando.
+- **`restic unlock` sin `--remove-all` no quita locks de otro hostname con menos de 30 min**, así
+  que su rc 0 no significa desbloqueado.
+- **7 de 92 afirmaciones del documento fallaban**, cinco por número de línea desplazado. Ninguna
+  de las trece que sostenían una garantía de seguridad.
+
+---
+
+## 8. Tests
+
+Al job `unit-logic` (`.github/workflows/ci.yml:375-414`). Patrones existentes: stubs en PATH
+(`tests/unit/weather.sh:30-43`), stubs de `pacman`/`sudo` (`tests/unit/manifest.sh:27,75-80`),
+transcripción de llamadas (`tests/unit/rollback.sh`).
+
+| Test | Regresión que atrapa |
+|---|---|
+| `chezmoi` stub que emite `D`, `A`, un symlink y una ruta con espacios ⇒ se listan y copian todos | La pérdida silenciosa de §5.1 |
+| `--source` vacío ⇒ rc≠0, **nunca lista vacía** | El silencio peligroso |
+| Clausura con un explícito ajeno ⇒ rechazo con el nombre | §5.2, lo que hoy borraría de más |
+| Clausura con `niri` ⇒ rechazo | La lista literal |
+| Argv de `pacman -R` **sin `-n`** y **sin `--noconfirm`** | El bug vivo de `:320` |
+| `now` con restic stub que falla ⇒ **rc 1** y log no vacío | §5.4 |
+| `load()` sin `restic-pass` ⇒ mensaje y no muerte muda | §5.3 |
+| `restore`: el `--target` no es `$HOME`; el merge usa `--backup=numbered` | §5.8 |
+| Snapshot con módulos desajustados ⇒ «Deshacer» no se ofrece | §6 |
+| Cada `text` de las entradas nuevas ≤ 41 caracteres | La truncadura |
+
+---
+
+## 9. Lo que no se garantiza
+
+- Las ediciones a dotfiles se pierden salvo por la copia previa; ningún snapshot de root las
   alcanza.
-- Un rollback deja las estampas desincronizadas; el remedio es «Reparar», y hay que cablearlo,
-  no solo documentarlo (§8).
 - `/boot`, `@log` y `@pkg` quedan fuera de cualquier snapshot.
-- En raíz no-Btrfs el Nivel 2 no tiene vuelta atrás de ningún tipo.
-- La autenticidad de la ISO descargada no se puede verificar hoy.
-- Un corte eléctrico dentro de la ventana de `lib/rollback.sh:92-99` deja la máquina sin
-  arrancar; solo se sale con un USB en vivo. Es raro y ya existe hoy.
+- En raíz no-Btrfs no hay vuelta atrás de ningún tipo.
+- Un rollback deja las estampas desincronizadas; el remedio es «Reparar», que las ignora.
+- La clausura que `pacman -Rs --print` previsualiza se **recalcula** al ejecutar: lo aprobado y
+  lo ejecutado pueden divergir si la base de paquetes cambia entre medias.
