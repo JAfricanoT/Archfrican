@@ -1270,10 +1270,16 @@ archfrican-bar-mode expanded    # every group's members visible at once
 ```
 
 The mode is a symlink, `~/.config/waybar/mode.jsonc`, pointing at one of two fragments in
-`~/.config/waybar/modes/`. Switching repoints the link and restarts waybar. The script
-never writes JSON: waybar treats a malformed include as fatal, and a half-written file
-would take the bar down until `systemctl --user reset-failed waybar` was run by hand.
-Swapping a symlink is a rename — it cannot half-fail.
+`~/.config/waybar/modes/`. Switching repoints the link and sends waybar SIGUSR2, which
+makes it re-read its config in place. Restarting the unit instead would destroy and
+rebuild the bar's layer surface — measured at ~290ms with the bar visibly absent, against
+~17ms for the signal, which is the difference between a flash and nothing. SIGUSR2 is
+waybar's crash-prone reload path, so a watchdog restarts the bar if the signal ever takes
+it down hard enough that systemd stops retrying.
+
+The script never writes JSON: waybar treats a malformed include as fatal, and a
+half-written file would take the bar down until `systemctl --user reset-failed waybar` was
+run by hand. Swapping a symlink is a rename — it cannot half-fail.
 
 `config.jsonc` includes that link and defines the groups nowhere else, so a missing link
 would silently cost you cpu, network and the tray. Two things prevent that: the chezmoi

@@ -156,6 +156,12 @@
   },
 
   // --- right-side status modules ---
+  // Note which archfrican-doctor this reaches. waybar's service PATH is /usr/local/sbin:/usr/local/bin:
+  // /usr/bin:… and does NOT contain ~/.local/bin, so this bare name resolves through /usr/local/bin to
+  // the repo clone at ~/.archfrican/bin — a different deployment channel from the $HOME/.local/bin
+  // modules below, which chezmoi installs. Editing the copy in ~/.local/bin changes nothing here, and
+  // because both copies share one cache file under $XDG_RUNTIME_DIR, a manual run from a shell can
+  // populate that cache and make an undeployed change look live until the TTL expires.
   "custom/health": {
     "format": "{}",
     "return-type": "json",

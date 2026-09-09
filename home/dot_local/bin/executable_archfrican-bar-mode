@@ -24,24 +24,34 @@ current() {
   esac
 }
 
-# The reload has to escape waybar's own cgroup. This script is usually run by waybar's on-click, so it
-# is a child of waybar.service; `systemctl restart` stops that unit, and systemd's default KillMode
-# takes the whole control group with it — the script would be killed partway through and the bar would
-# never come back up. systemd-run puts the restart in its own transient unit, where it survives.
+# SIGUSR2 makes waybar re-read its config in place, which a restart of the unit does not: restarting
+# destroys the layer surface and builds a new one, and the bar is visibly GONE while that happens.
+# Measured by polling niri for the surface across a 3s window: absent in 2/360 samples after SIGUSR2
+# (~17ms) against 35/362 after a unit restart (~290ms). The second one reads as the whole bar
+# blinking; the first is below noticing.
+#
+# SIGUSR2 is also the reload path carrying waybar's documented upstream segfault (the issue list is in
+# modules/20-niri-desktop.sh). Taking it here is a deliberate trade, on three grounds: theme-switch
+# already sends it on every theme change and converge, systemd's Restart=on-failure catches a crash,
+# and the worst case therefore degrades to exactly the restart-shaped flash this avoids — never to a
+# missing bar.
+#
+# The guard covers the one failure systemd will not repair by itself: enough crashes in a row to trip
+# StartLimitBurst=5/10s, after which systemd stops trying and the bar stays gone until someone runs
+# reset-failed by hand. For a button that lives ON the bar, that outcome has to be impossible.
 reload() {
-  local cmd='systemctl --user reset-failed waybar.service 2>/dev/null; exec systemctl --user restart waybar.service'
-  if ! systemctl --user cat waybar.service >/dev/null 2>&1; then
-    # No unit (a machine predating it): fall back to waybar's own reload signal.
-    pkill -SIGUSR2 -x waybar 2>/dev/null || true
-    return 0
-  fi
-  # reset-failed before restart on purpose: the unit carries StartLimitBurst=5 within 10s, so a few
-  # impatient clicks would otherwise trip the rate limiter and leave the bar down until it is cleared
-  # by hand — a button that can permanently remove the bar it lives on.
-  if command -v systemd-run >/dev/null 2>&1; then
-    systemd-run --user --collect --quiet -- sh -c "$cmd" 2>/dev/null && return 0
-  fi
-  setsid sh -c "$cmd" >/dev/null 2>&1 &
+  pkill -SIGUSR2 -x waybar 2>/dev/null || true
+  systemctl --user cat waybar.service >/dev/null 2>&1 || return 0
+  command -v systemd-run >/dev/null 2>&1 || return 0
+  # Detached in its own transient unit, and that is not optional. This script normally runs as
+  # waybar's on-click, so it is a child of waybar.service — if the reload does crash the bar, systemd
+  # tears down the whole control group and would take this watchdog with it, exactly when it is
+  # needed. --collect reaps the transient unit afterwards.
+  systemd-run --user --collect --quiet -- sh -c '
+    sleep 3
+    systemctl --user is-active --quiet waybar.service && exit 0
+    systemctl --user reset-failed waybar.service 2>/dev/null
+    exec systemctl --user start waybar.service' 2>/dev/null || true
 }
 
 set_mode() {
