@@ -80,7 +80,10 @@
     "tooltip": true
   },
 
-  "niri/workspaces": { "format": "{icon}" },
+  // {value}, not {icon}: this asked for an icon while defining no format-icons at all, so the number
+  // on screen was waybar falling back rather than anything anyone chose. {value} is the workspace
+  // name, or its index when unnamed — which is what was wanted, now actually requested.
+  "niri/workspaces": { "format": "{value}" },
 
   // center clock — full day name for a richer feel; hover shows inline calendar; click opens gsimplecal
   "clock": {

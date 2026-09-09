@@ -90,11 +90,25 @@ window#waybar {
    it is in without anyone having to read the glyph. */
 #custom-bar-mode.expanded { color: @accent; }
 
-/* workspaces — focus is carried by colour and weight alone: no underline, no fill, and the same
-   padding as every other module so the left region sits at the bar's one density. */
-#workspaces button { color: @fg_dim; }
+/* Workspaces — three tiers, not two. Empty and occupied used to render identically, so the row said
+   only "where you are" and threw away "where your work is", which niri hands over for free. Now:
+   empty fades back, occupied sits at @fg_dim, focus takes the accent and the weight.
+
+   Order is load-bearing, since these classes combine and all four selectors carry equal specificity.
+   .empty comes first so .focused overrides it when you are standing on an empty workspace, and
+   .urgent comes last so a workspace demanding attention outranks everything else it might also be.
+
+   Air comes from letter-spacing rather than padding, on purpose: the bar's one-padding rule above is
+   worth more than 2px of breathing room, and single digits read tighter than the multi-character
+   modules that rule was measured against. Tracking buys the same openness without an exception. */
+#workspaces button { color: @fg_dim; letter-spacing: 0.5px; }
+#workspaces button.empty { color: alpha(@fg_dim, 0.40); }
 #workspaces button.focused,
 #workspaces button.active { color: @accent; font-weight: 700; }
+/* A window asked to be focused and niri declined to steal focus from you, flagging it instead —
+   xdg-activation, not a desktop notification (those are swaync's bell). Amber, matching every other
+   "needs a look, nothing is broken" state on this bar. */
+#workspaces button.urgent { color: #f5c451; font-weight: 700; }
 #workspaces button:hover { color: @fg; }
 
 /* center: weather dims left, clock anchors right — separated by space, not a rule. The clock stays
