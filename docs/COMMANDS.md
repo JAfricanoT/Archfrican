@@ -622,7 +622,9 @@ is styled from ADL tokens by `theme-switch` so it matches every other Archfrican
 **Navigation wraps** (`selection_wrap = true` in `~/.config/walker/config.toml`): `↑` on the first
 result jumps to the last, `↓` on the last jumps back to the first — no dead end at either edge. It
 applies to every Walker surface, including the native `menus:*` panels that `archfrican-actions`
-and friends open.
+and friends open. The fuzzel fallback wraps too, via `[key-bindings]` in `templates/fuzzel.ini`
+(`prev-with-wrap` / `next-with-wrap` on the arrow keys) — the two launcher paths must behave the
+same, or what a user learns depends on whether Walker happens to be installed.
 
 **Fuzzel fallback** (when Walker is absent): the full app list plus two mode entries —
 `Portapapeles…` (cliphist history) and `Acciones y ajustes…` (the archfrican-actions hub,
