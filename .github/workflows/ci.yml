@@ -358,6 +358,8 @@ jobs:
         run: bash tests/unit/snapshots-gate.sh
       - name: weather — a city's internal spaces survive; "New York" must not query "NewYork"
         run: bash tests/unit/weather.sh
+      - name: actions-menu — fuzzel fallback navigation: back is last, running closes, failures are loud
+        run: bash tests/unit/actions-menu.sh
 
   modules-list-consistency:
     runs-on: ubuntu-latest        # 5 independent lists of module names must stay in sync, or drift silently
