@@ -40,22 +40,59 @@ ARCHFRICAN_APPDIRS=(/usr/share/applications "$HOME/.local/share/applications"
                     "$HOME/.local/share/flatpak/exports/share/applications")
 
 # list_desktop_apps — one line per VISIBLE app: "Name<TAB>file.desktop<TAB>Icon" (Icon may be
-# empty; Name falls back to the file name). ONE visibility filter for the whole OS: NoDisplay
-# AND Hidden both hide — Hidden is freedesktop's "user uninstalled this" flag, and the copy in
-# archfrican-defaults used to ignore it, offering apps Spotlight correctly hid. Unsorted:
-# each consumer picks its own ordering/fields.
+# empty; Name falls back to the file name). Unsorted: each consumer picks its own ordering.
+#
+# ONE visibility filter for the whole OS — and that has to mean the same four keys Walker's
+# backend applies, or the two launcher surfaces disagree about what exists. elephant hides on
+# NoDisplay, Hidden, NotShowIn and OnlyShowIn (desktopapplications/query.go:37, splitting
+# XDG_CURRENT_DESKTOP on ":"); this used to check only the first two, so a session-scoped entry
+# was correctly absent from the Walker grid and still listed in the fuzzel fallback. That gap is
+# what makes NotShowIn usable to keep the control surfaces out of the app list without hiding
+# them from a Plasma session, which NoDisplay cannot do.
+#
+# Group-aware, which the grep it replaces was not: a NoDisplay inside a [Desktop Action …] block
+# belongs to that action, not to the app, and must not hide the app. Matching is exact and
+# case-sensitive on the desktop names, the way elephant compares them.
+#
+# One awk over every file rather than three processes per file. At 83 .desktop entries that was
+# ~250 forks and ~320 ms on the ⌘+Space fallback path — dead time before the launcher draws, and
+# it grows with every Flatpak installed.
 list_desktop_apps() {
-  local d f name icon
+  local d f files=()
   for d in "${ARCHFRICAN_APPDIRS[@]}"; do
     [ -d "$d" ] || continue
-    for f in "$d"/*.desktop; do
-      [ -e "$f" ] || continue
-      grep -qiE '^(NoDisplay|Hidden)[[:space:]]*=[[:space:]]*true' "$f" && continue
-      name="$(sed -n 's/^Name=//p' "$f" | head -1)"
-      icon="$(sed -n 's/^Icon=//p' "$f" | head -1)"
-      printf '%s\t%s\t%s\n' "${name:-$(basename "$f" .desktop)}" "$(basename "$f")" "$icon"
-    done
+    for f in "$d"/*.desktop; do [ -e "$f" ] && files+=("$f"); done
   done
+  [ "${#files[@]}" -gt 0 ] || return 0
+  awk -v cur="${XDG_CURRENT_DESKTOP:-}" '
+    BEGIN { nd = split(cur, DESK, ":") }
+    function matches(list,   i, j, m, T) {      # does any ";"-separated token name this desktop?
+      m = split(list, T, ";")
+      for (i = 1; i <= m; i++) if (T[i] != "")
+        for (j = 1; j <= nd; j++) if (T[i] == DESK[j]) return 1
+      return 0
+    }
+    function flush(   base) {
+      if (path == "" || hidden || nodisplay) return
+      if (notin != "" && matches(notin)) return
+      if (only  != "" && !matches(only))  return
+      base = path; sub(/^.*\//, "", base)
+      if (name == "") { name = base; sub(/\.desktop$/, "", name) }
+      printf "%s\t%s\t%s\n", name, base, icon
+    }
+    function val(   v) { v = $0; sub(/^[^=]*=/, "", v); return v }
+    FNR == 1 { flush(); path = FILENAME; ingroup = 0
+               name = ""; icon = ""; hidden = 0; nodisplay = 0; only = ""; notin = "" }
+    /^[[:space:]]*\[/ { ingroup = ($0 ~ /^[[:space:]]*\[Desktop Entry\][[:space:]]*$/); next }
+    !ingroup { next }
+    /^[[:space:]]*Name[[:space:]]*=/       { if (name == "") name = val(); next }
+    /^[[:space:]]*Icon[[:space:]]*=/       { if (icon == "") icon = val(); next }
+    /^[[:space:]]*NoDisplay[[:space:]]*=/  { if (tolower(val()) ~ /^[[:space:]]*true/) nodisplay = 1; next }
+    /^[[:space:]]*Hidden[[:space:]]*=/     { if (tolower(val()) ~ /^[[:space:]]*true/) hidden = 1; next }
+    /^[[:space:]]*OnlyShowIn[[:space:]]*=/ { only  = val(); next }
+    /^[[:space:]]*NotShowIn[[:space:]]*=/  { notin = val(); next }
+    END { flush() }
+  ' "${files[@]}"
 }
 
 # Theme picker (fuzzel) over the clone's themes/ — honors ARCHFRICAN_ROOT (dev checkout) the

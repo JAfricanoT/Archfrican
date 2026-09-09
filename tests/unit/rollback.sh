@@ -182,5 +182,59 @@ fi
 [ "$RC" -ne 0 ] && _ok "snapshot failure: reports failure" || _no "snapshot failure: reports failure (rc 0)"
 rm -rf "$STUBDIR" "$FIXDIR"
 
+# ---- 8: the leftovers nobody prunes ---------------------------------------
+# archfrican_rollback_to renames the replaced root to @.rollback-<timestamp> instead of deleting it,
+# so a bad rollback is itself reversible. Nothing ever cleans those up and each pins a full root's
+# worth of COW blocks, so `archfrican-doctor` has to be the thing that notices. It must NEVER delete
+# one — that copy is the user's way back — and must never report health it could not actually probe.
+health_stub(){    # health_stub <fstype> <subvolume-list-output|SUDOFAIL>
+  local d; d="$(mktemp -d)"
+  printf '#!/bin/sh\necho %s\n' "$1" > "$d/findmnt"
+  if [ "$2" = SUDOFAIL ]; then
+    printf '#!/bin/sh\nexit 1\n' > "$d/sudo"
+  else
+    { printf '#!/bin/sh\ncat <<'\''SVL'\''\n'; printf '%s\n' "$2"; printf 'SVL\n'; } > "$d/sudo"
+  fi
+  chmod +x "$d/findmnt" "$d/sudo"
+  printf '%s' "$d"
+}
+assert_check(){   # assert_check <fstype> <list|SUDOFAIL> <ok|amber|skip> <desc>
+  local d out want="$3" desc="$4" got
+  d="$(health_stub "$1" "$2")"
+  out="$(PATH="$d:$PATH" bash -c \
+    'source "$1/lib/health.sh"; set +e; check_rollback_backups; echo "AMBER=$H_AMBER RED=$H_RED"' \
+    _ "$ROOT" 2>/dev/null)"
+  case "$out" in
+    *"RED=1"*)                     got=red ;;
+    *"AMBER=1"*)                   got=amber ;;
+    *"○ "*)                        got=skip ;;
+    *"rollback backups"*)          got=ok ;;
+    *)                             got="none:${out}" ;;
+  esac
+  [ "$got" = "$want" ] && _ok "$desc" || _no "$desc (want $want, got '$got')"
+  rm -rf "$d"
+}
+ONE='ID 260 gen 1 top level 5 path @.rollback-20260908-140233'
+THREE="$ONE
+ID 261 gen 2 top level 5 path @.rollback-20260901-091500
+ID 262 gen 3 top level 5 path @.rollback-20260825-183000"
+CLEAN='ID 256 gen 1 top level 5 path @
+ID 257 gen 1 top level 5 path @home'
+
+assert_check btrfs "$CLEAN"   ok    "doctor: no @.rollback-* -> green"
+assert_check btrfs "$ONE"     ok    "doctor: one backup (a recent rollback) -> green, not a nag"
+assert_check btrfs "$THREE"   amber "doctor: backups piling up -> amber"
+assert_check btrfs SUDOFAIL   skip  "doctor: no sudo -> skip, never a green it could not verify"
+assert_check ext4  "$CLEAN"   skip  "doctor: non-btrfs root -> skip"
+
+d="$(health_stub btrfs "$THREE")"
+if PATH="$d:$PATH" bash -c 'source "$1/lib/health.sh"; check_rollback_backups' _ "$ROOT" 2>&1 \
+   | grep -qiE 'subvolume delete|rm -rf'; then
+  _no "doctor: reports the leftovers without handing over a delete command it might run"
+else
+  _ok "doctor: reports the leftovers without handing over a delete command it might run"
+fi
+rm -rf "$d"
+
 printf '\nrollback unit test: %d passed, %d failed\n' "$P" "$F"
 [ "$F" -eq 0 ]

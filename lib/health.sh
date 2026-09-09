@@ -54,6 +54,23 @@ check_scrub() {
   else _h_ok "btrfs scrub" "ran (btrfs scrub status /)"; fi
 }
 
+# Every archfrican-rollback leaves the root it replaced behind as @.rollback-<timestamp>:
+# lib/rollback.sh renames instead of deleting precisely so a bad rollback is itself reversible.
+# Nothing prunes them and each pins a full root's worth of COW blocks, so this is the only thing
+# that notices them piling up. One is the normal state right after a rollback — nagging about it
+# would train the user to delete their way back. Deliberately prints no destructive command:
+# doctor hands out inspection verbs, never `btrfs subvolume delete`.
+check_rollback_backups() {
+  [ "$(findmnt -no FSTYPE / 2>/dev/null)" = btrfs ] || { _h_skip "rollback backups" "not btrfs"; return; }
+  local out n
+  out="$(sudo -n btrfs subvolume list / 2>/dev/null)" || { _h_skip "rollback backups" "needs sudo"; return; }
+  n="$(printf '%s\n' "$out" | grep -c 'path .*@\.rollback-' || true)"
+  if   [ "${n:-0}" -eq 0 ]; then _h_ok    "rollback backups" "none"
+  elif [ "$n" -eq 1 ];      then _h_ok    "rollback backups" "1 kept by your last rollback"
+  else _h_amber "rollback backups" "${n} kept by past rollbacks, each pinning a full root — docs/RECOVERY.md §7"
+  fi
+}
+
 check_smart() {
   _h_have smartctl || { _h_skip "disk SMART"; return; }
   local src base h; src="$(findmnt -no SOURCE / 2>/dev/null)"
