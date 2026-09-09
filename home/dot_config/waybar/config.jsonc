@@ -12,41 +12,59 @@
   "modules-left": ["niri/workspaces", "niri/window"],
   // center island: weather pill (left) + clock anchor (right)
   "modules-center": ["custom/weather", "clock"],
-  // Only what a developer acts on stays permanently visible; everything else lives one hover away
-  // inside a drawer group. Nine elements at rest, against the twenty this row used to carry.
+  // Only what a developer acts on stays permanently visible; everything else is one click away inside
+  // a drawer group.
+  //
+  // battery and custom/connectivity are NOT in the drawers, and that is the whole point of where they
+  // sit. Both carry alarm states — #battery.warning/.critical and #custom-connectivity.offline — and
+  // a collapsed drawer makes those CSS rules dead code: a laptop at 4% would show nothing at all.
+  // A module that can raise an alarm cannot live behind a gesture. Only what you go LOOKING for can.
   "modules-right": [
     "pulseaudio",
     "group/system",
+    "battery",
     "group/net",
+    "custom/connectivity",
     "custom/health", "custom/github", "custom/notification", "custom/caffeine", "custom/privacy",
     "group/systray",
     "custom/power"
   ],
 
-  // A `drawer` group hides all but its FIRST module, revealing the rest on hover. Two properties
-  // matter here: children-class gives the hidden modules a styling hook, and transition-left-to-right
-  // false makes a group grow INTO the empty centre rather than shoving its neighbours off the edge —
-  // which is the whole reason these live on the right.
+  // A `drawer` group hides all but its FIRST module, revealing the rest. children-class gives the
+  // hidden modules a styling hook.
+  //
+  // click-to-reveal, not hover: expanding a group reallocates ~200px, which slides the leader itself
+  // out from under the pointer — so you cannot reliably click a handle, because opening it moves it.
+  // A click also makes the reflow intentional rather than something a stray crossing triggers, gives
+  // touch and pointer-emulation a route in, and lets the tooltips finally do their job (on hover the
+  // very gesture that raises the tooltip has already opened the drawer, so it explained nothing).
+  //
+  // transition-left-to-right only sets the ANIMATION direction. An earlier comment here claimed it
+  // made the group "grow into the empty centre instead of shoving its neighbours" — it does not; the
+  // final size allocation is identical either way. It is kept because sliding away from the screen
+  // edge reads better, not because it protects the layout.
   "group/system": {
     "orientation": "horizontal",
-    "drawer": { "transition-duration": 300, "children-class": "drawer-child", "transition-left-to-right": false },
-    "modules": ["cpu", "memory", "disk", "power-profiles-daemon", "battery"]
+    "drawer": { "transition-duration": 150, "children-class": "drawer-child", "transition-left-to-right": false, "click-to-reveal": true },
+    "modules": ["cpu", "memory", "disk", "power-profiles-daemon"]
   },
   "group/net": {
     "orientation": "horizontal",
-    "drawer": { "transition-duration": 300, "children-class": "drawer-child", "transition-left-to-right": false },
-    "modules": ["network", "bluetooth", "custom/connectivity"]
+    "drawer": { "transition-duration": 150, "children-class": "drawer-child", "transition-left-to-right": false, "click-to-reveal": true },
+    "modules": ["network", "bluetooth"]
   },
   // Named "systray", NOT "tray": a group takes the CSS id of its name, and #tray is already owned by
   // the tray module nested inside this very group. The collision would style both at once.
   "group/systray": {
     "orientation": "horizontal",
-    "drawer": { "transition-duration": 300, "children-class": "drawer-child", "transition-left-to-right": false },
+    "drawer": { "transition-duration": 150, "children-class": "drawer-child", "transition-left-to-right": false, "click-to-reveal": true },
     "modules": ["custom/systray-toggle", "tray"]
   },
 
-  // Static handle for the tray drawer: no exec, just a glyph to hover. U+F141 (fa-ellipsis-h), from
-  // the same Font Awesome subset as the rest of this config.
+  // The tray drawer's handle. U+F141 (fa-ellipsis-h), from the same Font Awesome subset as the rest
+  // of this config. The glyph is echoed by a real `exec` rather than written as a static `format`:
+  // a custom module with no exec never runs an update cycle, so it renders at zero width — a handle
+  // with nothing to click, which makes the drawer silently unopenable.
   "custom/systray-toggle": {
     "format": "{}",
     "exec": "echo ''",
@@ -63,17 +81,24 @@
     "on-click": "sh -c 'command -v gsimplecal && exec gsimplecal || command -v gnome-calendar && exec gnome-calendar || true'"
   },
 
-  // system stats — click cpu or memory to jump to btop
-  // cpu leads the system drawer, so it does double duty: a mute icon while the machine is calm, and
-  // its own alarm past 80% — the one module that is both the handle you hover and the alert you
-  // cannot miss. Memory and disk need no second alarm: archfrican-doctor is permanently visible now
-  // and already reports a filling disk, so duplicating that warning would only add noise.
+  // system stats — click memory to jump to btop (cpu cannot carry it; see below)
+  // cpu leads the system drawer and does double duty: a mute icon while the machine is calm, and its
+  // own alarm past 80% — both the handle you click and an alert you cannot miss.
+  //
+  // It carries NO on-click. waybar warns that "grouped modules may still process their own on-click
+  // events", so a click on a drawer leader would open the group AND fire the action. btop stays one
+  // click away on `memory`, inside the drawer. Rule for this bar: a drawer leader never has on-click.
+  //
+  // An earlier comment here justified hiding memory and disk by claiming archfrican-doctor "is
+  // permanently visible now and already reports a filling disk". Both halves were false: the badge
+  // prints an empty string when healthy, so it hides itself precisely when nothing is wrong, and
+  // lib/health.sh has no battery check at all. Memory and disk are hidden because they are consulted,
+  // not watched — btop answers them better than three figures at 12px.
   "cpu": {
     "format": "",
     "format-critical": "  {usage}%",
     "states": { "critical": 80 },
-    "tooltip-format": "CPU {usage}%",
-    "on-click": "ghostty -e btop"
+    "tooltip-format": "CPU {usage}%"
   },
   "memory": { "format": "  {}%",      "on-click": "ghostty -e btop", "tooltip": false },
   "disk":   { "format": "  {free}",   "tooltip-format": "{used} / {total} ({percentage_used}%)\n{path}" },

@@ -58,13 +58,22 @@ window#waybar {
 }
 #systray { margin-left: 6px; margin-right: 6px; }
 
-/* Drawer children: revealed on hover, styled exactly like any other module — they keep their own ids,
-   so the flat rules above already apply. The class exists as a hook for the dimming below. */
+/* Revealed drawer members wear the accent, which is what tells them apart from the modules that were
+   already on the bar — open a drawer and its contents run straight into their neighbours otherwise.
+   Colour, not a plate or a bracket: the bar's own law two comments up allows space and colour and
+   forbids boxes, and accent is the only value that clears 3:1 against the bar in ALL themes
+   (4.66:1 dark, 3.69:1 light, 15.91:1 high-contrast) — no translucent tint in any palette does.
+
+   Hung on .drawer-child rather than :hover on purpose. These elements are only VISIBLE while the
+   drawer is open, so the class is a reliable proxy for "expanded" whichever gesture opens it. A
+   :hover rule would have been wrong the moment click-to-reveal landed: it would paint the marker
+   when the pointer merely crosses a closed group. The tray keeps @fg — third-party icons have their
+   own colours and recolouring them communicates nothing. */
 #system .drawer-child,
-#net .drawer-child,
-#systray .drawer-child {
-  color: @fg_dim;
+#net .drawer-child {
+  color: @accent;
 }
+#systray .drawer-child { color: @fg; }
 
 /* The tray handle reads as an affordance, not a status: dim until pointed at. */
 #custom-systray-toggle { color: @fg_dim; }
@@ -118,6 +127,12 @@ window#waybar {
 /* The system drawer's leader turning amber IS the alert — it is the only part of that group visible
    while collapsed, so this colour is what carries a busy machine to the eye. */
 #cpu.critical { color: #f5c451; }
+
+/* archfrican-doctor emits class ok|amber|red and nothing here consumed it, so "3 things to review"
+   and "3 critical failures" rendered identically. The badge prints an empty string when healthy, so
+   the module hides itself entirely and needs no .ok rule. */
+#custom-health.amber { color: #f5c451; }
+#custom-health.red   { color: #ff5f56; }
 
 /* dim secondary stats */
 #disk, #memory { color: @fg_dim; }
