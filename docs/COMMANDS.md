@@ -510,9 +510,20 @@ archfrican-actions
 
 **Keyboard shortcut**: `⌘+Shift+A` (configured in niri)
 
+**Also reachable from `⌘+Space`** — type `,` to jump straight into this menu (the `,` mirrors macOS's
+`⌘,` for Preferences), or find `Acciones y ajustes…` in the list. Settings stay searchable from the
+one launcher rather than living behind a key you have to know about, which is how Spotlight and
+Raycast both surface system commands.
+
 Covers ~50 actions organized by category: Configuración, Sistema, Sesión/Interfaz,
 Herramientas, Red, Audio/Visual, Accesibilidad, Privacidad/Seguridad, Gaming,
 Continuidad/Datos, Notificaciones.
+
+**Going back**: a submenu is no longer a one-way trip. `Escape` climbs one level — every submenu
+declares its `parent` in `menus/*.toml`, which is what lets Walker's built-in `menus:parent` binding
+fire. In the fuzzel fallback each submenu grows a trailing `── Volver` entry and cancelling out of
+one re-shows the list you came from instead of dropping you at the desktop. Running an entry still
+closes the whole menu — including applying a theme.
 
 ---
 
@@ -618,6 +629,7 @@ is styled from ADL tokens by `theme-switch` so it matches every other Archfrican
 | `walker -m clipboard` | `⌘+Shift+V` / `:` | Clipboard history |
 | `walker -m websearch` | `@` prefix | Web search |
 | `walker -m symbols` | `.` prefix | Emoji / symbol picker |
+| `walker -m menus:actions` | `⌘+Shift+A` / `,` | System settings & actions (the command palette) |
 
 **Navigation wraps** (`selection_wrap = true` in `~/.config/walker/config.toml`): `↑` on the first
 result jumps to the last, `↓` on the last jumps back to the first — no dead end at either edge. It
@@ -626,9 +638,12 @@ and friends open. The fuzzel fallback wraps too, via `[key-bindings]` in `templa
 (`prev-with-wrap` / `next-with-wrap` on the arrow keys) — the two launcher paths must behave the
 same, or what a user learns depends on whether Walker happens to be installed.
 
-**Fuzzel fallback** (when Walker is absent): the full app list plus two mode entries —
-`Portapapeles…` (cliphist history) and `Acciones y ajustes…` (the archfrican-actions hub,
-which itself falls back to fuzzel and still reaches every action above).
+**Fuzzel fallback** (when Walker is absent): `Portapapeles…` (cliphist history) first, then the full
+app list, then `Acciones y ajustes…` (the archfrican-actions hub, which itself falls back to fuzzel
+and still reaches every action above). The hub sits **last** rather than pinned near the top: fuzzel
+`--dmenu` does no ranking, so a pinned entry is read past on every single query aimed at an app.
+It stays in the list because this is the surface with no prefixes — removing it would leave a user
+who has not memorised `⌘+Shift+A` with no way in at all.
 
 **Keyboard shortcut**: `⌘+Space`
 

@@ -30,14 +30,20 @@ M_ACT="Acciones y ajustes…"
 idx="$(mktemp)"; trap 'rm -f "$idx"' EXIT
 list_desktop_apps | awk -F'\t' -v OFS='\t' '{sub(/\.desktop$/, "", $2); print}' > "$idx"
 
-# Feed fuzzel: the six modes first, then every app (alpha, de-duped by name) with its icon via the
-# dmenu icon protocol (label \0 "icon" \x1f icon-name).
+# Feed fuzzel: the clipboard mode, then every app (alpha, de-duped by name) with its icon via the
+# dmenu icon protocol (label \0 "icon" \x1f icon-name), and the settings hub LAST.
+#
+# fuzzel --dmenu has no ranking: this order is the order you see, whatever you typed. Pinning the
+# settings hub to row 2 meant three letters aimed at an app were always read past an entry that
+# launches nothing — the dilution the Walker path answers with the "," prefix. Last rather than gone:
+# it is how someone who has not memorised a keybind still finds the way into the system, which is the
+# job this file's own header claims ("discoverable instead of memorized").
 build_list() {
   printf '%s\0icon\x1fedit-paste\n'                 "$M_CLIP"
-  printf '%s\0icon\x1fpreferences-system\n'         "$M_ACT"
   sort -t "$TAB" -k1,1 -u "$idx" | while IFS="$TAB" read -r name _id icon; do
     if [ -n "$icon" ]; then printf '%s\0icon\x1f%s\n' "$name" "$icon"; else printf '%s\n' "$name"; fi
   done
+  printf '%s\0icon\x1fpreferences-system\n'         "$M_ACT"
 }
 
 sel="$(build_list | fuzzel --dmenu --prompt '   ')" || exit 0

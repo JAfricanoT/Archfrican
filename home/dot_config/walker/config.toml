@@ -44,3 +44,13 @@ provider = "symbols"
 [[providers.prefixes]]
 prefix = ";"            # provider switcher
 provider = "providerlist"
+# System settings as a command palette, the way Raycast surfaces its System commands: ⌘+Space stays
+# the one launcher, and the control surface is a keystroke away inside it rather than behind a second
+# key nobody discovers. "," because ⌘+, is Preferences in every macOS app — the audience this distro
+# is built for already has that one in their fingers.
+# Prefixes merge on the PROVIDER, not on the character (walker src/config.rs:330-341), so a new
+# provider is appended rather than replacing anything: the character has to be one upstream has not
+# already spent. Taken there: ; > / . ! % = @ : $ — note ">" is already runner.
+[[providers.prefixes]]
+prefix = ","            # system settings & actions (menus/actions.toml)
+provider = "menus:actions"
