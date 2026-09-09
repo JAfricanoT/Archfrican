@@ -39,7 +39,7 @@ window#waybar {
 #window, #clock,
 #custom-privacy, #pulseaudio, #bluetooth, #network,
 #cpu, #memory, #disk, #power-profiles-daemon, #battery,
-#custom-caffeine, #custom-weather, #custom-connectivity, #custom-systray-toggle,
+#custom-caffeine, #custom-weather, #custom-connectivity, #custom-systray-toggle, #custom-bar-mode,
 #custom-health, #custom-github, #custom-notification, #custom-power, #tray {
   padding: 1px 4px;
   margin: 2px 0;
@@ -75,9 +75,14 @@ window#waybar {
 }
 #systray .drawer-child { color: @fg; }
 
-/* The tray handle reads as an affordance, not a status: dim until pointed at. */
-#custom-systray-toggle { color: @fg_dim; }
-#custom-systray-toggle:hover { color: @fg; }
+/* Handles read as affordances, not as status: dim until pointed at. Both of them share the signature
+   deliberately — repetition is what teaches "the dim ones open things". */
+#custom-systray-toggle, #custom-bar-mode { color: @fg_dim; }
+#custom-systray-toggle:hover, #custom-bar-mode:hover { color: @fg; }
+
+/* While every group is expanded, the button that did it stays lit, so the bar always says which mode
+   it is in without anyone having to read the glyph. */
+#custom-bar-mode.expanded { color: @accent; }
 
 /* workspaces — focus is carried by colour and weight alone: no underline, no fill, and the same
    padding as every other module so the left region sits at the bar's one density. */

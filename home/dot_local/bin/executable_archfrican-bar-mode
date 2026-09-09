@@ -1,0 +1,94 @@
+#!/usr/bin/env bash
+# archfrican-bar-mode — expand or collapse ALL of waybar's drawer groups at once.
+#
+#   archfrican-bar-mode status      # waybar JSON for the bar button
+#   archfrican-bar-mode toggle      # flip between the two modes
+#   archfrican-bar-mode collapsed   # groups hidden behind a hover (the default)
+#   archfrican-bar-mode expanded    # every group's members on the bar at once
+#
+# Individual groups still open on hover in collapsed mode; this is the global switch beside the tray
+# handle. The mode is a SYMLINK, ~/.config/waybar/mode.jsonc, pointing at one of two files that ship
+# in the repo — see the "include" comment in config.jsonc for why the groups cannot live there.
+set -euo pipefail
+
+CFG="${XDG_CONFIG_HOME:-$HOME/.config}/waybar"
+LINK="$CFG/mode.jsonc"
+MODES="$CFG/modes"
+
+# A missing or dangling link is not an error: config.jsonc lists collapsed.jsonc a second time as a
+# fallback include, so waybar renders the collapsed layout either way. Report what the bar is showing.
+current() {
+  case "$(readlink "$LINK" 2>/dev/null || true)" in
+    *expanded.jsonc) printf 'expanded\n' ;;
+    *)               printf 'collapsed\n' ;;
+  esac
+}
+
+# The reload has to escape waybar's own cgroup. This script is usually run by waybar's on-click, so it
+# is a child of waybar.service; `systemctl restart` stops that unit, and systemd's default KillMode
+# takes the whole control group with it — the script would be killed partway through and the bar would
+# never come back up. systemd-run puts the restart in its own transient unit, where it survives.
+reload() {
+  local cmd='systemctl --user reset-failed waybar.service 2>/dev/null; exec systemctl --user restart waybar.service'
+  if ! systemctl --user cat waybar.service >/dev/null 2>&1; then
+    # No unit (a machine predating it): fall back to waybar's own reload signal.
+    pkill -SIGUSR2 -x waybar 2>/dev/null || true
+    return 0
+  fi
+  # reset-failed before restart on purpose: the unit carries StartLimitBurst=5 within 10s, so a few
+  # impatient clicks would otherwise trip the rate limiter and leave the bar down until it is cleared
+  # by hand — a button that can permanently remove the bar it lives on.
+  if command -v systemd-run >/dev/null 2>&1; then
+    systemd-run --user --collect --quiet -- sh -c "$cmd" 2>/dev/null && return 0
+  fi
+  setsid sh -c "$cmd" >/dev/null 2>&1 &
+}
+
+set_mode() {
+  local m="$1"
+  [ -f "$MODES/$m.jsonc" ] || { printf 'archfrican-bar-mode: no such mode file: %s\n' "$MODES/$m.jsonc" >&2; exit 1; }
+  # ln -sfn is a rename(2): the link points at either the old target or the new one and never at
+  # anything in between. This script must NEVER write JSON itself — waybar treats a malformed include
+  # as FATAL (exit 1, verified), and combined with Restart=on-failure a half-written file would leave
+  # the bar dead until someone ran reset-failed by hand. Swapping a pointer cannot half-fail.
+  # The target is relative to the link's own directory, so it survives $HOME moving.
+  ln -sfn "modes/$m.jsonc" "$LINK"
+  reload
+}
+
+# Repair a missing or dangling link. run_after_99-apply-theme.sh seeds it at install time; this is the
+# backstop for anything that breaks it afterwards (a rename, a half-restored $HOME). It runs on the
+# `status` path because waybar calls that at every start, so the bar heals itself by the next restart.
+# -e follows symlinks, so a link pointing at a file that no longer exists counts as missing.
+heal() {
+  [ -e "$LINK" ] && return 0
+  [ -f "$MODES/collapsed.jsonc" ] || return 0
+  ln -sfn "modes/collapsed.jsonc" "$LINK" 2>/dev/null || true
+}
+
+case "${1:-status}" in
+  status)
+    heal
+    # U+F065 fa-expand / U+F066 fa-compress — the Font Awesome subset the rest of the bar uses. The
+    # glyph shows the ACTION, not the state: an expand arrow means "click to expand".
+    if [ "$(current)" = expanded ]; then
+      glyph="$(printf '\xef\x81\xa6')"; tip='Barra expandida — clic para colapsar'; cls=expanded
+    else
+      glyph="$(printf '\xef\x81\xa5')"; tip='Barra colapsada — clic para expandir'; cls=collapsed
+    fi
+    printf '{"text":"%s","class":"%s","tooltip":"%s"}\n' "$glyph" "$cls" "$tip"
+    ;;
+  toggle)
+    if [ "$(current)" = expanded ]; then set_mode collapsed; else set_mode expanded; fi
+    ;;
+  collapsed|expanded)
+    set_mode "$1"
+    ;;
+  -h|--help)
+    sed -n '2,9p' "$0" | sed 's/^# \{0,1\}//'
+    ;;
+  *)
+    printf 'archfrican-bar-mode: unknown command: %s (try --help)\n' "$1" >&2
+    exit 1
+    ;;
+esac

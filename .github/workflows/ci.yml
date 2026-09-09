@@ -360,6 +360,8 @@ jobs:
         run: bash tests/unit/weather.sh
       - name: actions-menu — fuzzel fallback navigation: back is last, running closes, failures are loud
         run: bash tests/unit/actions-menu.sh
+      - name: bar-mode — waybar's two mode fragments stay in sync; one include only (a second deep-merges)
+        run: bash tests/unit/bar-mode.sh
 
   modules-list-consistency:
     runs-on: ubuntu-latest        # 5 independent lists of module names must stay in sync, or drift silently

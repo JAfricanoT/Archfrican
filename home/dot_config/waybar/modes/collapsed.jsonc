@@ -1,0 +1,30 @@
+// Bar mode: COLLAPSED — the default. Each group hides all but its first module and reveals the rest
+// on hover; archfrican-bar-mode flips ~/.config/waybar/mode.jsonc between this file and expanded.jsonc.
+//
+// This file exists as a whole GROUP DEFINITION rather than a patch because waybar merges includes by
+// "first definition wins" (man 5 waybar): the including file beats every include, and an earlier
+// include beats a later one. config.jsonc therefore must not define these groups at all, and each
+// mode has to carry the complete definition rather than an override of one key.
+//
+// Keep the two mode files' module lists in sync. tests/unit/bar-mode.sh fails if they drift, because
+// a module present in one mode and missing from the other would silently vanish for anyone whose
+// symlink points at the wrong file.
+{
+  // transition-left-to-right sets the ANIMATION direction only — the final size allocation is the
+  // same either way. Sliding away from the screen edge simply reads better on a right-aligned group.
+  "group/system": {
+    "orientation": "horizontal",
+    "drawer": { "transition-duration": 150, "children-class": "drawer-child", "transition-left-to-right": false },
+    "modules": ["cpu", "memory", "disk", "power-profiles-daemon"]
+  },
+  "group/net": {
+    "orientation": "horizontal",
+    "drawer": { "transition-duration": 150, "children-class": "drawer-child", "transition-left-to-right": false },
+    "modules": ["network", "bluetooth"]
+  },
+  "group/systray": {
+    "orientation": "horizontal",
+    "drawer": { "transition-duration": 150, "children-class": "drawer-child", "transition-left-to-right": false },
+    "modules": ["custom/systray-toggle", "tray"]
+  }
+}

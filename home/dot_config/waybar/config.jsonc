@@ -12,8 +12,8 @@
   "modules-left": ["niri/workspaces", "niri/window"],
   // center island: weather pill (left) + clock anchor (right)
   "modules-center": ["custom/weather", "clock"],
-  // Only what a developer acts on stays permanently visible; everything else is one click away inside
-  // a drawer group.
+  // Only what a developer acts on stays permanently visible; everything else is one hover away inside
+  // a drawer group, or all at once via the bar-mode button.
   //
   // battery and custom/connectivity are NOT in the drawers, and that is the whole point of where they
   // sit. Both carry alarm states — #battery.warning/.critical and #custom-connectivity.offline — and
@@ -27,39 +27,32 @@
     "custom/connectivity",
     "custom/health", "custom/github", "custom/notification", "custom/caffeine", "custom/privacy",
     "group/systray",
+    "custom/bar-mode",
     "custom/power"
   ],
 
-  // A `drawer` group hides all but its FIRST module, revealing the rest. children-class gives the
-  // hidden modules a styling hook.
+  // The three groups are NOT defined here — they live in modes/collapsed.jsonc and modes/expanded.jsonc,
+  // and ~/.config/waybar/mode.jsonc is a symlink to whichever one is active. archfrican-bar-mode flips
+  // it; the bar-mode module below is the button.
   //
-  // click-to-reveal, not hover: expanding a group reallocates ~200px, which slides the leader itself
-  // out from under the pointer — so you cannot reliably click a handle, because opening it moves it.
-  // A click also makes the reflow intentional rather than something a stray crossing triggers, gives
-  // touch and pointer-emulation a route in, and lets the tooltips finally do their job (on hover the
-  // very gesture that raises the tooltip has already opened the drawer, so it explained nothing).
+  // They HAVE to be absent from this file. waybar merges includes by "first definition wins", so any
+  // group defined here would beat the mode file permanently and the toggle would silently do nothing.
   //
-  // transition-left-to-right only sets the ANIMATION direction. An earlier comment here claimed it
-  // made the group "grow into the empty centre instead of shoving its neighbours" — it does not; the
-  // final size allocation is identical either way. It is kept because sliding away from the screen
-  // edge reads better, not because it protects the layout.
-  "group/system": {
-    "orientation": "horizontal",
-    "drawer": { "transition-duration": 150, "children-class": "drawer-child", "transition-left-to-right": false, "click-to-reveal": true },
-    "modules": ["cpu", "memory", "disk", "power-profiles-daemon"]
-  },
-  "group/net": {
-    "orientation": "horizontal",
-    "drawer": { "transition-duration": 150, "children-class": "drawer-child", "transition-left-to-right": false, "click-to-reveal": true },
-    "modules": ["network", "bluetooth"]
-  },
-  // Named "systray", NOT "tray": a group takes the CSS id of its name, and #tray is already owned by
-  // the tray module nested inside this very group. The collision would style both at once.
-  "group/systray": {
-    "orientation": "horizontal",
-    "drawer": { "transition-duration": 150, "children-class": "drawer-child", "transition-left-to-right": false, "click-to-reveal": true },
-    "modules": ["custom/systray-toggle", "tray"]
-  },
+  // EXACTLY ONE entry, and that is not an oversight. The obvious hardening — listing collapsed.jsonc
+  // again underneath as a fallback floor — actively breaks the feature, because waybar merges includes
+  // DEEPLY rather than replacing whole values: "first wins" applies per key, not per object. With the
+  // fallback listed, expanded.jsonc supplied `modules` and the fallback still contributed its `drawer`
+  // into the very same group, so expanded mode silently stayed collapsed. Measured, not theorised.
+  //
+  // The safety that fallback was meant to provide comes from run_after_99-apply-theme.sh instead: it
+  // seeds this symlink when it is missing or dangling, so a fresh install always has a target. Do not
+  // "fix" a missing-include warning by adding a second entry here.
+  //
+  // Absolute ~ path, never a relative one: both forms resolve today, but ~ is unambiguous and cannot
+  // be re-interpreted by a future change in waybar's search-path order.
+  "include": [
+    "~/.config/waybar/mode.jsonc"
+  ],
 
   // The tray drawer's handle. U+F141 (fa-ellipsis-h), from the same Font Awesome subset as the rest
   // of this config. The glyph is echoed by a real `exec` rather than written as a static `format`:
@@ -70,6 +63,21 @@
     "exec": "echo ''",
     "interval": "once",
     "tooltip-format": "Bandeja del sistema"
+  },
+
+  // The global counterpart to the tray handle beside it: that one opens a single drawer, this one
+  // expands or collapses every group at once by repointing the mode symlink. The glyph comes from the
+  // script, not from a format string here, so the button always shows the mode it is actually in —
+  // including after a restart it did not perform itself.
+  //
+  // No signal and no polling interval: flipping the mode restarts waybar, which re-runs this exec.
+  "custom/bar-mode": {
+    "format": "{}",
+    "return-type": "json",
+    "exec": "$HOME/.local/bin/archfrican-bar-mode status",
+    "interval": "once",
+    "on-click": "$HOME/.local/bin/archfrican-bar-mode toggle",
+    "tooltip": true
   },
 
   "niri/workspaces": { "format": "{icon}" },
@@ -83,11 +91,13 @@
 
   // system stats — click memory to jump to btop (cpu cannot carry it; see below)
   // cpu leads the system drawer and does double duty: a mute icon while the machine is calm, and its
-  // own alarm past 80% — both the handle you click and an alert you cannot miss.
+  // own alarm past 80% — both the handle you point at and an alert you cannot miss while collapsed.
   //
-  // It carries NO on-click. waybar warns that "grouped modules may still process their own on-click
-  // events", so a click on a drawer leader would open the group AND fire the action. btop stays one
-  // click away on `memory`, inside the drawer. Rule for this bar: a drawer leader never has on-click.
+  // It carries NO on-click, and that is not about the gesture that opens the drawer. Revealing a group
+  // reallocates ~200px, which slides the leader itself out from under the pointer — so by the time a
+  // click lands, the module beneath the cursor is `memory`, not `cpu`. A leader cannot be clicked
+  // reliably because opening it moves it. btop lives on `memory` instead, one hover further in.
+  // Rule for this bar: a drawer leader never carries an on-click.
   //
   // An earlier comment here justified hiding memory and disk by claiming archfrican-doctor "is
   // permanently visible now and already reports a filling disk". Both halves were false: the badge

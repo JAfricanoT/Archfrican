@@ -1,0 +1,24 @@
+// Bar mode: EXPANDED — every group's members are on the bar at once, nothing hidden behind a hover.
+// The counterpart to collapsed.jsonc; archfrican-bar-mode flips ~/.config/waybar/mode.jsonc between
+// the two. See collapsed.jsonc for why each mode carries a whole group definition instead of a patch.
+//
+// The groups survive with no `drawer` key rather than being dissolved into modules-right, because
+// modules-right lives in config.jsonc and is shared by both modes. Keeping the group wrappers means
+// one list to maintain, and it keeps the #system / #net / #systray CSS ids working in both modes.
+{
+  // custom/systray-toggle is deliberately absent here. It is a handle for opening a drawer, and in
+  // this mode there is no drawer to open — leaving it in would put an orphan glyph on the bar that
+  // does nothing when clicked.
+  "group/system": {
+    "orientation": "horizontal",
+    "modules": ["cpu", "memory", "disk", "power-profiles-daemon"]
+  },
+  "group/net": {
+    "orientation": "horizontal",
+    "modules": ["network", "bluetooth"]
+  },
+  "group/systray": {
+    "orientation": "horizontal",
+    "modules": ["tray"]
+  }
+}

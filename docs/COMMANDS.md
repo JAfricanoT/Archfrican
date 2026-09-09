@@ -1256,6 +1256,37 @@ archfrican-caffeine           # print the waybar JSON (icon + tooltip)
 
 ---
 
+## archfrican-bar-mode
+
+Expands or collapses **every** waybar drawer group at once — the button beside the tray
+handle. Collapsed is the default: `system`, `net` and the tray each show one leader icon
+and reveal the rest on hover. Expanded puts all their members on the bar permanently.
+
+```
+archfrican-bar-mode status      # waybar JSON for the button (glyph + class)
+archfrican-bar-mode toggle      # flip between the two modes (what the click runs)
+archfrican-bar-mode collapsed   # hover to reveal each group (default)
+archfrican-bar-mode expanded    # every group's members visible at once
+```
+
+The mode is a symlink, `~/.config/waybar/mode.jsonc`, pointing at one of two fragments in
+`~/.config/waybar/modes/`. Switching repoints the link and restarts waybar. The script
+never writes JSON: waybar treats a malformed include as fatal, and a half-written file
+would take the bar down until `systemctl --user reset-failed waybar` was run by hand.
+Swapping a symlink is a rename — it cannot half-fail.
+
+`config.jsonc` includes that link and defines the groups nowhere else, so a missing link
+would silently cost you cpu, network and the tray. Two things prevent that: the chezmoi
+`run_after` hook seeds the link on a fresh install, and `status` — which waybar runs at
+every start — repairs a missing or dangling link. Do **not** add a second entry to the
+`include` array as a fallback: waybar merges includes deeply, so the second file's
+`drawer` key leaks into the expanded definition and pins the bar collapsed.
+
+**Access via**: click the waybar icon (expand arrows = collapsed, compress = expanded;
+it turns accent-coloured while expanded).
+
+---
+
 ## archfrican-colorpicker
 
 Pick any pixel on screen and copy its hex color to the clipboard (grim + slurp +

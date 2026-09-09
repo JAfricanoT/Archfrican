@@ -16,6 +16,17 @@ ARCHFRICAN_ROOT="{{ .chezmoi.homeDir }}/.archfrican"
 disp="$HOME/.local/bin/archfrican-displays"
 if [ -x "$disp" ]; then "$disp" restore || true; fi
 
+# Seed waybar's bar-mode symlink, but never overwrite a choice the user already made — same contract as
+# the theme and the monitor layout above. config.jsonc includes ~/.config/waybar/mode.jsonc and defines
+# its module groups NOWHERE else, so if this link is missing or dangling waybar resolves the groups to
+# nothing and silently drops cpu, network and the entire tray from the bar. It cannot be hardened with a
+# fallback include: waybar merges includes deeply, so a second entry leaks its `drawer` key into the
+# expanded mode and pins the bar collapsed. Seeding the link here is what makes the single include safe.
+bar_link="$HOME/.config/waybar/mode.jsonc"
+if [ ! -e "$bar_link" ]; then          # -e follows symlinks, so this catches dangling ones too
+  [ -f "$HOME/.config/waybar/modes/collapsed.jsonc" ] && ln -sfn modes/collapsed.jsonc "$bar_link"
+fi
+
 theme="$(cat "$HOME/.config/.archfrican-theme" 2>/dev/null || echo archfrican-dark)"
 [ -x "$ARCHFRICAN_ROOT/bin/theme-switch" ] || exit 0   # repo clone absent: nothing to do
 env ARCHFRICAN_ROOT="$ARCHFRICAN_ROOT" "$ARCHFRICAN_ROOT/bin/theme-switch" "$theme" \
