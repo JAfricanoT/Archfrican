@@ -71,16 +71,78 @@ check_rollback_backups() {
   fi
 }
 
+# The root's backing DEVICE, without the filesystem sub-path. On btrfs `findmnt -no SOURCE /`
+# answers "/dev/mapper/root[/@]" — the "[/@]" is the subvolume, not part of any device node, and
+# feeding it to readlink/sysfs yields nothing. --nofsroot asks findmnt to drop it; the ${src%%[*}
+# strip is the belt to that braces, because this returning a not-quite-device silently degrades
+# every caller to a SKIP, which is precisely how the old check hid a real fault for months.
+_h_root_device() {
+  local src; src="$(findmnt -no SOURCE --nofsroot / 2>/dev/null)"
+  [ -n "$src" ] || src="$(findmnt -no SOURCE / 2>/dev/null)"
+  printf '%s\n' "${src%%[*}"
+}
+
+# Resolve the PHYSICAL disk behind a block device, walking down through every device-mapper layer
+# (LUKS, and LVM stacked on it). This exists because `lsblk -no PKNAME /dev/mapper/root` returns an
+# EMPTY string — which is why check_smart used to skip outright on an encrypted root, i.e. on
+# Archfrican's own flagship layout: the disk health of the one configuration the installer builds by
+# default was never checked. The mapping is perfectly discoverable — /sys/block/<dm>/slaves/ names
+# the device directly underneath — so the skip was a missing traversal, not a real limitation.
+# Sysfs-only (no lsblk) so tests can point ARCHFRICAN_SYSFS_BLOCK at a fixture tree.
+_h_backing_disk() {              # _h_backing_disk <device-or-name> -> bare disk name on stdout
+  local node="${1##*/}" sysblk="${ARCHFRICAN_SYSFS_BLOCK:-/sys/block}" hops=0 slave p
+  # Descend the mapper stack. Bounded: a circular or malformed sysfs must not hang the doctor.
+  while [ "$hops" -lt 8 ] && [ -d "$sysblk/$node/slaves" ]; do
+    slave=""
+    for p in "$sysblk/$node/slaves/"*; do [ -e "$p" ] && { slave="${p##*/}"; break; }; done
+    [ -n "$slave" ] || break
+    node="$slave"; hops=$((hops + 1))
+  done
+  # A whole disk lives directly in /sys/block; a partition lives inside its disk. Climb that last hop.
+  [ -d "$sysblk/$node" ] && { printf '%s\n' "$node"; return 0; }
+  for p in "$sysblk"/*/"$node"; do
+    [ -d "$p" ] || continue
+    p="${p%/*}"; printf '%s\n' "${p##*/}"; return 0
+  done
+  return 1
+}
+
 check_smart() {
   _h_have smartctl || { _h_skip "disk SMART"; return; }
-  local src base h; src="$(findmnt -no SOURCE / 2>/dev/null)"
-  case "$src" in /dev/mapper/*) _h_skip "disk SMART" "encrypted root — check backing disk by hand"; return;; esac
-  base="$(lsblk -no PKNAME "$src" 2>/dev/null | head -1)"
-  [ -n "$base" ] || { _h_skip "disk SMART"; return; }
+  local src base h; src="$(_h_root_device)"
+  [ -n "$src" ] || { _h_skip "disk SMART"; return; }
+  # readlink first: /dev/mapper/root is a symlink to /dev/dm-N, and sysfs only knows the latter.
+  base="$(_h_backing_disk "$(readlink -f "$src" 2>/dev/null || printf '%s' "$src")")" || base=""
+  [ -n "$base" ] || { _h_skip "disk SMART" "cannot resolve backing disk for $src"; return; }
   h="$(sudo -n smartctl -H "/dev/$base" 2>/dev/null | grep -iE 'overall-health|SMART Health')"
-  if printf '%s' "$h" | grep -qiE 'PASSED|OK'; then _h_ok "disk SMART" "PASSED"
-  elif [ -n "$h" ]; then _h_red "disk SMART" "$h"
+  if printf '%s' "$h" | grep -qiE 'PASSED|OK'; then _h_ok "disk SMART" "PASSED ($base)"
+  elif [ -n "$h" ]; then _h_red "disk SMART" "$base: $h"
   else _h_skip "disk SMART" "needs sudo / unsupported"; fi
+}
+
+# Does TRIM actually reach the disk? fstrim.timer is enabled on every Archfrican box and reports
+# success — but on an encrypted root WITHOUT :allow-discards the kernel sets discard_max_bytes to 0
+# and `fstrim /` is a silent no-op, so the timer trims /boot, declares victory, and the root SSD is
+# never trimmed for the life of the machine. That shipped for real. A DRAM-less SSD degrades badly
+# under it (SLC cache collapses, GC never stops), and the symptom is read latency, which reads as
+# "the machine got slow" rather than as a storage fault. AMBER, never RED: the remedy needs a reboot
+# (or a cryptsetup refresh) and archfrican-update diffs red names to detect regressions.
+check_trim() {
+  local src root_dev q
+  [ "$(findmnt -no FSTYPE / 2>/dev/null)" = btrfs ] || _h_have fstrim || { _h_skip "TRIM reaches disk"; return; }
+  src="$(_h_root_device)"; [ -n "$src" ] || { _h_skip "TRIM reaches disk"; return; }
+  root_dev="$(readlink -f "$src" 2>/dev/null || printf '%s' "$src")"
+  q="${ARCHFRICAN_SYSFS_BLOCK:-/sys/block}/${root_dev##*/}/queue/discard_max_bytes"
+  [ -r "$q" ] || { _h_skip "TRIM reaches disk" "no discard_max_bytes for ${root_dev##*/}"; return; }
+  if [ "$(cat "$q" 2>/dev/null || echo 0)" -gt 0 ]; then
+    _h_ok "TRIM reaches disk" "discard passes through to ${root_dev##*/}"
+    return
+  fi
+  # Zero. Distinguish "the mapper is blocking it" (fixable) from "the hardware has no discard".
+  case "$src" in
+    /dev/mapper/*) _h_amber "TRIM reaches disk" "dm-crypt blocks discard — root SSD is NEVER trimmed; add :allow-discards (see docs/RECOVERY.md) or: sudo cryptsetup refresh ${src##*/} --allow-discards --persistent" ;;
+    *)             _h_skip "TRIM reaches disk" "device reports no discard support" ;;
+  esac
 }
 
 check_boot() {

@@ -144,14 +144,30 @@ sed -i "s/^HOOKS=.*/HOOKS=($HOOKS)/" /etc/mkinitcpio.conf
 mkinitcpio -P
 
 if [ "$ENC" = yes ]; then
-  CMDLINE="cryptdevice=UUID=${LUKS_UUID}:root root=/dev/mapper/root rootflags=subvol=@"
+  # :allow-discards is NOT optional on an SSD. Without it dm-crypt refuses to pass TRIM down, so
+  # /sys/block/dm-*/queue/discard_max_bytes stays 0 and `fstrim /` fails SILENTLY — fstrim.timer
+  # runs weekly, reports success on /boot (unencrypted) and never touches the root filesystem.
+  # The drive's FTL then believes every block it has ever written is still live: on a DRAM-less
+  # SSD that collapses the dynamic SLC cache and pins the controller in permanent garbage
+  # collection, which is a read-latency cliff, not a subtle regression.
+  #
+  # The trade-off, stated plainly because it IS a real one: discard leaks the free-space MAP of the
+  # encrypted volume to anyone reading the raw disk — how full it is, roughly where data lives, and
+  # therefore a hint at the filesystem in use. It does NOT leak plaintext. This is the documented
+  # Arch wiki recommendation and the Fedora default for SSDs, and against the threat model FDE
+  # actually serves here (a stolen machine) the leak is worth an order of magnitude of I/O latency.
+  # A user who needs to defeat a forensic adversary with repeated disk access should drop the token.
+  CMDLINE="cryptdevice=UUID=${LUKS_UUID}:root:allow-discards root=/dev/mapper/root rootflags=subvol=@"
 else
   CMDLINE="rootflags=subvol=@"
 fi
 # Use GRUB_CMDLINE_LINUX (module 10-gpu edits _DEFAULT -> no collision with the cryptdevice line)
 sed -i "s|^GRUB_CMDLINE_LINUX=.*|GRUB_CMDLINE_LINUX=\"$CMDLINE\"|" /etc/default/grub
 if [ "$ENC" = yes ]; then
+  # Assert BOTH halves. The bare `cryptdevice=UUID=` grep passed for years while allow-discards was
+  # missing, which is exactly how the silent-TRIM bug shipped — a guard that cannot fail is not one.
   grep -q 'cryptdevice=UUID=' /etc/default/grub || { echo 'FATAL: cryptdevice did not land in /etc/default/grub'; exit 1; }
+  grep -q 'cryptdevice=UUID=[^ ]*:root:allow-discards' /etc/default/grub || { echo 'FATAL: allow-discards did not land in /etc/default/grub — root SSD could never be TRIMmed'; exit 1; }
 fi
 # GRUB: install to the ESP, then ALSO write the firmware-default removable path so the disk stays
 # bootable even if the NVRAM "Archfrican" entry is dropped (firmware reset, install USB left in,

@@ -64,7 +64,7 @@ run_all_checks() {
   # Archfrican surfaces FIRST — a broken config/tool here disables the whole desktop, so it should
   # be the first thing the report (and the waybar red dot) screams about.
   check_niri_config; check_desktop_stack; check_archfrican_cli; check_theme_render; check_keyd
-  check_failed_units; check_firewall; check_journal; check_disk; check_snapshots; check_rollback_backups; check_scrub; check_smart; check_boot; check_boot_time; check_multiboot
+  check_failed_units; check_firewall; check_journal; check_disk; check_snapshots; check_rollback_backups; check_scrub; check_smart; check_trim; check_boot; check_boot_time; check_multiboot
   check_orphans; check_pacnew; check_updates; check_cve; check_firmware; check_reboot
   check_foreign; check_timers; check_drift; check_remote_desktop
 }
