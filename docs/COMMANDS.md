@@ -96,6 +96,7 @@ archfrican-doctor [--json] [--notify] [--fix]
 - Disk space (/ and /boot)
 - Boot time (flags a ballooned userspace boot — a slow/timing-out unit)
 - Snapper snapshot count
+- Rollback backups (`@.rollback-*` root subvolumes left by `archfrican-rollback`)
 - Btrfs scrub status
 - SMART disk health
 - EFI boot entries (Archfrican + fallback)
@@ -512,10 +513,21 @@ archfrican-actions
 
 **Keyboard shortcut**: `⌘+Shift+A` (configured in niri)
 
-**Also reachable from `⌘+Space`** — type `,` to jump straight into this menu (the `,` mirrors macOS's
-`⌘,` for Preferences), or find `Acciones y ajustes…` in the list. Settings stay searchable from the
-one launcher rather than living behind a key you have to know about, which is how Spotlight and
-Raycast both surface system commands.
+**Also reachable from `⌘+Space`** — type `,` to jump straight into this menu (mirroring macOS's `⌘,`
+for Preferences). Settings stay searchable from the one launcher rather than living behind a key you
+have to know about, which is how Spotlight and Raycast both surface system commands.
+
+**Why it is not in the app grid**: this entry opens a *launcher*, and a launcher listed inside the
+launcher is the one genuinely redundant row in `⌘+Space` — the same menu is already on `⌘+Shift+A`
+and on `,`. Its `.desktop` carries `NotShowIn=niri;`, which scopes that to the niri session only:
+the **Plasma session keeps it in Kickoff**, because there it has no keybind, no waybar and no
+Walker. A blanket `NoDisplay=true` cannot express that difference — it would hide the entry from
+Plasma too and leave no graphical route at all. The fuzzel fallback, which has no prefixes, keeps
+one deliberate `Acciones y ajustes…` row at the end of its list.
+
+`archfrican-setup` is deliberately **not** hidden anywhere: it is a settings application with its own
+UI and the first thing a new user needs, and a keybind is not a discovery route. Spotlight lists
+System Settings too. Both rules are enforced by the `desktop-entries` CI job.
 
 Covers ~50 actions organized by category: Configuración, Sistema, Sesión/Interfaz,
 Herramientas, Red, Audio/Visual, Accesibilidad, Privacidad/Seguridad, Gaming,

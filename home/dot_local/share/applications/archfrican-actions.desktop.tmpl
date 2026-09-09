@@ -8,3 +8,12 @@ Icon=preferences-system
 Terminal=false
 Categories=Settings;System;
 Keywords=archfrican;acciones;ajustes;settings;actions;control;
+# Out of the app grid under niri only. This entry opens a LAUNCHER, and a launcher listed inside
+# the launcher is the one genuinely redundant row in ⌘+Space: the same menu is already on
+# ⌘+Shift+A and on the "," prefix. Everywhere without those — the Plasma session installs no niri
+# binds, no waybar and no Walker — it stays visible, which a blanket NoDisplay could not express.
+# The file itself is never deleted, so `gtk-launch archfrican-actions`, the waybar power button and
+# any reference by desktop-id keep resolving.
+# archfrican-setup is deliberately NOT listed here: it is a settings application with a UI of its
+# own, the first thing a new user needs, and Spotlight lists System Settings too.
+NotShowIn=niri;
