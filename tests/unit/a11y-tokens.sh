@@ -36,7 +36,12 @@ export PATH="$WORK/fakebin:$PATH"
 # One theme-switch run against a fresh HOME. Echoes the cursor-size gsettings saw.
 run_switch() {                    # run_switch <theme> [a11y-token-line]
   local theme="$1" override="${2:-}"
-  export HOME="$WORK/home"; rm -rf "$HOME"; mkdir -p "$HOME/.config/niri"
+  # XDG_CONFIG_HOME has to follow HOME into the sandbox. theme-switch resolves the a11y override as
+  # ${XDG_CONFIG_HOME:-$HOME/.config}, so a runner that exports XDG_CONFIG_HOME (GitHub Actions does;
+  # a bare desktop login usually doesn't) sends the read outside the throwaway HOME — the override is
+  # never found and the test fails in CI while passing locally. Pin it, don't inherit it.
+  export HOME="$WORK/home"; export XDG_CONFIG_HOME="$HOME/.config"
+  rm -rf "$HOME"; mkdir -p "$HOME/.config/niri"
   # chezmoi renders this file before niri ever loads it, so the RAW .tmpl — which carries
   # `{{ .chezmoi.homeDir }}` and a `{{ output … }}` for the keyboard layout — is not valid KDL.
   # Substituting those two expression kinds gives a fixture matching what is actually deployed.
@@ -84,7 +89,7 @@ else _ok "niri config.kdl has no unrendered tokens"; fi
 
 # ---- 6. archfrican-a11y's writer is idempotent and its removal path actually removes --------------
 A11Y="$ROOT/home/dot_local/bin/executable_archfrican-a11y"
-export HOME="$WORK/home2"; mkdir -p "$HOME/.config"
+export HOME="$WORK/home2"; export XDG_CONFIG_HOME="$HOME/.config"; mkdir -p "$HOME/.config"
 # Exercise a11y_token in isolation: source the script's helper without running its fuzzel menu.
 # shellcheck disable=SC1090
 eval "$(sed -n '/^a11ytokens=/,/^}$/p' "$A11Y")"
@@ -99,6 +104,28 @@ if [ -f "$HOME/.config/archfrican/a11y-tokens.sh" ] \
    && ! grep -q '^export CURSOR_SIZE=' "$HOME/.config/archfrican/a11y-tokens.sh"; then
   _ok "a11y_token with no value removes the override (\"Cursor normal\" really resets)"
 else _no "a11y_token failed to remove the override (or never wrote the file at all)"; fi
+
+# ---- 8. writer and reader agree on WHERE the override lives, off the default path -----------------
+# archfrican-a11y writes this file; theme-switch reads it. Each resolved the path on its own, and for
+# a while they disagreed — the writer hardcoded $HOME/.config while the reader honoured
+# XDG_CONFIG_HOME. Any session exporting XDG_CONFIG_HOME then wrote the accommodation to one path and
+# hunted for it at another, so "Cursor grande" did nothing and said nothing. Every case above runs
+# with XDG_CONFIG_HOME == $HOME/.config, where the two spellings are indistinguishable; only a custom
+# path can tell them apart, so the guard has to live here.
+export HOME="$WORK/home3"; export XDG_CONFIG_HOME="$WORK/xdg3"
+rm -rf "$HOME" "$XDG_CONFIG_HOME"; mkdir -p "$HOME/.config/niri" "$XDG_CONFIG_HOME"
+# Re-evaluate the helper: `a11ytokens` is a plain assignment, so it captures HOME/XDG_CONFIG_HOME as
+# they stand when it is evaluated, not when it is called.
+# shellcheck disable=SC1090
+eval "$(sed -n '/^a11ytokens=/,/^}$/p' "$A11Y")"
+a11y_token CURSOR_SIZE 48                                   # the real writer, not a hand-made file
+sed -e "s#{{ \.chezmoi\.homeDir }}#$HOME#g" -e 's#"{{[^}]*}}"#"us"#g' \
+    "$ROOT/home/dot_config/niri/config.kdl.tmpl" > "$HOME/.config/niri/config.kdl"
+export GS_LOG="$WORK/gs.log"; : > "$GS_LOG"
+ARCHFRICAN_ROOT="$ROOT" bash "$ROOT/bin/theme-switch" adl-dark >/dev/null 2>&1
+got="$(grep '^set org.gnome.desktop.interface cursor-size ' "$GS_LOG" | tail -1 | awk '{print $NF}')"
+if [ "$got" = 48 ]; then _ok "writer and reader agree on the path under a custom XDG_CONFIG_HOME"
+else _no "writer/reader path mismatch under XDG_CONFIG_HOME — got cursor-size [$got], expected 48"; fi
 
 printf '\na11y-tokens unit test: %d passed, %d failed\n' "$P" "$F"
 [ "$F" -eq 0 ]
