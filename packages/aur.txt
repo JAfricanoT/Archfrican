@@ -21,6 +21,11 @@ elephant-menus               # Walker's action / submenu system
 gsimplecal                   # lightweight calendar popup — opens on clock click (waybar tooltip always works without it)
 gtklock-userinfo-module      # avatar + name card on the lock screen (archfrican-lock loads it if present)
 gtklock-powerbar-module      # suspend/reboot/poweroff buttons on the lock screen (idem)
+# Shell prompt stack. Both are signed binary packages from [cachyos] (paru resolves them there, no build),
+# NOT in Arch [extra] — so they can't go in dev.txt: CI's pkg-resolution job resolves the pacman lists on a
+# plain archlinux image without the CachyOS repos.
+oh-my-zsh-git                # oh-my-zsh -> /usr/share/oh-my-zsh (.zshrc sources it; no git clone at login)
+zsh-theme-powerlevel10k      # Powerlevel10k prompt + its packaged gitstatusd; config in ~/.p10k.zsh
 
 # --- optional picks (uncomment what you want, or install via archfrican-defaults) ---
 # docker-desktop               # Docker Desktop GUI — conflicts with docker-compose (already installed); remove it first if you want this

@@ -5,7 +5,7 @@ source "$REPO_ROOT/lib/grub.sh"    # set_grub_key (idempotent /etc/default/grub)
 
 substep "installing fonts + GTK theme (from packages/theming.txt)"
 pac_install_file "$REPO_ROOT/packages/theming.txt"
-substep "installing AUR theme/icons/cursors/SF fonts/nwg-dock (from packages/aur.txt)"
+substep "installing AUR theme/icons/cursors/SF fonts/nwg-dock + oh-my-zsh/p10k (from packages/aur.txt)"
 aur_install_file "$REPO_ROOT/packages/aur.txt"
 
 # The gsettings identity (gtk/icon/cursor themes, fonts, color-scheme) is owned by theme-switch

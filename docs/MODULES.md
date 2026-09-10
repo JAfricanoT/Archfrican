@@ -21,9 +21,9 @@ FORCE=1 ./install.sh              # ignore .done stamps, re-run everything
 | 15-desktop-services | Always | (reuses base/niri-desktop packages) | sddm, NetworkManager, bluetooth, power-profiles-daemon |
 | 20-niri-desktop | Always | niri, ghostty, waybar, swaync, keyd | waybar, swaync, keyd |
 | 25-plasma-desktop | **Opt-in** | plasma-desktop, dolphin, plasma-nm, plasma-pa | — |
-| 30-dev | Always | code, rustup, go, docker, lazygit | docker |
+| 30-dev | Always | code, rustup, go, docker, lazygit, zsh plugins | docker |
 | 35-apps | Always | flatpak, gnome-software, rclone | — |
-| 40-theming | Always | WhiteSur GTK, SF Pro fonts | — |
+| 40-theming | Always | WhiteSur GTK, SF Pro fonts, Oh My Zsh + Powerlevel10k | — |
 | 45-print | Always | cups, avahi, sane-airscan | cups.socket, avahi-daemon, ipp-usb |
 | 50-snapshots | Always | snapper, grub-btrfsd | grub-btrfsd, snapper timers |
 | 55-multiboot | **Opt-in** | os-prober, ntfs-3g | — |
@@ -225,7 +225,8 @@ Plasma. Fixing this needs `keyd` to be session-aware — out of scope for this m
 - **Language toolchains**: `rustup`, `go`, `uv` (Python), `fnm` (Node.js)
 - **JS runtime + package managers**: `bun`, `pnpm` (standalone binaries, independent of fnm's node version)
 - **Language servers**: `gopls`, `rust-analyzer`, `pyright`, `ruff`, `typescript-language-server`, `clang`, `lldb`
-- **CLI tools**: `ripgrep`, `fd`, `fzf`, `bat`, `eza`, `zoxide`, `jq`, `lazygit`, `github-cli`, `direnv`, `starship`
+- **CLI tools**: `ripgrep`, `fd`, `fzf`, `bat`, `eza`, `zoxide`, `jq`, `lazygit`, `github-cli`, `direnv`
+- **Zsh plugins**: `zsh-autosuggestions`, `zsh-syntax-highlighting`, `zsh-completions` (sourced by `~/.zshrc`; Oh My Zsh + Powerlevel10k come from `packages/aur.txt`, see 40-theming)
 - **Containers**: `docker`, `docker-compose`
 - **Database clients**: `postgresql` (`psql`/`pg_dump`/etc. — Arch bundles client+server in one
   package; `postgresql.service` is never enabled by this repo, so it's client-only in practice)
@@ -274,7 +275,7 @@ wires up the `theme-switch` binary.
 **Packages**
 
 - From `packages/theming.txt`: `ttf-jetbrains-mono-nerd`, `inter-font`, `noto-fonts`, `noto-fonts-emoji`, `nwg-look`
-- From `packages/aur.txt` (via paru): `whitesur-gtk-theme`, `whitesur-icon-theme`, `mcmojave-cursors`, `otf-san-francisco`, `otf-san-francisco-mono`, `nwg-dock`
+- From `packages/aur.txt` (via paru): `whitesur-gtk-theme`, `whitesur-icon-theme`, `mcmojave-cursors`, `otf-san-francisco`, `otf-san-francisco-mono`, `nwg-dock`, plus the shell prompt stack `oh-my-zsh-git` and `zsh-theme-powerlevel10k` (signed binaries from [cachyos], not AUR builds — they live here only because CI's `pkg-resolution` runs without the CachyOS repos)
 
 **What it configures**
 
