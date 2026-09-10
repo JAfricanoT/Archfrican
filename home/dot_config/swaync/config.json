@@ -31,8 +31,8 @@
           "command": "sh -c \"systemctl is-active --quiet bluetooth || exit 0; timeout 3 bluetoothctl show | grep -q 'Powered: yes' && timeout 3 bluetoothctl power off || timeout 3 bluetoothctl power on\"",
           "update-command": "sh -c \"systemctl is-active --quiet bluetooth && timeout 2 bluetoothctl show | grep -q 'Powered: yes' && echo true || echo false\"" },
         { "label": "Luz nocturna", "type": "toggle",
-          "command": "archfrican-nightlight toggle",
-          "update-command": "sh -c 'archfrican-nightlight status | grep -q on && echo true || echo false'" },
+          "command": "sh -c '$HOME/.local/bin/archfrican-nightlight toggle'",
+          "update-command": "sh -c '$HOME/.local/bin/archfrican-nightlight status | grep -q on && echo true || echo false'" },
         { "label": "Tema oscuro", "type": "normal", "command": "sh -c '$HOME/.local/share/dark-mode.d/10-archfrican-theme'" },
         { "label": "Tema claro", "type": "normal", "command": "sh -c '$HOME/.local/share/light-mode.d/10-archfrican-theme'" },
         { "label": "Pantallas", "type": "normal", "command": "sh -c '$HOME/.local/bin/archfrican-displays edit'" }
