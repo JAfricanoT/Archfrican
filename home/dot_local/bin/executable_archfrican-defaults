@@ -145,6 +145,9 @@ category_data() {   # category_data <slug> ; sets HOW, TARGETS, ROWS (global, fo
       HOW=cli; TARGETS=''
       ROWS=(
         "Claude Code|claude|script:https://claude.ai/install.sh"
+        # Upstream's CLI is `od`, which coreutils already owns (octal dump) — the AUR package ships it
+        # as `open-design`. It drives whichever agent CLI above is installed; it has none of its own.
+        "Open Design|open-design|aur:open-design"
         "OpenCode|opencode|aur:opencode-bin"
         "Gemini CLI|gemini|aur:gemini-cli-git"
         "Aider|aider|aur:aider-chat"

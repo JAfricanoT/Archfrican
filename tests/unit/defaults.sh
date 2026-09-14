@@ -116,6 +116,14 @@ else _no "apply_category re-enabled an already-running daemon: [$(cat "$GHOSTTY_
 out="$(run __list remoto)"
 if printf '%s\n' "$out" | grep -qP '^RustDesk\t1$'; then _ok "list_category(remoto): 5-field rows still parse (RustDesk reported installed)"; else _no "list_category(remoto) mis-parsed the service field: [$out]"; fi
 
+# ---- 8. list_category(ia-cli): Open Design is detected by `open-design`, never coreutils' `od` ----
+# Upstream names its CLI `od`, but /usr/bin/od is octal dump and exists on every box — checking for it
+# would report Open Design installed everywhere. The AUR package installs it as `open-design` instead.
+printf '#!/bin/sh\nexit 0\n' > "$WORK/fakebin/open-design"
+chmod +x "$WORK/fakebin/open-design"
+out="$(run __list ia-cli)"
+if printf '%s\n' "$out" | grep -qP '^Open Design\t1$'; then _ok "list_category(ia-cli): Open Design (open-design on PATH) reported installed"; else _no "list_category(ia-cli) did not report Open Design as installed: [$out]"; fi
+
 rm -rf "$WORK"
 printf '\ndefaults unit test: %d passed, %d failed\n' "$P" "$F"
 [ "$F" -eq 0 ]
