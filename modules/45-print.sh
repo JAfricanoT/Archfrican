@@ -2,6 +2,7 @@
 # Phase 2, step: printing & scanning — the "just works" expectation. Driverless IPP Everywhere
 # (printers) + driverless eSCL/WSD (scanners) via CUPS + SANE, discovered over Avahi/DNS-SD. mDNS
 # (5353/udp) is already allowed by the firewall (modules/60-security.sh), so nothing to open here.
+# Host-based printers with no IPP at all get their vendor driver from packages/aur-print.txt.
 source "$(dirname "$0")/../lib/common.sh"
 source "$REPO_ROOT/lib/nsswitch.sh"
 
@@ -28,5 +29,7 @@ else
 fi
 rm -f "$_nss_new"
 
+substep "installing vendor drivers for host-based printers (AUR, non-fatal)"
+aur_install_file "$REPO_ROOT/packages/aur-print.txt"
 
 ok "print module done — add a printer in system-config-printer; scan with simple-scan"

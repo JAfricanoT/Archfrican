@@ -30,7 +30,7 @@ separate. A component = one module + one package list + one dotfiles subtree, so
   - `write_system_file <path> [mode]` (content on stdin) — idempotent `/etc` write with a one-time
     `.archfrican.bak` backup; **always** use it for `/etc`, never a raw `tee`/`sed`.
 - **Packages:** add names ONLY to `packages/*.txt`. A new list must be added to the CI `pkg-resolution`
-  job (it globs `packages/*.txt` and skips `aur.txt`). `read_pkg_list` strips inline + whole-line `#`.
+  job (it globs `packages/*.txt` and skips `aur*.txt`). `read_pkg_list` strips inline + whole-line `#`.
 - **/etc/default/grub:** edit only through `lib/grub.sh` (`set_grub_key`, `append_grub_cmdline`) —
   token-idempotent + verify-or-die. Never raw `sed` on it.
 - **Idempotency + convergence:** modules must be safe to re-run; `run_module` skips by a **content
@@ -80,7 +80,7 @@ sed), `docs/`. **Dos capas, nunca mezcladas:** sistema (módulos + listas) vs co
   `resilient_enable[_user]`, y **siempre** `write_system_file` para escribir en `/etc` (idempotente, con
   respaldo `.archfrican.bak`).
 - **Paquetes:** los nombres van SOLO en `packages/*.txt`. Una lista nueva debe añadirse al job de CI
-  `pkg-resolution` (hace glob de `packages/*.txt` y omite `aur.txt`).
+  `pkg-resolution` (hace glob de `packages/*.txt` y omite `aur*.txt`).
 - **/etc/default/grub:** edítalo solo vía `lib/grub.sh` (`set_grub_key`, `append_grub_cmdline`) —
   idempotente por token + verify-or-die. Nunca `sed` crudo.
 - **Idempotencia:** los módulos deben poder re-ejecutarse; `run_module` usa checkpoints `.done` y admite

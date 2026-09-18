@@ -295,6 +295,7 @@ Most modern printers and scanners work with zero configuration.
 
 **Packages** (`packages/print.txt`): `cups`, `cups-pdf`, `cups-filters`, `system-config-printer`,
 `avahi`, `nss-mdns`, `ipp-usb`, `sane`, `sane-airscan`, `simple-scan`.
+Vendor drivers (`packages/aur-print.txt`, via paru, non-fatal): `cnrdrvcups-lb` (Canon UFR II/LT).
 
 **Services enabled**: `cups.socket` (socket-activated), `avahi-daemon.service`, `ipp-usb.service`.
 
@@ -307,6 +308,16 @@ PDF virtual printer is available as "CUPS-PDF" immediately after install.
 **`.local` resolution**: the module adds `mdns_minimal [NOTFOUND=return]` to the `hosts:` line of
 `/etc/nsswitch.conf` (before `resolve`). Without it Avahi *discovers* `Foo.local` but glibc can't
 *resolve* it, and every `dnssd://` queue fails with "Unable to locate printer".
+
+**Driverless or not?** `avahi-browse -rt _ipp._tcp` lists every printer that works with no driver
+(IPP Everywhere / AirPrint / Mopria). A printer that only shows up as `_pdl-datastream._tcp` (9100)
+or `_printer._tcp` (515), with port 631 closed, is **host-based**: it needs its vendor driver. Add
+the AUR package to `packages/aur-print.txt`, then create the queue on raw 9100 with the vendor PPD:
+
+```bash
+lpinfo -m | grep -i <model>                       # find the vendor PPD
+sudo lpadmin -p <name> -E -v socket://<host>.local:9100 -m <ppd-from-above>
+```
 
 **Re-run**: `./install.sh 45-print`
 

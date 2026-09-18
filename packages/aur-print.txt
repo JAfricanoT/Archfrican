@@ -1,0 +1,5 @@
+# Vendor printer drivers (AUR, built by paru; non-fatal). ONLY for host-based ("GDI") printers that
+# speak a proprietary language and do NOT advertise IPP (`avahi-browse -rt _ipp._tcp` shows nothing,
+# port 631 closed). Driverless IPP Everywhere/AirPrint printers need nothing here — keep this list to
+# hardware actually in use, since each entry is a compile on every install.
+cnrdrvcups-lb              # Canon UFR II / UFR II LT / LIPSLX — e.g. i-SENSYS / imageCLASS LBP6030w

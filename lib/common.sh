@@ -324,7 +324,7 @@ preflight_pkgs() {
   local f base pkgs p bad=()
   for f in "$REPO_ROOT"/packages/*.txt; do
     base="$(basename "$f")"
-    [ "$base" = aur.txt ] && continue
+    case "$base" in aur*.txt) continue ;; esac   # AUR lists are paru's job
     read_pkg_list "$f" pkgs
     sudo pacman -Sp --print-format '%n' "${pkgs[@]}" &>/dev/null && continue
     for p in "${pkgs[@]}"; do
