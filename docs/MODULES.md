@@ -319,6 +319,10 @@ lpinfo -m | grep -i <model>                       # find the vendor PPD
 sudo lpadmin -p <name> -E -v socket://<host>.local:9100 -m <ppd-from-above>
 ```
 
+No match? Some vendors name PPDs by print **engine**, not retail model — Canon ships the
+LBP6030/6030w/6018w as `Canon LC600 Series UFRII LT`. Known mappings live as comments in
+`packages/aur-print.txt`.
+
 **Re-run**: `./install.sh 45-print`
 
 ---

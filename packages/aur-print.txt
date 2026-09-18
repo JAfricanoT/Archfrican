@@ -3,3 +3,5 @@
 # port 631 closed). Driverless IPP Everywhere/AirPrint printers need nothing here — keep this list to
 # hardware actually in use, since each entry is a compile on every install.
 cnrdrvcups-lb              # Canon UFR II / UFR II LT / LIPSLX — e.g. i-SENSYS / imageCLASS LBP6030w
+# Canon PPDs are named by ENGINE, not retail model: the LBP6030/6030w/6018w is "LC600 Series UFRII LT"
+# (CNRCUPSLC600ZS.ppd) — `lpinfo -m | grep -i 6030` finds nothing. Grep the PPD files' contents too.
