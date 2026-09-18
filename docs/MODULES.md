@@ -294,7 +294,7 @@ See [docs/THEMING.md](THEMING.md) for the full theming guide.
 Most modern printers and scanners work with zero configuration.
 
 **Packages** (`packages/print.txt`): `cups`, `cups-pdf`, `cups-filters`, `system-config-printer`,
-`avahi`, `ipp-usb`, `sane`, `sane-airscan`, `simple-scan`.
+`avahi`, `nss-mdns`, `ipp-usb`, `sane`, `sane-airscan`, `simple-scan`.
 
 **Services enabled**: `cups.socket` (socket-activated), `avahi-daemon.service`, `ipp-usb.service`.
 
@@ -303,6 +303,10 @@ USB printers are handled by ipp-usb (turns USB into IPP over HTTP).
 PDF virtual printer is available as "CUPS-PDF" immediately after install.
 
 **Add a printer manually**: `system-config-printer` or CUPS web UI at `http://localhost:631`.
+
+**`.local` resolution**: the module adds `mdns_minimal [NOTFOUND=return]` to the `hosts:` line of
+`/etc/nsswitch.conf` (before `resolve`). Without it Avahi *discovers* `Foo.local` but glibc can't
+*resolve* it, and every `dnssd://` queue fails with "Unable to locate printer".
 
 **Re-run**: `./install.sh 45-print`
 

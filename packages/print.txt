@@ -6,6 +6,7 @@ cups-pdf                   # a "Print to PDF" virtual printer
 cups-filters               # OpenPrinting CUPS filters (PDF/PostScript/raster)
 system-config-printer      # GUI to add/manage printers (polkit-elevated; no group needed)
 avahi                      # DNS-SD/mDNS — auto-discovers network printers & scanners
+nss-mdns                   # lets glibc resolve `.local` hosts (CUPS dnssd:// queues); wired into nsswitch by 45-print
 ipp-usb                    # driverless IPP-over-USB for modern USB printers/MFPs
 sane                       # SANE scanner backends
 sane-airscan               # driverless eSCL/WSD network scanning

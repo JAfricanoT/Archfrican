@@ -33,7 +33,7 @@ module_inputs() {                 # module_inputs <name>
     35-apps)         printf ' packages/apps.txt flatpak/apps.txt' ;;
     # lib/plasma-theme.sh: sourced by bin/theme-switch (which this module runs).
     40-theming)      printf ' packages/theming.txt packages/aur.txt bin/theme-switch themes templates lib/grub.sh lib/plasma-theme.sh' ;;
-    45-print)        printf ' packages/print.txt' ;;
+    45-print)        printf ' packages/print.txt lib/nsswitch.sh' ;;
     50-snapshots)    printf ' lib/grub.sh' ;;
     55-multiboot)    printf ' packages/multiboot.txt lib/grub.sh' ;;
     60-security)     printf ' packages/security.txt lib/security.sh lib/fido2.sh lib/grub.sh' ;;
