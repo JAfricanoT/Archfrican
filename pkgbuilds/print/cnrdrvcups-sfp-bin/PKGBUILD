@@ -1,0 +1,39 @@
+# Canon's own UFRII LT "SFP" (host-based) driver, repackaged from Canon's signed-off .deb — no compile.
+# The AUR's cnrdrvcups-sfp builds 2020 C sources with no -fcommon/-std=gnu89, which modern GCC rejects.
+# Covers LBP112/113, LBP151dw, LBP6030/6040/6018L (incl. 6030w/6018w), LBP6230/6240, LBP7100C/7110C, LBP8100.
+pkgname=cnrdrvcups-sfp-bin
+_pkgver=5.00
+pkgver=5.00
+pkgrel=1
+pkgdesc='Canon UFRII LT (SFP host-based) printer driver — official binaries (LBP6030/6040/6018L and kin)'
+arch=('x86_64')
+url='https://www.canon-europe.com'
+license=('custom')
+depends=('libcups' 'libxml2-legacy' 'gcc-libs' 'glibc' 'glib2' 'atk' 'gdk-pixbuf2')
+optdepends=('gtk2: cngplp2l / cnsetuputil2l / ncapstatusui2l GUI tools'
+            'libglade: cngplp2l / cnsetuputil2l GUI tools')
+provides=('cnrdrvcups-sfp')
+conflicts=('cnrdrvcups-sfp')
+options=('!strip' '!debug')
+source=("http://gdlp01.c-wss.com/gds/0/0100005950/10/linux-UFRIILT-drv-v${_pkgver//./}-uken-18.tar.gz")
+sha256sums=('46888140016bc1096694a0fd6fd3f6ad393970b8153756373a382dc82390f259')
+
+package() {
+  local deb
+  deb="$(echo "$srcdir"/linux-UFRIILT-drv-v*-uken/64-bit_Driver/Debian/*.deb)"
+  bsdtar -xOf "$deb" 'data.tar*' | bsdtar -xf - -C "$pkgdir"
+
+  # Arch keeps udev rules under /usr/lib; /etc is the admin's.
+  install -d "$pkgdir/usr/lib/udev"
+  mv "$pkgdir/etc/udev/rules.d" "$pkgdir/usr/lib/udev/rules.d"
+  rmdir "$pkgdir/etc/udev" "$pkgdir/etc" 2>/dev/null || true
+
+  # Canon's postinst: chmod 777 the cache dirs and setuid-root pksmncapr. We keep the dirs writable but
+  # sticky (like /tmp), and do NOT setuid a closed-source 2020 binary — plain network printing
+  # (CNFilterCommunicationMode "Direct") goes filter → printer without it.
+  install -d -m 1777 "$pkgdir/var/cache/Canon" "$pkgdir/var/cache/Canon/CUPS_SFPR"
+
+  install -Dm644 /dev/null "$pkgdir/usr/share/licenses/$pkgname/NOTICE"
+  echo "Canon proprietary driver; see /usr/share/doc/cnrdrvcups-ufr2lt-uk for Canon's licence terms." \
+    > "$pkgdir/usr/share/licenses/$pkgname/NOTICE"
+}

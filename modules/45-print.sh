@@ -2,7 +2,7 @@
 # Phase 2, step: printing & scanning — the "just works" expectation. Driverless IPP Everywhere
 # (printers) + driverless eSCL/WSD (scanners) via CUPS + SANE, discovered over Avahi/DNS-SD. mDNS
 # (5353/udp) is already allowed by the firewall (modules/60-security.sh), so nothing to open here.
-# Host-based printers with no IPP at all get their vendor driver from packages/aur-print.txt.
+# Host-based printers with no IPP at all get their vendor driver from pkgbuilds/print/ (see below).
 source "$(dirname "$0")/../lib/common.sh"
 source "$REPO_ROOT/lib/nsswitch.sh"
 
@@ -29,7 +29,20 @@ else
 fi
 rm -f "$_nss_new"
 
-substep "installing vendor drivers for host-based printers (AUR, non-fatal)"
-aur_install_file "$REPO_ROOT/packages/aur-print.txt"
+# Vendor drivers for host-based printers, as local PKGBUILDs that repackage the vendor's own binaries:
+# the AUR equivalents compile decade-old C that modern GCC rejects. makepkg -s pulls their deps.
+# Non-fatal — a missing vendor driver must not abort the install.
+substep "installing vendor drivers for host-based printers (pkgbuilds/print, non-fatal)"
+for _pb in "$REPO_ROOT"/pkgbuilds/print/*/PKGBUILD; do
+  _name="$(basename "$(dirname "$_pb")")"
+  if pacman -Q "$_name" &>/dev/null; then ok "$_name already installed"; continue; fi
+  _build="$(mktemp -d)"; cp "$_pb" "$_build/"
+  if (cd "$_build" && with_heartbeat "empaquetando $_name" timeout 900 makepkg -si --needed --noconfirm); then
+    ok "$_name installed"
+  else
+    warn "vendor driver $_name did not install (continuing) — retry: cd pkgbuilds/print/$_name && makepkg -si"
+  fi
+  rm -rf "$_build"
+done
 
 ok "print module done — add a printer in system-config-printer; scan with simple-scan"

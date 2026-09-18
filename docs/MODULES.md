@@ -295,7 +295,8 @@ Most modern printers and scanners work with zero configuration.
 
 **Packages** (`packages/print.txt`): `cups`, `cups-pdf`, `cups-filters`, `system-config-printer`,
 `avahi`, `nss-mdns`, `ipp-usb`, `sane`, `sane-airscan`, `simple-scan`.
-Vendor drivers (`packages/aur-print.txt`, via paru, non-fatal): `cnrdrvcups-lb` (Canon UFR II/LT).
+Vendor drivers (`pkgbuilds/print/*/PKGBUILD`, built with makepkg, non-fatal): `cnrdrvcups-sfp-bin`
+(Canon host-based "SFP" driver: LBP6030/6030w/6040/6018L, LBP112/113, LBP151dw, LBP6230/6240, LBP7100C/7110C, LBP8100).
 
 **Services enabled**: `cups.socket` (socket-activated), `avahi-daemon.service`, `ipp-usb.service`.
 
@@ -312,16 +313,17 @@ PDF virtual printer is available as "CUPS-PDF" immediately after install.
 **Driverless or not?** `avahi-browse -rt _ipp._tcp` lists every printer that works with no driver
 (IPP Everywhere / AirPrint / Mopria). A printer that only shows up as `_pdl-datastream._tcp` (9100)
 or `_printer._tcp` (515), with port 631 closed, is **host-based**: it needs its vendor driver. Add
-the AUR package to `packages/aur-print.txt`, then create the queue on raw 9100 with the vendor PPD:
+a PKGBUILD under `pkgbuilds/print/<pkgname>/` (repackage the vendor's binaries; the AUR's source
+builds of old vendor drivers tend to fail on modern GCC), then create the queue on raw 9100:
 
 ```bash
 lpinfo -m | grep -i <model>                       # find the vendor PPD
-sudo lpadmin -p <name> -E -v socket://<host>.local:9100 -m <ppd-from-above>
+sudo lpadmin -p <name> -E -v socket://<host>.local:9100 -m <ppd-from-above> -o PageSize=<Letter|A4>
 ```
 
-No match? Some vendors name PPDs by print **engine**, not retail model — Canon ships the
-LBP6030/6030w/6018w as `Canon LC600 Series UFRII LT`. Known mappings live as comments in
-`packages/aur-print.txt`.
+Pick the PPD whose name is **your model**. Canon's big `cnrdrvcups-lb` (UFR II) package also accepts
+the LBP6030w through its `LC600` PPD, but that speaks the wrong language to this host-based printer and
+prints oversized/shifted pages; its real driver is `CNRCUPSLBP6030ZNK.ppd` from `cnrdrvcups-sfp-bin`.
 
 **Re-run**: `./install.sh 45-print`
 
