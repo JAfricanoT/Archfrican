@@ -419,8 +419,10 @@ jobs:
         run: bash tests/unit/deep-clean.sh
       - name: converge — module_hash reacts to script/package/dir changes; drift_modules stamp logic
         run: bash tests/unit/converge.sh
-      - name: defaults — is_installed()/list_category() cli+desktop-file detection (11 providers depend on this)
+      - name: defaults — is_installed()/list_category() detection + every category reachable from walker
         run: bash tests/unit/defaults.sh
+      - name: vpn — menu labels route to the right nm-connection-editor dialog (WireGuard vs plugins)
+        run: bash tests/unit/vpn.sh
       - name: resume-guard — counter/marker never depend on sudo succeeding (the fail-closed bug)
         run: bash tests/unit/resume-guard.sh
       - name: a11y-tokens — an accessibility override outranks every theme (cursor/focus-ring clobber)

@@ -140,6 +140,12 @@ category_data() {   # category_data <slug> ; sets HOW, TARGETS, ROWS (global, fo
         "Kate|org.kde.kate.desktop|repo:kate"
         "Cursor|cursor.desktop|aur:cursor-bin"
         "Antigravity|antigravity-ide.desktop|aur:antigravity-ide"
+        # Orca the ADE (onorca.dev — a fleet of parallel coding agents), NOT `orca` the GNOME screen
+        # reader this repo installs on every desktop (⌘+Alt+S). Two unrelated programs, one name:
+        # keying this row on a bare `orca` would report the ADE installed on every Archfrican box.
+        # orca-ide-bin ships /usr/bin/orca-ide + orca-ide.desktop, so neither the row below nor
+        # archfrican-screenreader's `pgrep -x orca` can be fooled by the other program.
+        "Orca (ADE)|orca-ide.desktop|aur:orca-ide-bin"
       ) ;;
     ia-cli)
       HOW=cli; TARGETS=''
@@ -222,6 +228,26 @@ category_data() {   # category_data <slug> ; sets HOW, TARGETS, ROWS (global, fo
         "RustDesk|rustdesk.desktop|aur:rustdesk-bin|none|rustdesk.service"
         "AnyDesk|anydesk.desktop|aur:anydesk-bin|none|anydesk.service"
       ) ;;
+    vpn)
+      # Every row here is cli-kind, unlike the other "just install it" categories: none of these
+      # ship a .desktop file, so a desktop-kind check would report "not installed" on a fully
+      # provisioned box. The NetworkManager plugins have no binary of their own either — they pull
+      # openvpn/openconnect, which do, and that's what each row is keyed on.
+      # WireGuard leads: it is the predefined VPN. NetworkManager speaks WireGuard natively (no
+      # plugin, no wg-quick unit), so wireguard-tools plus nm-connection-editor's own WireGuard page
+      # is the whole stack — archfrican-vpn is where you actually raise a tunnel.
+      # The first four are already in packages/niri-desktop.txt, so on a real desktop they read as
+      # installed from day one; this category declares them as the set and repairs a box missing any.
+      HOW=none; TARGETS=''
+      ROWS=(
+        "WireGuard (NetworkManager)|wg|repo:wireguard-tools|cli"
+        "Tailscale (malla)|tailscale|repo:tailscale|cli"
+        "OpenVPN (NetworkManager)|openvpn|repo:networkmanager-openvpn|cli"
+        "OpenConnect / AnyConnect|openconnect|repo:networkmanager-openconnect|cli"
+        # Mullvad has its own guided installer here (VPN + Mullvad Browser, AUR, opt-in) — an action
+        # row reusing it, rather than a second copy of that script's package logic in this table.
+        "Mullvad VPN (guiado)…|archfrican-mullvad|$HOME/.local/bin/archfrican-mullvad|action"
+      ) ;;
     virtualizacion)
       HOW=none; TARGETS=''
       ROWS=(
@@ -278,7 +304,7 @@ CATEGORY_LABELS=(
   "archivos|Gestor de archivos" "pdf|Visor de PDF" "imagenes|Visor de imágenes"
   "ofimatica|Ofimática (Word/Excel/PowerPoint)" "correo|Correo"
   "contenedores|Gestor de contenedores" "mensajeria|Mensajería" "remoto|Acceso remoto"
-  "virtualizacion|Máquinas virtuales"
+  "vpn|VPN" "virtualizacion|Máquinas virtuales"
 )
 
 case "${1:-}" in
@@ -290,7 +316,7 @@ case "${1:-}" in
       "Navegador web" "Editor / IDE" "IA / agentes (CLI)" "Terminal" "Gestor de archivos" \
       "Visor de PDF" "Visor de imágenes" "Ofimática (Word/Excel/PowerPoint)" "Correo" \
       "Gestor de contenedores" "Mensajería" \
-      "Acceso remoto" "Máquinas virtuales" "Control de versiones · Git…" \
+      "Acceso remoto" "VPN" "Máquinas virtuales" "Control de versiones · Git…" \
       | fuzzel --dmenu --prompt '  app por defecto  ')" || exit 0
     slug=""
     case "$cat" in
@@ -307,6 +333,7 @@ case "${1:-}" in
       "Gestor de contenedores") slug=contenedores ;;
       "Mensajería") slug=mensajeria ;;
       "Acceso remoto") slug=remoto ;;
+      "VPN") slug=vpn ;;
       "Máquinas virtuales") slug=virtualizacion ;;
     esac
     [ -n "$slug" ] || exit 0

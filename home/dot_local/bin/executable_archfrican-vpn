@@ -1,21 +1,41 @@
 #!/usr/bin/env bash
-# VPN — Tailscale (account-based mesh) or NetworkManager (WireGuard/OpenVPN/OpenConnect).
-# tailscaled is enabled on first connect (opt-in), never at install. Tailscale connect opens a
-# terminal so you can see/authorize the login URL.
+# VPN — WireGuard (the predefined one), Tailscale (account-based mesh) or the other NetworkManager
+# plugins. tailscaled is enabled on first connect (opt-in), never at install. Tailscale connect opens
+# a terminal so you can see/authorize the login URL.
+#
+# WireGuard leads because NetworkManager speaks it NATIVELY — no VPN plugin, no wg-quick unit, no
+# separate daemon: wireguard-tools plus nm-connection-editor's own WireGuard page is the whole stack.
+# That's also why its create dialog is `--type=wireguard` while OpenVPN/OpenConnect, which ARE plugin-
+# backed, share the generic `--type=vpn`. Pick the apps themselves in archfrican-defaults → VPN.
 set -euo pipefail
 source "$(dirname "$0")/../lib/archfrican-common.sh"
 
+# nm-connection-editor ships in network-manager-applet. Without this guard the branches below just
+# background a missing binary: the menu closes, nothing opens, and nothing says why.
+nm_editor() {
+  have nm-connection-editor || { note "falta nm-connection-editor (instalá network-manager-applet)"; exit 1; }
+  nm-connection-editor "$@" >/dev/null 2>&1 &
+}
+
 sel="$(printf '%s\n' \
+  "WireGuard: nuevo túnel" \
+  "WireGuard / VPN: gestionar…" \
   "Tailscale: conectar" \
   "Tailscale: desconectar" \
-  "WireGuard / OpenVPN (NetworkManager)" \
+  "OpenVPN / OpenConnect: nuevo" \
   | fuzzel --dmenu --prompt '  VPN  ')" || exit 0
+# Exact labels, never a `"WireGuard"*)` glob: two entries share that prefix now, so a glob would
+# route both to whichever branch happens to come first — silently opening the wrong window.
 case "$sel" in
+  "WireGuard: nuevo túnel")
+    nm_editor --create --type=wireguard ;;
+  "WireGuard / VPN: gestionar…")
+    nm_editor ;;
   "Tailscale: conectar")
     have tailscale || { note "instala tailscale"; exit 1; }
     ghostty -e sh -c 'sudo systemctl enable --now tailscaled.service && sudo tailscale up; echo; printf "(enter para cerrar) "; read -r _' ;;
   "Tailscale: desconectar")
     { sudo tailscale down 2>/dev/null && note "Tailscale desconectado"; } || true ;;
-  "WireGuard"*)
-    nm-connection-editor >/dev/null 2>&1 & ;;
+  "OpenVPN / OpenConnect: nuevo")
+    nm_editor --create --type=vpn ;;
 esac

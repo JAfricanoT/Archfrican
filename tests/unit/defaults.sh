@@ -124,6 +124,62 @@ chmod +x "$WORK/fakebin/open-design"
 out="$(run __list ia-cli)"
 if printf '%s\n' "$out" | grep -qP '^Open Design\t1$'; then _ok "list_category(ia-cli): Open Design (open-design on PATH) reported installed"; else _no "list_category(ia-cli) did not report Open Design as installed: [$out]"; fi
 
+# ---- 9. list_category(editor): Orca the ADE is NOT the `orca` screen reader already on every box --
+# Same class of name trap as Open Design above, and a worse one: this repo INSTALLS `orca`, the GNOME
+# screen reader (⌘+Alt+S, packages/niri-desktop.txt), on every desktop it builds. Orca the ADE is an
+# unrelated program whose AUR package (orca-ide-bin) ships /usr/bin/orca-ide + orca-ide.desktop. A row
+# written the naive way — "Orca (ADE)|orca|aur:orca-ide-bin|cli" — would therefore report the ADE
+# installed on literally every Archfrican machine, off the screen reader's binary. Runs BEFORE test 10
+# creates the .desktop fixture, so the only "orca" in sight here is the screen-reader-shaped decoy.
+# Skipped on a box where the ADE genuinely is installed: ARCHFRICAN_APPDIRS includes the real
+# /usr/share/applications, so there the "not installed" answer would be wrong rather than proof.
+printf '#!/bin/sh\nexit 0\n' > "$WORK/fakebin/orca"
+chmod +x "$WORK/fakebin/orca"
+if [ -e /usr/share/applications/orca-ide.desktop ]; then
+  _ok "list_category(editor): negative Orca check skipped — orca-ide-bin really is installed on this box"
+else
+  out="$(run __list editor)"
+  if printf '%s\n' "$out" | grep -qP '^Orca \(ADE\)\t0$'; then _ok "list_category(editor): the screen reader's \`orca\` binary does not pass Orca the ADE off as installed"; else _no "list_category(editor) mistook the \`orca\` screen reader for the ADE: [$out]"; fi
+fi
+
+# ---- 10. …and IS detected once its own .desktop is present --------------------------------------
+cat > "$HOME/.local/share/applications/orca-ide.desktop" <<'DESKTOP'
+[Desktop Entry]
+Type=Application
+Name=Orca
+Exec=orca-ide
+DESKTOP
+out="$(run __list editor)"
+if printf '%s\n' "$out" | grep -qP '^Orca \(ADE\)\t1$'; then _ok "list_category(editor): Orca ADE (orca-ide.desktop) reported installed"; else _no "list_category(editor) did not report Orca ADE as installed: [$out]"; fi
+
+# ---- 11. list_category(vpn): WireGuard is the category's predefined pick, found by `wg` -----------
+# None of the VPN rows ship a .desktop file, and the NetworkManager plugins have no binary of their
+# own — so these are cli-kind rows keyed on the binary each one actually puts on PATH (wireguard-tools
+# -> wg). Written as desktop-kind rows they would report "not installed" on a fully-provisioned box.
+printf '#!/bin/sh\nexit 0\n' > "$WORK/fakebin/wg"
+chmod +x "$WORK/fakebin/wg"
+out="$(run __list vpn)"
+if printf '%s\n' "$out" | grep -qP '^WireGuard \(NetworkManager\)\t1$'; then _ok "list_category(vpn): WireGuard (wg on PATH) reported installed"; else _no "list_category(vpn) did not report WireGuard as installed: [$out]"; fi
+
+# ---- 12. …and WireGuard heads the category — it is the default the menu offers first --------------
+if [ "$(run __list vpn | head -1 | cut -f1)" = "WireGuard (NetworkManager)" ]; then _ok "list_category(vpn): WireGuard is the first row (the predefined VPN)"; else _no "list_category(vpn) does not lead with WireGuard: [$(run __list vpn | head -1)]"; fi
+
+# ---- 13. every category is actually REACHABLE from the walker menu -------------------------------
+# This script is only the data layer: the menu the user really clicks is elephant's, one
+# defaults-<slug>.lua provider per category plus its entry in defaults.toml.tmpl. Adding a category
+# here and forgetting either file leaves it working perfectly and visible to nobody — which is
+# exactly how a category can look "added" in the repo and never show up on the desktop.
+# CATEGORY_LABELS is read out of the script's source (it is a plain literal array): the file can't be
+# sourced for it, since its top level runs `set -euo pipefail` and a hard `have fuzzel || exit 1`.
+MENUS="$ROOT/home/dot_config/elephant/menus"
+slugs="$(sed -n '/^CATEGORY_LABELS=(/,/^)/p' "$SCRIPT" | grep -o '"[a-z-]*|' | tr -d '"|')"
+missing=""
+for s in $slugs; do
+  [ -e "$MENUS/defaults-$s.lua" ] || missing="$missing defaults-$s.lua"
+  grep -q "submenu = \"defaults-$s\"" "$MENUS/defaults.toml.tmpl" || missing="$missing defaults.toml.tmpl:$s"
+done
+if [ -z "$missing" ]; then _ok "every CATEGORY_LABELS slug has a walker provider and a defaults.toml entry ($(printf '%s\n' $slugs | wc -l) categories)"; else _no "categories unreachable from the walker menu:$missing"; fi
+
 rm -rf "$WORK"
 printf '\ndefaults unit test: %d passed, %d failed\n' "$P" "$F"
 [ "$F" -eq 0 ]

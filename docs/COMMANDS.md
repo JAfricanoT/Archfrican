@@ -425,7 +425,8 @@ connected.
 
 ## archfrican-vpn
 
-VPN connection manager: Tailscale mesh or NetworkManager (WireGuard/OpenVPN/OpenConnect).
+VPN connection manager: WireGuard (the predefined one), Tailscale mesh, or the other
+NetworkManager plugins (OpenVPN/OpenConnect).
 
 ```
 archfrican-vpn
@@ -435,11 +436,22 @@ Interactive fuzzel menu:
 
 | Option | Effect |
 |--------|--------|
+| WireGuard: nuevo túnel | `nm-connection-editor --create --type=wireguard` — straight to the WireGuard page |
+| WireGuard / VPN: gestionar… | Opens `nm-connection-editor` on the existing connections |
 | Tailscale: conectar | Enables tailscaled + runs `tailscale up` (shows login URL in terminal) |
 | Tailscale: desconectar | `tailscale down` |
-| WireGuard / OpenVPN | Opens `nm-connection-editor` |
+| OpenVPN / OpenConnect: nuevo | `nm-connection-editor --create --type=vpn` |
+
+**Why WireGuard leads.** NetworkManager speaks WireGuard *natively* — no VPN plugin, no
+`wg-quick` unit, no extra daemon. `wireguard-tools` plus nm-connection-editor's own WireGuard
+page is the entire stack, which is why its dialog is `--type=wireguard` while OpenVPN and
+OpenConnect, which *are* plugin-backed, share the generic `--type=vpn`. Install the clients
+themselves from `archfrican-defaults → VPN`.
 
 Tailscaled is never auto-enabled at install — always opt-in here.
+
+`nm-connection-editor` ships in `network-manager-applet`; if it's missing the menu says so
+instead of closing with nothing opened.
 
 ---
 
@@ -1033,7 +1045,7 @@ archfrican-gh-status
 
 Set default applications per category (browser, terminal, IDE, AI agents/CLI, PDF viewer,
 image viewer, office suite, file manager, email, container manager, messaging, remote
-desktop, virtual machines). Smarter than `xdg-settings`: shows only apps you have installed,
+desktop, VPN, virtual machines). Smarter than `xdg-settings`: shows only apps you have installed,
 plus install shortcuts for common ones you don't.
 
 ```
@@ -1043,7 +1055,8 @@ archfrican-defaults
 Interactive fuzzel menu. Assigns all relevant MIME types for the chosen category at once.
 "Another installed app…" offers the full `xdg-mime` fallback. The "Gestor de contenedores"
 (LazyDocker, Docker Desktop), "Mensajería" (Telegram, Signal, Discord, WhatsApp),
-"Acceso remoto" (RustDesk, AnyDesk), and "Máquinas virtuales" (virt-manager — installs the whole
+"Acceso remoto" (RustDesk, AnyDesk), "VPN" (WireGuard, Tailscale, OpenVPN, OpenConnect, Mullvad),
+and "Máquinas virtuales" (virt-manager — installs the whole
 `67-virtualization` module: KVM/QEMU, libvirt, the nftables-backed default network, not just the
 package) categories have no MIME/default-handler concept — picking one just installs it and confirms.
 
@@ -1053,6 +1066,21 @@ post-install note. Without that daemon the machine never registers with the ID s
 looks installed and working while every *inbound* connection fails — a symptom only visible from
 the other end. Re-picking an already-installed app is the repair path for a machine in that state;
 `archfrican-doctor` also flags it (amber, "remote desktop").
+
+**"VPN"** leads with WireGuard, the predefined client. None of its entries ship a `.desktop`
+file, so unlike every other category they're detected by the binary each package puts on `PATH`
+(`wg`, `tailscale`, `openvpn`, `openconnect`) — the NetworkManager plugins have no binary of their
+own and are recognised through the one they pull in. The first four are already in
+`packages/niri-desktop.txt`, so on a provisioned desktop they read as installed from day one; the
+category declares them as the set and repairs a machine missing any. Mullvad reuses the existing
+guided installer (`archfrican-mullvad`) rather than duplicating it. Raise a tunnel in
+`archfrican-vpn`.
+
+**"Editor / IDE"** includes **Orca (ADE)** (`orca-ide-bin`, [onorca.dev](https://onorca.dev/) —
+an environment for running a fleet of parallel coding agents). Note the name clash: this is *not*
+`orca`, the GNOME screen reader Archfrican installs on every desktop (`⌘+Alt+S`). Two unrelated
+programs; the ADE ships `/usr/bin/orca-ide` and `orca-ide.desktop`, so neither can be mistaken for
+the other.
 
 ---
 
