@@ -8,25 +8,24 @@ source "$(dirname "$0")/../lib/common.sh"
 substep "installing the niri desktop + Wayland utilities"
 pac_install_file "$REPO_ROOT/packages/niri-desktop.txt"
 
-# --- screen-share portal: route ScreenCast to -wlr, not niri's packaged default of gnome/gtk ----
-# niri ships /usr/share/xdg-desktop-portal/niri-portals.conf with `default=gnome;gtk;` and no
-# per-interface override — so ScreenCast (used by RustDesk/AnyDesk, browser tab/screen sharing,
-# OBS's portal capture, etc.) goes to xdg-desktop-portal-gnome, whose ScreenCast implementation
-# calls into GNOME Shell/mutter's own D-Bus API (org.gnome.Mutter.ScreenCast) — which doesn't
-# exist under niri, so every screen-share request fails (confirmed live: RustDesk reported
-# "failed to create capturer for display 0"). xdg-desktop-portal-wlr implements ScreenCast via
-# wlr-screencopy, the same protocol niri already supports for grim/wf-recorder — an /etc override
-# (higher precedence than niri's own /usr/share default, see portals.conf(5)) routes just that one
-# interface there while leaving gnome/gtk as-is for everything else (FileChooser, Notification, …).
-substep "routing the ScreenCast portal to xdg-desktop-portal-wlr (screen-share over niri)"
+# --- screen-share portal: route ScreenCast to xdg-desktop-portal-gnome (niri's own default) ---
+# niri implements org.gnome.Mutter.ScreenCast itself (version 4), and that is exactly the D-Bus API
+# xdg-desktop-portal-gnome's ScreenCast backend records through. This is what gives monitor AND
+# individual-window casts, plus niri's "Dynamic Cast Target" stream — the features documented at
+# github.com/niri-wm/niri/wiki/Screencasting. The old xdg-desktop-portal-wlr route only exposed full
+# monitors over wlr-screencopy; it was a workaround for niri builds before its Mutter ScreenCast API
+# and cannot cast a window or the dynamic target. Keep the override explicit (rather than relying on
+# niri's packaged /usr/share default) so a future package change can't silently pick a backend that
+# can't work here. Higher precedence than niri's /usr/share file, see portals.conf(5).
+substep "routing the ScreenCast portal to xdg-desktop-portal-gnome (monitor + window casts)"
 write_system_file /etc/xdg-desktop-portal/niri-portals.conf <<'PORTAL'
 [preferred]
 default=gnome;gtk;
-org.freedesktop.impl.portal.ScreenCast=wlr;
+org.freedesktop.impl.portal.ScreenCast=gnome;
 PORTAL
 # Apply now on a re-converge of an already-running desktop (a fresh install has no --user session
 # yet at this point, so this is a harmless no-op there — the config is simply in place for first login).
-best_effort systemctl --user restart xdg-desktop-portal.service xdg-desktop-portal-gnome.service xdg-desktop-portal-wlr.service
+best_effort systemctl --user restart xdg-desktop-portal.service xdg-desktop-portal-gnome.service
 
 # waybar via its OWN shipped systemd --user service (Restart=on-failure), not niri
 # spawn-at-startup — SIGUSR2 reload (theme-switch sends it on every theme change/converge) is a

@@ -84,6 +84,39 @@ window-rule {
     open-maximized true
 }
 
+// --- Screencasting (github.com/niri-wm/niri/wiki/Screencasting) -----------------------------
+// Black out password managers from every screencast (full monitor, window, dynamic) instead of
+// leaking their contents into OBS/a browser tab/Telegram.
+window-rule {
+    match app-id=r#"^(org\.keepassxc\.KeePassXC|org\.gnome\.World\.Secrets|com\.bitwarden\.desktop)$"#
+    block-out-from "screencast"
+}
+
+// Mark the window being screencast (or the dynamic cast target) with a red ring, so it is obvious
+// what is being shared. A full-monitor cast can't be narrowed to one window, so this only lights up
+// for window/dynamic casts — exactly when the warning is useful.
+window-rule {
+    match is-window-cast-target=true
+
+    focus-ring {
+        active-color "#f38ba8"
+        inactive-color "#7d0d2d"
+    }
+
+    border {
+        inactive-color "#7d0d2d"
+    }
+
+    shadow {
+        color "#7d0d2d70"
+    }
+
+    tab-indicator {
+        active-color "#f38ba8"
+        inactive-color "#7d0d2d"
+    }
+}
+
 // macOS-like frosted glass on the LAUNCHER (fuzzel) — a layer-shell surface, so blur + shadow come from a
 // layer-rule. LAUNCHER ONLY: niri's layer blur covers the ENTIRE layer surface (it can't clip to just the
 // visible card yet — that needs the ext-background-effect protocol), so blurring swaync's large
@@ -191,6 +224,11 @@ binds {
     Mod+Ctrl+Alt+Up        { move-workspace-to-monitor-up; }   // mover el espacio completo al monitor de arriba
     Mod+Ctrl+Alt+Down      { move-workspace-to-monitor-down; }   // mover el espacio completo al monitor de abajo
 
+    // Espejo de un monitor en una ventana (presentaciones): enfoca el monitor a espejar y pulsa
+    // Mod+P; mueve la ventana wl-mirror al monitor destino y dale fullscreen. `repeat=false` evita
+    // abrir una ventana nueva por cada repetición de la tecla.
+    Mod+P repeat=false { spawn-sh "wl-mirror $(niri msg --json focused-output | jq -r .name)"; }
+
     // Columnas: tamaño y modos
     Mod+Comma         { consume-window-into-column; }   // meter ventana en la columna
     Mod+Period        { expel-window-from-column; }   // sacar ventana de la columna
@@ -198,6 +236,7 @@ binds {
     Mod+Equal         { set-column-width "+10%"; }   // agrandar columna
     Mod+Shift+F       { maximize-column; }   // maximizar columna
     Mod+Shift+M       { fullscreen-window; }   // pantalla completa
+    Mod+Alt+D         { toggle-windowed-fullscreen; }   // fullscreen "falso": la app cree que sí, pero sigue siendo una ventana (presentaciones)
     Mod+Shift+Space   { toggle-window-floating; }   // ventana flotante on/off
 
     // Espacios de trabajo
@@ -215,6 +254,13 @@ binds {
     Mod+Shift+S       { screenshot; }   // captura de región
     Mod+Shift+P       { screenshot-screen; }   // captura de toda la pantalla
     Mod+Shift+4       { spawn "{{ .chezmoi.homeDir }}/.local/bin/archfrican-screenshot"; }   // región + anotación (satty), estilo ⌘⇧4 de macOS
+
+    // Emisión de pantalla (screencast). En el diálogo del portal elige "niri Dynamic Cast Target"
+    // y luego cambia en caliente lo que emite, sin reiniciar el stream (niri ≥ 25.05). Letras
+    // libres en la capa [meta] de keyd (E/M/O), así que llegan intactas a niri como Super+Alt+…
+    Mod+Alt+E { set-dynamic-cast-window; }    // emitir la ventana enfocada
+    Mod+Alt+M { set-dynamic-cast-monitor; }   // emitir el monitor enfocado
+    Mod+Alt+O { clear-dynamic-cast-target; }  // dejar el stream en negro (sin compartir nada)
 
     // nota: swayosd-client muestra una barra visual en pantalla con el nuevo valor
     // Media y brillo
