@@ -258,6 +258,7 @@ and a curated app catalog.
 4. Installs curated apps from `flatpak/apps.txt`:
    - `com.github.tchx84.Flatseal` — Flatpak permission manager (always installed)
    - `org.localsend.localsend_app` — AirDrop-class local file transfer (always installed)
+   - `org.gnome.NetworkDisplays` — cast/mirror the screen to a TV over Miracast/Chromecast (`archfrican-cast`)
    - Commented-out suggestions: Bitwarden, Obsidian, Spotify, Signal, Telegram, Discord, LibreOffice, GIMP
 
 **Browser**: not installed here — use `archfrican-browser` (opt-in, your choice).
