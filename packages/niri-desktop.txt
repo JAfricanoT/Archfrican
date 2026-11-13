@@ -26,10 +26,10 @@ pipewire-alsa
 wireplumber
 xdg-desktop-portal
 xdg-desktop-portal-gtk
-xdg-desktop-portal-gnome   # FileChooser/Notification/etc. — NOT ScreenCast (see -wlr below + niri-portals.conf)
-xdg-desktop-portal-wlr     # ScreenCast (RustDesk, browser/OBS screen-share, …) — niri isn't GNOME, so
-                           # -gnome's screencast backend needs mutter's own D-Bus API and can't work here;
-                           # this is the wlroots-protocol (wlr-screencopy) backend niri actually supports
+xdg-desktop-portal-gnome   # ScreenCast (OBS/browser/RustDesk screen-share, window + dynamic casts) and
+                           # FileChooser/Notification/… — niri implements org.gnome.Mutter.ScreenCast
+                           # itself, which is the D-Bus API this backend records through. See
+                           # niri-portals.conf below; no -wlr backend is needed (it only did monitors).
 polkit-gnome
 gnome-keyring
 network-manager-applet
@@ -66,6 +66,7 @@ nvtop                      # GPU monitor
 power-profiles-daemon      # battery vs performance (waybar switch)
 swayosd                    # on-screen volume/brightness feedback
 wf-recorder                # screen recording (Mod+Shift+R)
+wl-mirror                  # mirror an output into a window, e.g. for presentations (Mod+P)
 nwg-displays               # GUI multi-monitor layout (niri-native; in 'extra', not AUR)
 # Qt-on-Wayland (consistent look for Qt apps)
 qt5-wayland

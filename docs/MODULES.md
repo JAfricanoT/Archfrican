@@ -149,7 +149,7 @@ the module for the two upstream bugs that fixed), and the screen-share portal ro
 - **Login**: `sddm`, `qt6-virtualkeyboard`
 - **Panel + notifications**: `waybar`, `swaync`
 - **Launcher**: `fuzzel`
-- **Screen tools**: `swayidle`, `swaylock`, `grim`, `slurp`, `wl-clipboard`, `cliphist`, `brightnessctl`, `playerctl`
+- **Screen tools**: `swayidle`, `swaylock`, `grim`, `slurp`, `wl-clipboard`, `cliphist`, `brightnessctl`, `playerctl`, `wf-recorder`, `wl-mirror`
 - **Audio**: `pipewire`, `pipewire-pulse`, `pipewire-alsa`, `wireplumber`, `pavucontrol`, `easyeffects`, `qpwgraph`
 - **File management**: `nautilus`, `file-roller`, `yazi`, `gvfs`, `gvfs-mtp`, `gvfs-afc`, `udiskie`, `tumbler`
 - **Archives**: `7zip` (rar/7z/…), `zip` + `unzip` (the format everyone else expects — file-roller's zip backend, and what scripts shell out to by name)
@@ -159,14 +159,14 @@ the module for the two upstream bugs that fixed), and the screen-share portal ro
 - **Continuity**: `kdeconnect`, `restic`, `fprintd`, `libfprint`
 - **Theming runtime**: `matugen`, `darkman`, `geoclue`, `colord`
 - **Qt compatibility**: `qt5-wayland`, `qt6-wayland`, `qt5ct`, `qt6ct`
-- **Portals**: `xdg-desktop-portal`, `xdg-desktop-portal-gnome`, `xdg-desktop-portal-wlr`, `polkit-gnome`, `gnome-keyring`
+- **Portals**: `xdg-desktop-portal`, `xdg-desktop-portal-gnome`, `polkit-gnome`, `gnome-keyring`
 
 **What it configures**
 
 | File / Service | What |
 |----------------|------|
 | `/etc/keyd/default.conf` | macOS-style keyboard: `Meta` → `Ctrl`, `Meta+Shift` → `Ctrl+Shift` |
-| `/etc/xdg-desktop-portal/niri-portals.conf` | Routes the `ScreenCast` portal to `-wlr` (RustDesk/AnyDesk/browser/OBS screen-share) — niri's own packaged default sends it to `-gnome`, which needs mutter's D-Bus API and can't work under niri |
+| `/etc/xdg-desktop-portal/niri-portals.conf` | Routes the `ScreenCast` portal to `-gnome`, which records through niri's own `org.gnome.Mutter.ScreenCast` implementation (monitor + window + dynamic casts) |
 | Services enabled | `waybar.service`, `swaync.service`, `keyd` |
 
 (SDDM, NetworkManager, Bluetooth, audio, and power profiles are shared with the opt-in Plasma
@@ -259,6 +259,7 @@ and a curated app catalog.
 4. Installs curated apps from `flatpak/apps.txt`:
    - `com.github.tchx84.Flatseal` — Flatpak permission manager (always installed)
    - `org.localsend.localsend_app` — AirDrop-class local file transfer (always installed)
+   - `org.gnome.NetworkDisplays` — cast/mirror the screen to a TV over Miracast/Chromecast (`archfrican-cast`)
    - Commented-out suggestions: Bitwarden, Obsidian, Spotify, Signal, Telegram, Discord, LibreOffice, GIMP
 
 **Browser**: not installed here — use `archfrican-browser` (opt-in, your choice).

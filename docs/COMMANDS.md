@@ -762,6 +762,34 @@ flags to the script after verifying your GPU supports VAAPI.
 
 ---
 
+## archfrican-cast
+
+Cast the desktop to a TV or projector over the LAN with **Miracast** or **Chromecast**.
+Launches GNOME Network Displays, which discovers TVs on the network and asks the standard
+`xdg-desktop-portal` ScreenCast dialog which monitor to share.
+
+```
+archfrican-cast
+```
+
+**Access via**: Walker (`⌘+Space` → "Compartir pantalla en TV") or
+`⌘+Shift+A → "Compartir pantalla en TV"`.
+
+Chromecast works over any LAN (ethernet included) as long as the TV/Chromecast is on the
+same network. Miracast also needs a Wi-Fi adapter with P2P support. The stream is encoded
+with GStreamer and sent over the network; audio is optional (select the "Network-Displays"
+sink).
+
+**Requires**: `org.gnome.NetworkDisplays` Flatpak (in `flatpak/apps.txt`), PipeWire, and a
+working ScreenCast portal (`xdg-desktop-portal-gnome`).
+
+> Some TVs' built-in Chromecast receivers (certain Samsung/LG models) are currently
+> incompatible with GNOME Network Displays 0.99.0 — the control channel connects but the
+> receiver drops the stream (upstream issue #502). An external Chromecast/Google TV or
+> Miracast works around it.
+
+---
+
 ## archfrican-screenshot
 
 Region capture with **annotation** — the macOS `⌘+Shift+4` flow. `slurp` selects a region,

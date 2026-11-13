@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# archfrican-cast — cast the desktop to a TV/projector (Chromecast or Miracast).
+# Launches GNOME Network Displays, which discovers sinks on the LAN and requests the screencast
+# through xdg-desktop-portal (niri -> PipeWire). Chromecast works over any LAN, ethernet included;
+# Miracast additionally needs a Wi-Fi adapter that supports P2P.
+set -euo pipefail
+
+_notify() {
+  if command -v notify-send >/dev/null 2>&1; then
+    notify-send "$@"
+  fi
+}
+
+if flatpak info org.gnome.NetworkDisplays >/dev/null 2>&1; then
+  launch=(flatpak run org.gnome.NetworkDisplays)
+elif command -v gnome-network-displays >/dev/null 2>&1; then
+  launch=(gnome-network-displays)
+else
+  _notify -u critical "Compartir en TV" \
+    "Falta GNOME Network Displays. Instalalo con: flatpak install flathub org.gnome.NetworkDisplays (o ./install.sh 35-apps)"
+  printf 'GNOME Network Displays no está instalado.\nInstalalo con:\n  flatpak install flathub org.gnome.NetworkDisplays\n' >&2
+  exit 1
+fi
+
+_notify "Compartir en TV" \
+  "Elegí qué monitor compartir y después el TV en la ventana. Miracast necesita Wi-Fi; Chromecast funciona por LAN."
+setsid "${launch[@]}" >/dev/null 2>&1 < /dev/null &

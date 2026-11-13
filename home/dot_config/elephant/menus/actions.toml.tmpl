@@ -58,6 +58,10 @@ text = "Pantallas / monitores"
 submenu = "pantallas"
 
 [[entries]]
+text = "Compartir pantalla en TV (Miracast/Chromecast)…"
+actions = { run = "{{ .chezmoi.homeDir }}/.local/bin/archfrican-cast" }
+
+[[entries]]
 text = "Atajos de teclado"
 actions = { run = "{{ .chezmoi.homeDir }}/.local/bin/archfrican-keys" }
 
