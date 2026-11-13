@@ -1424,6 +1424,24 @@ echo "Buenos Aires" > ~/.config/archfrican/weather   # explicit city
 
 ---
 
+## archfrican-bcv
+
+Official BCV USD rate pill for waybar, sourced from
+`https://ve.dolarapi.com/v1/dolares` and `/v1/euros` (the dollar collection includes the same
+official record as `/v1/dolares/oficial`). It prints `BCV Bs. 911,62` with Venezuelan
+thousands/decimal separators.
+
+Hovering lists every published rate — official and parallel dollar, official and parallel euro —
+with the BCV update time. Clicking repeats that list in a notification, and right-clicking opens
+[bcv.org.ve](https://www.bcv.org.ve/) for the primary source.
+
+The rates are cached for 30 minutes, and the last known values stay visible if the API is
+unreachable. With no cache at all, the module hides instead of showing a placeholder.
+
+**Access via**: always visible in waybar's center (between the weather pill and the clock).
+
+---
+
 ## archfrican-vm-windows
 
 Guided Windows VM creation via `virt-install`, pre-configured to dodge two classic Windows-on-KVM

@@ -437,6 +437,8 @@ jobs:
         run: bash tests/unit/snapshots-gate.sh
       - name: weather — a city's internal spaces survive; "New York" must not query "NewYork"
         run: bash tests/unit/weather.sh
+      - name: bcv — official rate formats es-VE; a stale cache survives an API outage
+        run: bash tests/unit/bcv.sh
       - name: actions-menu — fuzzel fallback navigation (back is last, running closes, failures are loud)
         run: bash tests/unit/actions-menu.sh
       - name: desktop-visibility — one filter for both launchers (NoDisplay/Hidden/NotShowIn/OnlyShowIn)

@@ -10,8 +10,8 @@
   // layer-shell exclusive zone from 40 to 34, so windows tile 6px higher. Inner breathing room is
   // style.css's job (.modules-left/right padding), not a gap around the surface.
   "modules-left": ["niri/workspaces", "niri/window"],
-  // center island: weather pill (left) + clock anchor (right)
-  "modules-center": ["custom/weather", "clock"],
+  // center island: weather pill + official BCV rate (left) + clock anchor (right)
+  "modules-center": ["custom/weather", "custom/bcv", "clock"],
   // Only what a developer acts on stays permanently visible; everything else is one hover away inside
   // a drawer group, or all at once via the bar-mode button.
   //
@@ -223,6 +223,19 @@
     "return-type": "json",
     "interval": 1800,
     "exec": "$HOME/.local/bin/archfrican-weather",
+    "tooltip": true
+  },
+
+  // official BCV USD rate: text-first, so the pill never depends on a font glyph. Hover lists every
+  // published rate (official/parallel dollar and euro); click repeats that list in a notification.
+  // The script caches for 30 minutes and keeps the last known value through an API outage.
+  "custom/bcv": {
+    "format": "{}",
+    "return-type": "json",
+    "interval": 1800,
+    "exec": "$HOME/.local/bin/archfrican-bcv",
+    "on-click": "$HOME/.local/bin/archfrican-bcv show",
+    "on-click-right": "xdg-open 'https://www.bcv.org.ve/'",
     "tooltip": true
   },
 
