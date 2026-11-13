@@ -42,7 +42,7 @@ window#waybar {
 #window, #clock,
 #custom-privacy, #pulseaudio, #bluetooth, #network,
 #cpu, #memory, #disk, #power-profiles-daemon, #battery,
-#custom-caffeine, #custom-weather, #custom-connectivity, #custom-systray-toggle, #custom-bar-mode,
+#custom-caffeine, #custom-weather, #custom-bcv, #custom-connectivity, #custom-systray-toggle, #custom-bar-mode,
 #custom-health, #custom-github, #custom-notification, #custom-power, #tray {
   padding: 1px 4px;
   margin: 2px 0;
@@ -114,10 +114,11 @@ window#waybar {
 #workspaces button.urgent { color: #f5c451; font-weight: 700; }
 #workspaces button:hover { color: @fg; }
 
-/* center: weather dims left, clock anchors right — separated by space, not a rule. The clock stays
-   the bar's anchor through WEIGHT, not size: bumping its px was what made the centre read oversized
-   against the regions either side of it. */
-.modules-center #custom-weather {
+/* center: weather and the BCV rate dim left, clock anchors right — separated by space, not a rule.
+   The clock stays the bar's anchor through WEIGHT, not size: bumping its px was what made the centre
+   read oversized against the regions either side of it. */
+.modules-center #custom-weather,
+.modules-center #custom-bcv {
   color: @fg_dim;
   margin-right: 6px;
 }
@@ -131,7 +132,7 @@ window#waybar {
 #custom-privacy:hover, #pulseaudio:hover, #bluetooth:hover, #network:hover,
 #cpu:hover, #memory:hover, #disk:hover,
 #power-profiles-daemon:hover, #battery:hover,
-#custom-caffeine:hover, #custom-weather:hover,
+#custom-caffeine:hover, #custom-weather:hover, #custom-bcv:hover,
 #custom-health:hover, #custom-github:hover, #custom-notification:hover, #custom-power:hover {
   color: @accent;
 }
@@ -173,6 +174,6 @@ window#waybar {
 #custom-caffeine { color: @fg_dim; }
 #custom-caffeine.active { color: @accent; }
 
-/* weather: dim; collapses to zero when disabled */
-#custom-weather { color: @fg_dim; }
-#custom-weather.hidden { min-width: 0; padding: 0; margin: 0; }
+/* weather and BCV: dim; collapse to zero when disabled/unavailable */
+#custom-weather, #custom-bcv { color: @fg_dim; }
+#custom-weather.hidden, #custom-bcv.hidden { min-width: 0; padding: 0; margin: 0; }

@@ -1,0 +1,161 @@
+#!/usr/bin/env bash
+# archfrican-bcv — official BCV USD rate for waybar, with every published rate on hover/click.
+#
+# Sources: https://ve.dolarapi.com/v1/dolares and /v1/euros. The USD collection contains the same
+# official record as /v1/dolares/oficial, so one request provides both the BCV pill and the parallel
+# rate; the euro collection adds the other published currency. `promedio` is the published value,
+# with compra/venta as fallbacks because either can be null. If the collection is unreachable, the
+# script retries the dedicated official endpoint so the pill can still render.
+#
+# Waybar calls the script with no arguments: it prints the JSON pill plus a tooltip listing every
+# rate. `archfrican-bcv show` (the click action) refreshes if needed and puts the same list in a
+# notification. The cache is 30 minutes: BCV publishes once a day and the parallel rate updates
+# intraday, so half an hour is fresh enough without polling the API on every bar refresh.
+set -uo pipefail
+
+API="https://ve.dolarapi.com/v1"
+CACHE="${XDG_CACHE_HOME:-$HOME/.cache}/archfrican/bcv.json"
+AGE=1800
+mkdir -p "$(dirname "$CACHE")"
+
+is_fresh() {
+    [ -f "$CACHE" ] && [ $(( $(date +%s) - $(stat -c %Y "$CACHE" 2>/dev/null || echo 0) )) -lt "$AGE" ]
+}
+
+refresh() {
+    local raw_usd raw_eur tmpdir result tmp
+    raw_usd=$(curl -fsS --max-time 8 "$API/dolares" 2>/dev/null)
+    raw_eur=$(curl -fsS --max-time 8 "$API/euros" 2>/dev/null)
+    # The collection is the normal path; the dedicated official endpoint is the fallback when only
+    # that one answers. A single object and a list are both handled by the Python reader.
+    [ -z "$raw_usd" ] && raw_usd=$(curl -fsS --max-time 8 "$API/dolares/oficial" 2>/dev/null)
+    [ -z "$raw_usd" ] && return 1
+
+    tmpdir=$(mktemp -d) || return 1
+    printf '%s' "$raw_usd" > "$tmpdir/usd.json"
+    printf '%s' "$raw_eur" > "$tmpdir/eur.json"
+    if result=$(python3 - "$tmpdir/usd.json" "$tmpdir/eur.json" <<'PY'
+import sys, json, datetime
+
+def load(path):
+    try:
+        with open(path, encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return None
+
+def entries(doc):
+    if isinstance(doc, dict):
+        return [doc]
+    if isinstance(doc, list):
+        return [e for e in doc if isinstance(e, dict)]
+    return []
+
+def rate(e):
+    for key in ("promedio", "venta", "compra"):
+        if e.get(key) is not None:
+            try:
+                return float(e[key])
+            except (TypeError, ValueError):
+                continue
+    return None
+
+def money(n):
+    # 911.6243 -> 911,62 ; 1234.5 -> 1.234,50 — Spanish/Venezuelan decimal convention.
+    return f"{n:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+def label(e):
+    currency = (e.get("moneda") or "USD").upper()
+    base = {"USD": "Dólar", "EUR": "Euro"}.get(currency, currency)
+    source = (e.get("fuente") or "").strip().lower()
+    if source == "oficial":
+        return base + " oficial (BCV)"
+    if source == "paralelo":
+        return base + " paralelo"
+    return (base + " " + source).strip()
+
+def stamp(s):
+    if not s:
+        return ""
+    try:
+        return datetime.datetime.fromisoformat(str(s).replace("Z", "+00:00")).strftime("%d/%m/%Y %H:%M")
+    except ValueError:
+        return str(s)
+
+usd = entries(load(sys.argv[1]))
+eur = entries(load(sys.argv[2]))
+
+# The pill is the official BCV USD rate. Without it there is nothing to show, even if a parallel
+# or euro quote did arrive — the module's reason to exist is the official rate.
+primary = next((e for e in usd
+                if (e.get("moneda") or "USD").upper() == "USD"
+                and (e.get("fuente") or "").lower() == "oficial"
+                and rate(e) is not None), None)
+if primary is None:
+    print(json.dumps({"text": "", "class": "hidden", "tooltip": "Tasa BCV oficial no disponible"}))
+    sys.exit(1)
+
+seen = set()
+rows = []
+for e in [primary] + usd + eur:
+    key = ((e.get("moneda") or "USD").upper(), (e.get("fuente") or "").lower())
+    if key in seen:
+        continue
+    value = rate(e)
+    if value is None:
+        continue
+    seen.add(key)
+    rows.append(f"{label(e)}: Bs. {money(value)}")
+
+stamp_txt = stamp(primary.get("fechaActualizacion"))
+footer = []
+if stamp_txt:
+    footer.append("BCV actualizado: " + stamp_txt)
+footer.append("Fuente: ve.dolarapi.com")
+
+print(json.dumps({
+    "text": "BCV Bs. " + money(rate(primary)),
+    "tooltip": "\n".join(rows + footer),
+}, ensure_ascii=False))
+PY
+    ); then
+        tmp="$CACHE.$$"
+        printf '%s\n' "$result" > "$tmp" && mv -f "$tmp" "$CACHE"
+        rm -rf "$tmpdir"
+        return 0
+    fi
+    rm -rf "$tmpdir"
+    return 1
+}
+
+# Click action: a notification with every published rate. A stale cache is refreshed first; if the
+# API is down, the last known list is still better than an empty notification.
+if [ "${1:-}" = show ]; then
+    if ! is_fresh; then
+        refresh >/dev/null 2>&1 || true
+    fi
+    body=""
+    if [ -f "$CACHE" ]; then
+        body=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1], encoding="utf-8")).get("tooltip",""))' "$CACHE" 2>/dev/null)
+    fi
+    if [ -n "$body" ] && command -v notify-send >/dev/null 2>&1; then
+        notify-send --app-name=Archfrican -t 15000 "Tasas BCV" "$body"
+    elif [ -n "$body" ]; then
+        printf '%s\n' "$body"
+    elif command -v notify-send >/dev/null 2>&1; then
+        notify-send --app-name=Archfrican "Tasas BCV" "Sin datos disponibles"
+    else
+        printf 'Sin datos disponibles\n'
+    fi
+    exit 0
+fi
+
+if ! is_fresh; then
+    refresh >/dev/null 2>&1 || true
+fi
+
+if [ -f "$CACHE" ]; then
+    cat "$CACHE"
+else
+    printf '{"text":"","class":"hidden","tooltip":"Sin conexión con la API del BCV"}\n'
+fi
