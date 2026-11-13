@@ -1,52 +1,95 @@
-# Archfrican · .zshrc — fast Zsh (no oh-my-zsh). Startup target: <50ms.
+# Archfrican · .zshrc — Oh My Zsh + Powerlevel10k (prompt config: ~/.p10k.zsh).
+# The prompt paints from p10k's instant-prompt cache first; everything below loads behind it.
+
+# ---- p10k instant prompt --------------------------------------------------
+# Must stay at the very top. Anything that asks for input (passwords, [y/n]) has to go ABOVE this
+# block — below it, the prompt is already on screen and the question would be drawn over it.
+if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
+  source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
+fi
+
 # ~/.archfrican/bin puts the repo's CLI tools (archfrican-update, archfrican-doctor, theme-switch,
 # fw-allow) on PATH by name — they're documented as bare commands, so they must resolve in any shell/TTY.
 export PATH="$HOME/.local/bin:$HOME/.archfrican/bin:$HOME/.cargo/bin:$PATH"
 export EDITOR=nvim
 
-# ---- zinit (lightweight plugin manager) ----------------------------------
-ZINIT_HOME="${XDG_DATA_HOME:-$HOME/.local/share}/zinit/zinit.git"
-[ -d "$ZINIT_HOME" ] || { mkdir -p "$(dirname "$ZINIT_HOME")"; \
-  git clone --depth 1 https://github.com/zdharma-continuum/zinit.git "$ZINIT_HOME"; }
-# Only load zinit + plugins if the clone actually succeeded (offline / first-login safe).
-if [ -r "$ZINIT_HOME/zinit.zsh" ]; then
-  source "$ZINIT_HOME/zinit.zsh"
-  # the only three plugins that actually earn their place (loaded turbo/deferred)
-  zinit wait lucid for \
-    atinit"zicompinit; zicdreplay" zdharma-continuum/fast-syntax-highlighting \
-    atload"_zsh_autosuggest_start"  zsh-users/zsh-autosuggestions \
-                                    zsh-users/zsh-completions
-  # zsh-defer itself loads eagerly (it's tiny and IS the deferral mechanism — the tool-init evals
-  # below use it, not zinit's own "wait" turbo, which is built for plugin loads, not raw snippets).
-  zinit light romkatv/zsh-defer
+# ---- oh-my-zsh ------------------------------------------------------------
+# A signed package (oh-my-zsh-git, [cachyos]) — no git clone at login. /usr/share isn't writable,
+# which is the only reason OMZ keeps its cache in ~/.cache/oh-my-zsh instead of next to itself.
+if [[ -r /usr/share/oh-my-zsh/oh-my-zsh.sh ]]; then
+  ZSH=/usr/share/oh-my-zsh
+  ZSH_THEME=""                         # the prompt (p10k) is sourced on its own, below
+  zstyle ':omz:update' mode disabled   # updated by pacman / archfrican-update, never by omz itself
+  COMPLETION_WAITING_DOTS=true
+  HIST_STAMPS="yyyy-mm-dd"
+  plugins=(
+    git                # aliases: gst, gco, gcb, gcm, gp, gl, glog, gsta…
+    sudo               # Esc Esc prepends sudo to the current (or last) command
+    extract            # `extract <archive>` for any format
+    colored-man-pages
+    archlinux          # pacman/paru aliases
+    fzf                # Ctrl-T files, Alt-C directories (Ctrl-R belongs to atuin, below)
+  )
+  source "$ZSH/oh-my-zsh.sh"
+else
+  # aur.txt (where oh-my-zsh comes from) installs best-effort and can fail — still get completions.
+  autoload -Uz compinit && compinit
 fi
 
 # ---- history / options ----------------------------------------------------
+# After OMZ, so these win over its defaults.
 HISTFILE=~/.zsh_history; HISTSIZE=50000; SAVEHIST=50000
 setopt share_history hist_ignore_all_dups hist_reduce_blanks autocd
 
 # ---- modern cli aliases ---------------------------------------------------
 alias ls='eza --icons --group-directories-first'
-alias ll='eza -la --icons --git'
+alias ll='eza -la --icons --git --group-directories-first'   # per-file git status column
+alias la='eza -a --icons --group-directories-first'
+alias lt='eza --tree --level=2 --icons --git --git-ignore'
 alias cat='bat -pp'
-alias cd='z'
-# zoxide/fnm/direnv/atuin only matter once you actually cd/run a command — deferring them (via
-# zsh-defer, loaded above) means the first prompt doesn't wait on their combined ~60-80ms; they
-# finish loading the moment zle goes idle, in practice before you've typed anything. Falls back to
-# eager loading if zsh-defer didn't load (e.g. offline first login, no zinit clone yet) so these
-# tools still work, just without the deferral. starship stays eager below — it OWNS the prompt
-# itself, so deferring it would flash the plain zsh prompt first.
-if command -v zsh-defer &>/dev/null; then
-  command -v zoxide &>/dev/null && zsh-defer -c 'eval "$(zoxide init zsh)"'
-  command -v fnm    &>/dev/null && zsh-defer -c 'eval "$(fnm env --use-on-cd)"'
-  command -v direnv &>/dev/null && zsh-defer -c 'eval "$(direnv hook zsh)"'
-  command -v atuin  &>/dev/null && zsh-defer -c 'eval "$(atuin init zsh)"'
-else
-  command -v zoxide &>/dev/null && eval "$(zoxide init zsh)"
-  command -v fnm    &>/dev/null && eval "$(fnm env --use-on-cd)"
-  command -v direnv &>/dev/null && eval "$(direnv hook zsh)"
-  command -v atuin  &>/dev/null && eval "$(atuin init zsh)"
+alias lg='lazygit'
+
+# ---- tool integrations ----------------------------------------------------
+# Synchronous on purpose: zoxide/fnm/direnv/atuin cost ~40ms together and p10k's instant prompt is
+# already on screen by now, so deferring them buys nothing — and a deferred init that never ran is
+# exactly how `cd` used to break. `--cmd cd` makes zoxide provide `cd` itself (plus `cdi`, the
+# interactive picker), so there's no `cd` alias pointing at a function that may not exist yet.
+command -v zoxide &>/dev/null && eval "$(zoxide init zsh --cmd cd)"
+command -v fnm    &>/dev/null && eval "$(fnm env --use-on-cd)"
+command -v direnv &>/dev/null && eval "$(direnv hook zsh)"
+command -v atuin  &>/dev/null && eval "$(atuin init zsh)"
+# gh is here for GITHUB_TOKEN, not for a shell integration: installers that pull release binaries
+# from the GitHub API (gentle-ai, among others) get 60 req/h anonymously and 5000 with a token, and
+# hitting that ceiling fails the install with an opaque 403. It's the one expensive init (~60-95ms:
+# `gh auth token` shells out to the keyring), so zsh's native scheduler runs it instead of startup:
+# `sched +1` queues it ~1s out, and zsh fires due events while zle idles waiting for input (or right
+# before the next prompt) — in practice before you've typed anything. No plugin needed.
+if command -v gh &>/dev/null && zmodload zsh/sched 2>/dev/null; then
+  sched +1 'export GITHUB_TOKEN="$(gh auth token 2>/dev/null)"'
 fi
 
-# ---- prompt (cross-shell, portable) ---------------------------------------
-command -v starship &>/dev/null && eval "$(starship init zsh)"
+# ---- plugins (pacman packages, sourced straight from /usr/share) -----------
+# zsh-completions needs no line here: it installs into /usr/share/zsh/site-functions, already on fpath.
+ZSH_AUTOSUGGEST_STRATEGY=(history completion)
+ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE='fg=8'   # ANSI bright black — follows the theme palette
+[[ -r /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh ]] \
+  && source /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
+
+# ---- prompt ---------------------------------------------------------------
+[[ -r /usr/share/zsh-theme-powerlevel10k/powerlevel10k.zsh-theme ]] \
+  && source /usr/share/zsh-theme-powerlevel10k/powerlevel10k.zsh-theme
+[[ -r ~/.p10k.zsh ]] && source ~/.p10k.zsh
+
+# ---- local customizations -------------------------------------------------
+# Archfrican runs `chezmoi apply --force` on every update, which rewrites this file (and ~/.p10k.zsh).
+# Your own aliases, exports and POWERLEVEL9K_* overrides go in ~/.zshrc.local, which survives it:
+# it's sourced after ~/.p10k.zsh, and p10k reads its parameters at the first prompt, so they win.
+[[ -r ~/.zshrc.local ]] && source ~/.zshrc.local
+
+# ---- syntax highlighting — MUST stay last ---------------------------------
+# zsh-syntax-highlighting wraps the zle widgets that exist when it's sourced; widgets defined after
+# it (atuin's, fzf's, anything in ~/.zshrc.local) wouldn't refresh the highlighting. An `if`, not
+# `&&`: a false test as the file's last command would make the first prompt show an error status.
+if [[ -r /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ]]; then
+  source /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+fi

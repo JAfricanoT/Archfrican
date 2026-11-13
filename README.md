@@ -35,8 +35,8 @@ off the Mac, and a hard requirement that **nothing explodes**.
 | Kernel       | `linux-cachyos` (default) · `linux-lts` (fallback in GRUB)    |
 | Compositor   | **niri** (isolated module) · **SDDM** graphical login (theme `archfrican`) |
 | GPU          | auto: `nvidia-open-dkms` / `vulkan-radeon` / `vulkan-intel`   |
-| Shell        | Zsh + zinit + fast-syntax-highlighting + autosuggestions      |
-| Prompt       | **Starship** (cross-shell — survives a shell swap)            |
+| Shell        | Zsh + Oh My Zsh + zsh-autosuggestions + zsh-syntax-highlighting + zsh-completions |
+| Prompt       | **Powerlevel10k** (instant prompt, git status with Nerd Font icons, follows the theme palette) |
 | Terminal     | **Ghostty** (Kitty graphics protocol, blur, native Wayland)   |
 | Editor       | Code-OSS (Wayland; Open VSX) — LSPs are system-level & editor-agnostic|
 | Dev          | rustup · go · uv · fnm + gopls/rust-analyzer/pyright/ruff/clangd|

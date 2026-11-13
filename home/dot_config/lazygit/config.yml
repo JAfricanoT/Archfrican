@@ -1,0 +1,10 @@
+# Archfrican · lazygit — Nerd Font v3 icons (JetBrainsMono Nerd Font) on files, branches and commits.
+# Named ANSI colors (not hex), so the borders follow the terminal palette theme-switch writes.
+gui:
+  nerdFontsVersion: "3"
+  showFileIcons: true
+  border: rounded
+  theme:
+    activeBorderColor:
+      - blue
+      - bold

@@ -7,3 +7,5 @@
 .local/bin/archfrican-find
 .local/bin/archfrican-websearch
 .local/bin/archfrican-window
+# Retired 2026-09-10 (Powerlevel10k replaced Starship as the prompt):
+.config/starship.toml

@@ -23,8 +23,8 @@ fd
 fzf
 bat
 eza
-zoxide
-atuin                  # shell history: fuzzy search + sync — wired into .zshrc's `atuin init zsh`
+zoxide                 # frecency `cd` — .zshrc runs `zoxide init zsh --cmd cd`
+atuin                  # shell history: fuzzy search + sync, owns Ctrl-R — wired into .zshrc's `atuin init zsh`
 lazygit
 github-cli                 # gh — used by archfrican-git to log in + upload the SSH key to GitHub
 docker
@@ -33,4 +33,7 @@ postgresql             # psql/pg_dump/createdb/etc. — Arch bundles client+serv
                        # this repo never enables postgresql.service, so it's client-only in practice
 # lazydocker             # TUI for docker/compose — now in [extra]; or pick via archfrican-defaults
 direnv
-starship
+# zsh plugins — .zshrc sources them from /usr/share (oh-my-zsh + powerlevel10k live in aur.txt)
+zsh-autosuggestions    # fish-style inline suggestions (history, then completion)
+zsh-syntax-highlighting # command-line highlighting; official, in [extra] (fast-syntax-highlighting is AUR-only)
+zsh-completions        # extra completion defs -> /usr/share/zsh/site-functions, already on fpath
