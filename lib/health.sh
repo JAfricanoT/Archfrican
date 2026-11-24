@@ -281,6 +281,89 @@ check_drift() {
 # makes niri fall back to its defaults — no Archfrican keybinds, no bar, no dock, no wallpaper. These
 # checks turn that class of failure from an hours-long mystery into one red line. ───────────────────
 
+# Before the config: can the GPU render AT ALL? A Wayland compositor needs a DRM *render* node
+# (/dev/dri/renderD*). Without one niri still starts, opens its Wayland socket and looks perfectly
+# healthy to every other check here — but it cannot build a renderer ("software EGL renderers are
+# skipped"), so the screen stays black after login while the TTYs keep working. That is precisely
+# the failure this check exists for: it once reported "nothing critical" on a box whose desktop was
+# completely dead. RED, and it names the cause, because the fix differs per cause.
+# The check NAME is a contract: bin/archfrican-update diffs `archfrican-doctor --red-names` before
+# and after a run and offers a snapshot rollback when a NEW red name appears. So this never splits
+# into per-cause names — a rename alone would read as a regression and offer to revert a healthy
+# update. One frozen name, the cause in the message.
+#
+# Paths come from ARCHFRICAN_* with the real defaults, so tests/unit/gpu-render.sh can point them at
+# fixture trees (the idiom lib/rollback.sh and lib/grub.sh already use). External commands are
+# invoked BARE — never with an absolute path — so a test can shadow them with a bash function the
+# way tests/unit/detect-gpu.sh shadows lspci.
+check_gpu_render() {
+  local drm="${ARCHFRICAN_SYSFS_DRM:-/sys/class/drm}"
+  [ -d "$drm" ] || { _h_skip "GPU render node" "no DRM subsystem"; return; }
+
+  # Pick the card that will actually SCAN OUT, not merely the first one. A render node on the iGPU
+  # says nothing about the dGPU your monitor is plugged into: on a hybrid box that mistake reports
+  # green while the screen is black. boot_vga marks the firmware's display device; failing that,
+  # any card with a connected output. Connector dirs (card0-DVI-D-1) live beside the cards in this
+  # directory and are NOT cards — skipping them by name makes that intentional rather than an
+  # accident of them lacking device/driver.
+  local c name best="" connected="" first="" card
+  for c in "$drm"/card[0-9]*; do
+    name="${c##*/}"
+    case "$name" in *-*) continue;; esac
+    [ -d "$c/device" ] || continue
+    [ -n "$first" ] || first="$c"
+    [ "$(cat "$c/device/boot_vga" 2>/dev/null)" = 1 ] && best="$c"
+    [ -z "$connected" ] && grep -qx connected "$drm/$name-"*/status 2>/dev/null && connected="$c"
+  done
+  card="${best:-${connected:-$first}}"
+  [ -n "$card" ] || { _h_skip "GPU render node" "no DRM card"; return; }
+  name="${card##*/}"
+
+  local drv="" node="" r
+  [ -L "$card/device/driver" ] && drv="$(basename "$(readlink -f "$card/device/driver")" 2>/dev/null)"
+  # The SIBLING render node — the one belonging to this card — is the question niri actually asks
+  # ("error getting the render node for the primary GPU"). A renderD* anywhere else does not answer it.
+  for r in "$card/device/drm/renderD"*; do [ -e "$r" ] && { node="${r##*/}"; break; }; done
+  if [ -n "$node" ]; then _h_ok "GPU render node" "$node on $name via ${drv:-unknown}"; return; fi
+
+  # From here the card has no render node. Classify before judging — the remedy differs, and two of
+  # the three causes are NOT faults, so calling them RED would make every update look like a regression.
+
+  # An emulated adapter (bochs/qxl/cirrus/vmware) exposes no render node BY DESIGN, and Plasma's KWin
+  # still renders in software there. That is a hypervisor setting, not a broken machine. AMBER.
+  local virt; virt="$(systemd-detect-virt 2>/dev/null)"   # prints "none" AND exits 1 on bare metal
+  if [ -n "$virt" ] && [ "$virt" != none ]; then
+    _h_amber "GPU render node" "none on $name (${drv:-no driver}) — emulated adapter under $virt; enable 3D accel in the hypervisor"
+    return
+  fi
+
+  # A kernel whose module tree is gone (package upgraded, not yet rebooted) fails EVERY probe below
+  # in a way that looks like "no driver exists". Check it first or misdiagnose the commonest machine
+  # of all. AMBER: the fix is a reboot, and check_reboot already says so.
+  local kver moddir; kver="$(uname -r)"
+  moddir="${ARCHFRICAN_MODULES_DIR:-/usr/lib/modules}/$kver"
+  if [ ! -f "$moddir/modules.dep" ]; then
+    _h_amber "GPU render node" "none on $name — no module tree for the running kernel ($kver); reboot into the installed one"
+    return
+  fi
+
+  # The trap we shipped, detected GENERICALLY by asking kmod itself instead of grepping for a
+  # vendor's filename: -R resolves the modalias ignoring blacklists, -b applies them. Resolving to a
+  # module WITHOUT -b and to nothing WITH it means a blacklist is what is keeping this GPU dark —
+  # whatever put it there (a package drop-in, modprobe.blacklist= on the cmdline, install/bin/false).
+  local ma cand="" blocked=""
+  ma="$(cat "$card/device/modalias" 2>/dev/null)"
+  if [ -n "$ma" ]; then
+    cand="$(modprobe -R "$ma" 2>/dev/null | head -1)"
+    blocked="$(modprobe -b -R "$ma" 2>/dev/null | head -1)"
+  fi
+  if [ -n "$cand" ] && [ -z "$blocked" ]; then
+    _h_red "GPU render node" "none on $name — $cand is blacklisted and nothing replaces it; repair: ~/.archfrican/install.sh 10-gpu"
+    return
+  fi
+  _h_red "GPU render node" "none on $name (${drv:-no driver bound}) — the compositor cannot render; TTYs still work"
+}
+
 # The single most important check: if the niri config does not parse, niri silently runs its built-in
 # defaults and nothing of Archfrican is active. RED.
 check_niri_config() {   # WM-coupled (niri) — one of the few niri touchpoints; see docs/WM-INTEGRATION.md

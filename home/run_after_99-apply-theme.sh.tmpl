@@ -16,6 +16,14 @@ ARCHFRICAN_ROOT="{{ .chezmoi.homeDir }}/.archfrican"
 disp="$HOME/.local/bin/archfrican-displays"
 if [ -x "$disp" ]; then "$disp" restore || true; fi
 
+# Re-apply per-GPU niri workarounds (e.g. nouveau DRM debug block written by modules/10-gpu.sh into
+# ~/.config/archfrican/gpu-niri.kdl) so `chezmoi apply` never strips them. No-op on AMD/Intel/VM.
+if [ -r "$ARCHFRICAN_ROOT/lib/gpu-niri.sh" ]; then
+  # shellcheck source=/dev/null
+  . "$ARCHFRICAN_ROOT/lib/gpu-niri.sh"
+  splice_niri_gpu_block || true
+fi
+
 # Seed waybar's bar-mode symlink, but never overwrite a choice the user already made — same contract as
 # the theme and the monitor layout above. config.jsonc includes ~/.config/waybar/mode.jsonc and defines
 # its module groups NOWHERE else, so if this link is missing or dangling waybar resolves the groups to

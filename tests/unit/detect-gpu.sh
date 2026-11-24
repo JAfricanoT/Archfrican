@@ -58,5 +58,42 @@ assert_gpu unknown "unrecognised vendor -> unknown" \
 got="$( PATH=''; detect_gpu )"
 if [ "$got" = unknown ]; then _ok "no lspci available -> unknown"; else _no "no-lspci (want unknown, got '$got')"; fi
 
+# ---- nvidia_tier + lib32_nvidia_pkg ------------------------------------------------------------
+# The regression these lock down (live-confirmed on a GeForce GT 730 / GK208B): 65-gaming.sh picked
+# the 32-bit driver from detect_gpu's VENDOR alone, so any NVIDIA card got lib32-nvidia-utils. That
+# pulls in nvidia-utils, whose modprobe drop-in blacklists nouveau — and on the Fermi/Kepler tier
+# 10-gpu.sh installs NO nvidia kernel module to take over. The box then boots with no GPU driver at
+# all (simple-framebuffer, no /dev/dri/renderD* node): niri starts, opens its Wayland socket, and
+# renders nothing. Black screen after login, TTYs perfectly fine. lib32_nvidia_pkg MUST stay empty
+# on the nouveau tier — lib32-mesa already covers 32-bit GL there.
+# assert_tier <expected-tier> <expected-lib32-pkg ('' = install nothing)> <desc> <lspci-text>
+assert_tier(){
+  local exp="$1" exppkg="$2" desc="$3" txt="$4" got gotpkg
+  # shellcheck disable=SC2329  # invoked indirectly by nvidia_tier / lib32_nvidia_pkg, not here
+  got="$(    lspci(){ printf '%s\n' "$txt"; }; nvidia_tier )"
+  # shellcheck disable=SC2329
+  gotpkg="$( lspci(){ printf '%s\n' "$txt"; }; lib32_nvidia_pkg )"
+  if [ "$got" = "$exp" ]; then _ok "tier: $desc -> $got"
+  else _no "tier: $desc (want $exp, got $got)"; fi
+  if [ "$gotpkg" = "$exppkg" ]; then _ok "lib32: $desc -> ${gotpkg:-<none, correct>}"
+  else _no "lib32: $desc (want '${exppkg:-<none>}', got '${gotpkg:-<none>}')"; fi
+}
+
+assert_tier nouveau "" "Kepler GT 730 (the card that went black)" \
+  "01:00.0 VGA compatible controller [0300]: NVIDIA Corporation GK208B [GeForce GT 730] [10de:1287] (rev a1)"
+assert_tier nouveau "" "Fermi GF119" \
+  "01:00.0 VGA compatible controller [0300]: NVIDIA Corporation GF119 [GeForce GT 610] [10de:104a]"
+assert_tier nvidia "lib32-nvidia-utils" "Maxwell GM206" \
+  "01:00.0 VGA compatible controller [0300]: NVIDIA Corporation GM206 [GeForce GTX 960] [10de:1401]"
+assert_tier nvidia "lib32-nvidia-utils" "Pascal GP106" \
+  "01:00.0 VGA compatible controller [0300]: NVIDIA Corporation GP106 [GeForce GTX 1060] [10de:1c03]"
+assert_tier nvidia-open "lib32-nvidia-utils" "Turing TU106" \
+  "01:00.0 VGA compatible controller [0300]: NVIDIA Corporation TU106 [GeForce RTX 2070] [10de:1f02]"
+assert_tier nvidia-open "lib32-nvidia-utils" "Ampere GA104" \
+  "01:00.0 VGA compatible controller [0300]: NVIDIA Corporation GA104 [GeForce RTX 3070] [10de:2484]"
+# Unreadable codename must fall to nouveau AND install nothing — the safe end of both decisions.
+assert_tier nouveau "" "unreadable codename -> safe default" \
+  "01:00.0 VGA compatible controller [0300]: NVIDIA Corporation Device [10de:ffff]"
+
 printf '\ndetect-gpu unit test: %d passed, %d failed\n' "$P" "$F"
 [ "$F" -eq 0 ]

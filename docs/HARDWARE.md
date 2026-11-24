@@ -26,9 +26,9 @@ installs the correct stack without manual input.
 |----------|------------|-------------------|-------|
 | AMD (RX 400 series and newer) | `amd` | mesa, vulkan-radeon, vulkan-icd-loader | Open-source stack. Zero extra config; the most reliable path on Wayland. |
 | Intel (Gen 8+ / Iris / Arc) | `intel` | mesa, vulkan-intel, intel-media-driver, vulkan-icd-loader | Open-source stack. Hardware video decode via VA-API. |
-| NVIDIA Maxwell / Pascal / Volta (GTX 700–1600, RTX 20–30) | `nvidia` | nvidia-dkms, nvidia-utils, egl-wayland, libva-nvidia-driver | Proprietary driver. Wayland is stable since driver 525+. Early KMS is configured automatically. |
-| NVIDIA Turing+ (RTX 20 series and newer) | `nvidia` | nvidia-open-dkms, nvidia-utils, egl-wayland, libva-nvidia-driver | Open-kernel module (preferred on Turing+). Same Wayland experience. |
-| NVIDIA legacy (Fermi/Kepler, GTX 400–700) | `nvidia` → nouveau tier | mesa, vulkan-swrast | The proprietary 390xx/470xx packages break on CachyOS kernels. nouveau (in-kernel) is used instead. 3D performance is limited. |
+| NVIDIA Maxwell / Pascal / Volta (GTX 700–1600, RTX 20–30) | `nvidia` | nvidia-dkms, nvidia-utils, egl-wayland, libva-nvidia-driver | Proprietary driver. Early KMS, VRAM suspend preservation (`NVreg_PreserveVideoMemoryAllocations=1`), and niri VRAM profile (`GLVidHeapReuseRatio=0`) are configured automatically. |
+| NVIDIA Turing+ (RTX 20 series and newer) | `nvidia` | nvidia-open-dkms, nvidia-utils, egl-wayland, libva-nvidia-driver | Open-kernel module (preferred on Turing+). Same Wayland & VRAM/suspend configuration as above. |
+| NVIDIA legacy (Fermi/Kepler, GTX 400–700) | `nvidia` → nouveau tier | mesa, vulkan-swrast | The proprietary 390xx/470xx packages break on CachyOS kernels. `nouveau` (in-kernel) is used instead, with automatic niri legacy-KMS (`SMITHAY_USE_LEGACY=1`) and DRM debug flags (`disable-cursor-plane`, `disable-direct-scanout`, `wait-for-frame-completion-before-queueing`) to prevent Wayland input/page-flip flicker. |
 | AMD + Intel (hybrid laptop) | `hybrid-amd-intel` | mesa, vulkan-radeon, vulkan-intel, intel-media-driver, vulkan-icd-loader | Both open stacks installed side by side. |
 | NVIDIA + Intel (hybrid laptop, e.g. Optimus) | `hybrid-intel-nvidia` | nvidia-dkms/open-dkms + mesa + vulkan-intel | Proprietary NVIDIA driver with Intel iGPU open stack. |
 | NVIDIA + AMD (hybrid desktop) | `hybrid-amd-nvidia` | nvidia-dkms/open-dkms + mesa + vulkan-radeon | Proprietary NVIDIA driver with AMD iGPU open stack. |

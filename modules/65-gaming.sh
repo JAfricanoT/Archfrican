@@ -31,15 +31,32 @@ fi
 substep "installing the gaming stack (Steam, gamescope, gamemode, MangoHud, 32-bit Vulkan/Mesa)"
 pac_install_file "$REPO_ROOT/gaming/packages.txt"
 
+# The 32-bit NVIDIA userspace — but the DRIVER decision belongs to lib/detect-gpu.sh, not here.
+# lib32_nvidia_pkg() returns nothing on the nouveau tier, because lib32-nvidia-utils would drag in
+# nvidia-utils and its "blacklist nouveau" drop-in, stranding a Fermi/Kepler box with no GPU driver
+# at all (black screen after login, TTYs fine). Matching on vendor alone here is what caused that.
+lib32_nvidia() {
+  local pkg; pkg="$(lib32_nvidia_pkg)"
+  if [ -n "$pkg" ]; then
+    attempt "lib32 nvidia" pac_install "$pkg"
+  else
+    ok "NVIDIA on nouveau (Fermi/Kepler) — skipping lib32-nvidia-utils (it would blacklist nouveau); lib32-mesa covers 32-bit GL"
+  fi
+}
+
 # GPU-matched 32-bit Vulkan driver (lib32-mesa above covers GL on AMD/Intel). NON-FATAL: detection
 # is best-effort and some drivers may be absent on a given box.
 case "$(detect_gpu 2>/dev/null || echo unknown)" in
-  *hybrid*) attempt "lib32 intel"  pac_install lib32-vulkan-intel
-            attempt "lib32 nvidia" pac_install lib32-nvidia-utils ;;
-  *nvidia*) attempt "lib32 nvidia" pac_install lib32-nvidia-utils ;;
-  *amd*)    attempt "lib32 radeon" pac_install lib32-vulkan-radeon ;;
-  *intel*)  attempt "lib32 intel"  pac_install lib32-vulkan-intel ;;
-  *)        ok "GPU not matched for a 32-bit Vulkan driver — lib32-mesa covers AMD/Intel GL" ;;
+  hybrid-intel-nvidia) attempt "lib32 intel"  pac_install lib32-vulkan-intel
+                       lib32_nvidia ;;
+  hybrid-amd-nvidia)   attempt "lib32 radeon" pac_install lib32-vulkan-radeon
+                       lib32_nvidia ;;
+  hybrid-amd-intel)    attempt "lib32 radeon" pac_install lib32-vulkan-radeon
+                       attempt "lib32 intel"  pac_install lib32-vulkan-intel ;;
+  *nvidia*)            lib32_nvidia ;;
+  *amd*)               attempt "lib32 radeon" pac_install lib32-vulkan-radeon ;;
+  *intel*)             attempt "lib32 intel"  pac_install lib32-vulkan-intel ;;
+  *)                   ok "GPU not matched for a 32-bit Vulkan driver — lib32-mesa covers AMD/Intel GL" ;;
 esac
 
 # ananicy-cpp: auto-renice (keeps the desktop + games responsive under load). CachyOS-aligned.

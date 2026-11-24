@@ -52,3 +52,19 @@ nvidia_tier() {
     *)                                         echo nouveau ;;     # unknown -> safe default
   esac
 }
+
+# The 32-bit NVIDIA userspace the gaming module may install — or NOTHING (empty output) on the
+# nouveau tier. This lives here, beside nvidia_tier, because it is a DRIVER decision, not a gaming
+# one, and 65-gaming.sh must never be free to make it on vendor alone.
+#
+# lib32-nvidia-utils depends on nvidia-utils, which ships /usr/lib/modprobe.d/nvidia-utils.conf
+# containing "blacklist nouveau". On Fermi/Kepler that is fatal: 10-gpu.sh routes those cards to
+# nouveau precisely because the proprietary branch dropped them, so no nvidia kernel module is ever
+# installed to take over. The blacklist then leaves the box with NO GPU driver — the kernel falls
+# back to simple-framebuffer, /dev/dri never gets a renderD* node, and niri starts but cannot build
+# a renderer, giving a black screen after login while the TTYs still work. Live-confirmed on a
+# GeForce GT 730 (GK208B): 65-gaming.sh matched "*nvidia*" and silently undid the nouveau choice.
+lib32_nvidia_pkg() {
+  [ "$(nvidia_tier)" = nouveau ] && return 0   # prints nothing: lib32-mesa already covers 32-bit GL
+  echo lib32-nvidia-utils
+}

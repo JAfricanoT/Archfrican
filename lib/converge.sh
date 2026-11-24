@@ -20,7 +20,7 @@ module_inputs() {                 # module_inputs <name>
   printf 'lib/common.sh modules/%s.sh' "$1"
   case "$1" in
     00-base)         printf ' packages/base.txt lib/grub.sh' ;;
-    10-gpu)          printf ' lib/detect-gpu.sh lib/grub.sh' ;;
+    10-gpu)          printf ' lib/detect-gpu.sh lib/grub.sh lib/gpu-niri.sh' ;;
     # SDDM theme/wallpaper inputs include the palettes (themes/) + templates so editing a palette
     # is seen by drift detection and re-converges the rendered login theme (audit H1/M1).
     # module_hash tree-hashes a directory, so the bare dir names cover every file + stay future-proof.
