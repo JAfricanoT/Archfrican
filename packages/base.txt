@@ -12,6 +12,8 @@ inotify-tools          # needed by grub-btrfs daemon
 reflector              # keep mirrorlist fast
 pacman-contrib
 zram-generator
+earlyoom               # act before kernel OOM freezes/kills the Wayland session
+ananicy-cpp            # auto-renice: keeps compositor/UI snappy under heavy agent/build load
 man-db
 pciutils               # lspci, for GPU auto-detection (also ensured up-front in install.sh)
 

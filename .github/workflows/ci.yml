@@ -405,6 +405,12 @@ jobs:
       - uses: actions/checkout@v4
       - name: GPU detection — vendor-id matching, VM path, 'CorporATIon' trap
         run: bash tests/unit/detect-gpu.sh
+      - name: GPU niri workarounds — nouveau splice, validate-or-revert, converge tracking
+        run: bash tests/unit/gpu-niri.sh
+      - name: GPU render node health — detects missing renderD*, VM/reboot AMBER, blacklisted driver RED
+        run: bash tests/unit/gpu-render.sh
+      - name: perf & OOM guard — earlyoom, ananicy-cpp, zram VM tuning, niri OOMPolicy, GRUB_TOP_LEVEL
+        run: bash tests/unit/perf-oom.sh
       - name: fw_allow — port/proto validation (no fail-open) + persist/dedup
         run: bash tests/unit/fw_allow.sh
       - name: multiboot — ESP OS classifier (Windows/Linux, skips our own loader)
@@ -427,6 +433,8 @@ jobs:
         run: bash tests/unit/resume-guard.sh
       - name: a11y-tokens — an accessibility override outranks every theme (cursor/focus-ring clobber)
         run: bash tests/unit/a11y-tokens.sh
+      - name: niri shape tokens — gaps/struts/radius wired + tokens.local.sh survives converge
+        run: bash tests/unit/niri-tokens.sh
       - name: multicast-route — 224.0.0.0/4 pinned to the LAN uplink, never a VPN tunnel or a bridge
         run: bash tests/unit/multicast-route.sh
       - name: nsswitch-mdns — nss-mdns lands before resolve so CUPS can resolve .local printers

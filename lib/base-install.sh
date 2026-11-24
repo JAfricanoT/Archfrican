@@ -206,7 +206,7 @@ systemctl enable NetworkManager-wait-online.service   # so network-online.target
 
 cat > /etc/systemd/zram-generator.conf <<'ZRAM'
 [zram0]
-zram-size = min(ram, 8192)
+zram-size = min(ram * 1.5, 16384)
 compression-algorithm = zstd
 ZRAM
 CHROOT

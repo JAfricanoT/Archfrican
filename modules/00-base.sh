@@ -54,10 +54,68 @@ pac_install_file "$REPO_ROOT/packages/base.txt"
 
 substep "installing the dual kernel: linux-cachyos (primary) + linux-lts (safety net)"
 pac_install linux-cachyos linux-cachyos-headers linux-lts linux-lts-headers
+# Pin linux-cachyos as the top-level default under a clean "Archfrican Linux" entry (vista limpia):
+#   • GRUB_DISTRIBUTOR="Archfrican" -> menu reads "Archfrican Linux" instead of stock "Arch Linux".
+#   • GRUB_TOP_LEVEL=/boot/vmlinuz-linux-cachyos -> overrides GRUB's reverse-alpha sort ('l' > 'c')
+#     that otherwise silently booted linux-lts as default.
+#   • GRUB_DISABLE_SUBMENU=false -> keeps the top screen clean ("Archfrican Linux" auto-boots
+#     linux-cachyos; linux-lts stays tucked in "Advanced options for Archfrican Linux").
+#   • GRUB_DISABLE_BOOTNEXT=true -> hides GRUB 2.16's noisy "(EFI BootNext)" firmware entries so
+#     Btrfs snapshots remain visible without scrolling.
+substep "configuring clean GRUB menu (Archfrican Linux -> linux-cachyos default, linux-lts in Advanced)"
+set_grub_key GRUB_DISTRIBUTOR '"Archfrican"'
+set_grub_key GRUB_TOP_LEVEL '"/boot/vmlinuz-linux-cachyos"'
+set_grub_key GRUB_DISABLE_SUBMENU false
+set_grub_key GRUB_DISABLE_BOOTNEXT true
 substep "regenerating the GRUB config"
 regen_grub
-warn "linux-lts stays in the GRUB menu. If a Cachy kernel ever misbehaves with"
-warn "your GPU, just boot LTS and keep working — nothing explodes."
+warn "linux-lts stays in GRUB under 'Advanced options for Archfrican Linux'. If a Cachy kernel ever"
+warn "misbehaves with your GPU, pick LTS and keep working — nothing explodes."
+
+# ---- memory + responsiveness backbone (zram VM tuning, earlyoom, ananicy-cpp) ----
+# zram is compressed RAM, not spinning disk: Arch Wiki / CachyOS tuning compresses cold anonymous
+# pages eagerly (swappiness=180), disables 8-page HDD readahead (page-cluster=0), and reclaims
+# smoothly before hitting OOM stalls.
+substep "tuning zram + kernel VM for compressed RAM (99-archfrican-vm.conf)"
+write_system_file /etc/systemd/zram-generator.conf 0644 <<'ZRAM'
+[zram0]
+zram-size = min(ram * 1.5, 16384)
+compression-algorithm = zstd
+ZRAM
+write_system_file /etc/sysctl.d/99-archfrican-vm.conf 0644 <<'VMSYSCTL'
+# Archfrican VM tuning for zram (Arch Wiki / CachyOS):
+# zram is compressed RAM, not spinning disk — compress cold anonymous pages eagerly,
+# disable HDD swap readahead (page-cluster=0), and reclaim smoothly before OOM stalls.
+vm.swappiness = 180
+vm.page-cluster = 0
+vm.watermark_boost_factor = 0
+vm.watermark_scale_factor = 125
+VMSYSCTL
+best_effort sudo sysctl --system >/dev/null
+
+# earlyoom: intervene BEFORE the kernel OOM killer freezes the desktop or kills the Wayland session.
+# Protects compositor/audio/login/input daemons and targets heavy browser tabs or runaway workers first.
+substep "configuring earlyoom (protects the desktop session under memory pressure)"
+write_system_file /etc/default/earlyoom 0644 <<'EARLYOOM'
+# Archfrican: act BEFORE the kernel OOM killer freezes or kills the graphical session.
+# Triggers when available RAM < 5% AND free swap < 5%.
+EARLYOOM_ARGS="-r 0 -m 5 -s 5 --avoid '^(niri|systemd|dbus-broker|pipewire|wireplumber|waybar|sddm|sshd|keyd)$' --prefer '^(vivaldi-bin|chromium|brave|firefox|Web Content|Isolated Web Co|electron|node|claude)$'"
+EARLYOOM
+resilient_enable earlyoom.service
+if systemctl is-active --quiet earlyoom.service 2>/dev/null; then
+  best_effort sudo systemctl restart earlyoom.service
+else
+  best_effort sudo systemctl start earlyoom.service
+fi
+
+# ananicy-cpp: auto-renice interactive apps/compositor above heavy background builds and agents.
+# cachyos-ananicy-rules lives in [cachyos] (enabled above), so install it conditionally.
+substep "enabling ananicy-cpp (keeps UI responsive under heavy agent/build load)"
+if pacman -Si cachyos-ananicy-rules &>/dev/null; then
+  best_effort pac_install cachyos-ananicy-rules
+fi
+resilient_enable ananicy-cpp.service
+best_effort sudo systemctl start ananicy-cpp.service
 
 substep "installing the AUR helper (paru)"
 if ! command -v paru &>/dev/null; then

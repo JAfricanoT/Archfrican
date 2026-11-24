@@ -51,6 +51,26 @@ resilient_enable_user waybar.service
 substep "enabling swaync (single launch path — auto-restarts if it crashes)"
 resilient_enable_user swaync.service
 
+# Protect the niri session from helper OOM-kills: Xwayland, xwayland-satellite, and wl-paste live
+# inside niri.service's cgroup. With systemd's default OOMPolicy=stop, an OOM-kill of ANY helper
+# sends SIGTERM to niri --session and tears down the entire desktop back to SDDM (live-confirmed
+# 11 times on an 8 GiB workstation). OOMPolicy=continue keeps the session alive — niri respawns
+# xwayland-satellite on demand.
+substep "protecting niri.service from helper OOM-kills (OOMPolicy=continue)"
+write_system_file /etc/systemd/user/niri.service.d/20-archfrican-oom.conf 0644 <<'OOM'
+# Archfrican (modules/20-niri-desktop.sh): never tear down the whole Wayland session when an
+# auxiliary process inside niri.service's cgroup (Xwayland, wl-paste) is OOM-killed.
+[Service]
+OOMPolicy=continue
+OOM
+best_effort systemctl --user daemon-reload
+
+# GNOME Tracker (localsearch-3, pulled in by nautilus) crawls ~/go/pkg/mod, node_modules, and git
+# repos in the background, burning CPU, disk I/O, and RAM on dev boxes. Masking its user units
+# stops background indexing while keeping Nautilus browsing intact.
+substep "disabling GNOME Tracker background file indexing (localsearch-3)"
+best_effort systemctl --user mask localsearch-3.service localsearch-control-3.service localsearch-writeback-3.service
+
 substep "configuring keyd (⌘+letter → Ctrl, macOS muscle memory)"
 write_system_file /etc/keyd/default.conf <<'KEYD'
 # Archfrican keyd map. Two layers split ⌘ cleanly between app shortcuts and the WM:

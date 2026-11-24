@@ -41,7 +41,7 @@ and adds the dual-kernel safety net.
 
 **Packages** (`packages/base.txt`): `base-devel`, `git`, `curl`, `wget`, `zsh`,
 `btrfs-progs`, `snapper`, `snap-pac`, `grub-btrfs`, `inotify-tools`, `reflector`,
-`pacman-contrib`, `zram-generator`, `openssh`, `man-db`, `pciutils`, `smartmontools`,
+`pacman-contrib`, `zram-generator`, `earlyoom`, `ananicy-cpp`, `man-db`, `pciutils`, `smartmontools`,
 `fwupd`, `arch-audit`, `libnotify`.
 
 **What it does**
@@ -49,9 +49,9 @@ and adds the dual-kernel safety net.
 1. Pins and locally-signs the CachyOS GPG key (fingerprint `882DCFE4…DB35A47`)
 2. Adds the CachyOS repository to `/etc/pacman.conf`
 3. Installs packages from `packages/base.txt`
-4. Installs dual kernel: `linux-cachyos` (primary, optimized) + `linux-lts` (fallback)
-5. Installs `paru` AUR helper (binary from CachyOS repo; source-build opt-in)
-6. Regenerates GRUB to list both kernels
+4. Installs dual kernel: `linux-cachyos` (primary, optimized) + `linux-lts` (fallback), configures a clean GRUB menu (`GRUB_DISTRIBUTOR="Archfrican"`, `GRUB_TOP_LEVEL="/boot/vmlinuz-linux-cachyos"`, `GRUB_DISABLE_SUBMENU=false`, `GRUB_DISABLE_BOOTNEXT=true`), and regenerates GRUB
+5. Tunes compressed-RAM swap (`/etc/systemd/zram-generator.conf` at `min(ram * 1.5, 16384)` + `/etc/sysctl.d/99-archfrican-vm.conf`), enables `earlyoom` (protecting `niri` and core session daemons), and enables `ananicy-cpp` (+ `cachyos-ananicy-rules`)
+6. Installs `paru` AUR helper (binary from CachyOS repo; source-build opt-in)
 
 **Environment variables**
 
@@ -80,15 +80,21 @@ Reads `/sys/bus/pci/devices/*/class` + vendor IDs. Priority: NVIDIA > AMD > Inte
 | Intel | `mesa`, `vulkan-intel`, `intel-media-driver`, `vulkan-icd-loader` |
 | AMD+Intel hybrid | All AMD + all Intel packages |
 | NVIDIA (modern) | `nvidia-dkms` (or `nvidia-open-dkms`), `nvidia-utils`, `egl-wayland`, `vulkan-icd-loader`, `libva-nvidia-driver` |
-| NVIDIA legacy (Fermi/Kepler) | `mesa`, `vulkan-swrast` (nouveau; no 3D acceleration) |
+| NVIDIA legacy (Fermi/Kepler) | `mesa`, `vulkan-swrast`, `vulkan-icd-loader` (`nouveau` + niri legacy-KMS drop-in & DRM debug block) |
 | VM / unknown | `mesa`, `vulkan-swrast`, `vulkan-icd-loader` |
 
 **NVIDIA-specific steps**
 
-- Adds `nvidia_drm.modeset=1 nvidia_drm.fbdev=1` to `GRUB_CMDLINE_LINUX_DEFAULT`
-- Adds NVIDIA modules to `MODULES=()` in `/etc/mkinitcpio.conf`
-- Regenerates initramfs + GRUB
-- Enables: `nvidia-suspend.service`, `nvidia-resume.service`, `nvidia-hibernate.service`
+- **Legacy (`nouveau` tier — Fermi/Kepler)**:
+  - Writes `/etc/systemd/user/niri.service.d/10-archfrican-gpu.conf` (`Environment=SMITHAY_USE_LEGACY=1`) so niri uses legacy DRM KMS instead of nouveau atomic KMS (fixes colored screen flicker on input repaints).
+  - Writes `~/.config/archfrican/gpu-niri.kdl` (`disable-cursor-plane`, `disable-direct-scanout`, `wait-for-frame-completion-before-queueing`) and splices it into `~/.config/niri/config.kdl` (re-applied after every `chezmoi apply` by `run_after_99`).
+- **Modern (proprietary `nvidia-dkms` / `nvidia-open-dkms`)**:
+  - Adds `nvidia_drm.modeset=1 nvidia_drm.fbdev=1` to `GRUB_CMDLINE_LINUX_DEFAULT`
+  - Adds NVIDIA modules to `MODULES=()` in `/etc/mkinitcpio.conf`
+  - Writes `/etc/modprobe.d/archfrican-nvidia.conf` (`options nvidia NVreg_PreserveVideoMemoryAllocations=1`) so VRAM survives suspend/resume
+  - Writes `/etc/nvidia/nvidia-application-profiles-rc.d/50-archfrican-niri.json` (`GLVidHeapReuseRatio: 0` for `niri`, preventing R565+ VRAM bloat)
+  - Regenerates initramfs + GRUB
+  - Enables: `nvidia-suspend.service`, `nvidia-resume.service`, `nvidia-hibernate.service`
 
 **Environment variable override**: `ARCHFRICAN_GPU=vm|nvidia|amd|intel`
 
