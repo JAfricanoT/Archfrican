@@ -70,11 +70,22 @@ Archfrican itself installed and no longer wants:
 A package you installed by hand is never in `managed.txt`, so it can never be a candidate. The
 removal is `sudo pacman -Rns` (never `--noconfirm`; pacman itself refuses unsafe removals).
 
-## Staying informed — manual, never unattended
+## Staying informed & >30-day safety-gated catch-up
 The weekly `archfrican-doctor` user timer (from `70-hygiene`) **notifies** when the applied state
 lags the repo (the `config drift` check) or when updates/CVEs are available — it never changes
-anything. Run `archfrican-update --run` when you're ready. There is no auto-update timer by design:
-*nothing explodes* while you're not looking.
+anything. Run `archfrican-update --run` whenever you're ready.
+
+To stop an infrequently used machine from piling up months of rolling-release deltas, `70-hygiene`
+also enables `archfrican-auto-update.timer` (daily, AC power only). It is a no-op for the first
+**30 days** after any `archfrican-update --run` or `pacman -Syu`. Only if **>30 days** pass with
+no upgrade does `/usr/local/bin/archfrican-auto-update` run — strictly fail-closed:
+
+- Requires Btrfs `/` + `snapper`, ≥5 GiB free on `/` (≥150 MiB `/boot`), network reachable, and no
+  recent Arch News `manual intervention` notice.
+- Takes a **mandatory Snapper pre-snapshot** before touching pacman (aborts if snapshot fails).
+- Refreshes keyrings (`archlinux-keyring` / `cachyos-keyring`) and upgrades **official repos only**
+  (never AUR, never forces a reboot), then notifies the desktop.
+- Opt out anytime: `sudo touch /etc/archfrican/no-auto-update` (or `AUTO=off` in `/etc/archfrican/auto-update.conf`).
 
 ## Rollback
 If an update misbehaves, run `archfrican-rollback` and pick the pre-update checkpoint (`snapper list`

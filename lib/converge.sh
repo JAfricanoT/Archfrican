@@ -39,7 +39,7 @@ module_inputs() {                 # module_inputs <name>
     60-security)     printf ' packages/security.txt lib/security.sh lib/fido2.sh lib/grub.sh' ;;
     65-gaming)       printf ' gaming/packages.txt lib/detect-gpu.sh' ;;
     67-virtualization) printf ' packages/virtualization.txt' ;;
-    70-hygiene)      printf ' bin/archfrican-update bin/archfrican-doctor lib/health.sh' ;;
+    70-hygiene)      printf ' bin/archfrican-update bin/archfrican-auto-update bin/archfrican-doctor lib/health.sh' ;;
   esac
 }
 

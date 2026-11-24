@@ -100,8 +100,8 @@ precheck() {
 
   if [ -f /etc/pacman.d/mirrorlist ]; then
     age=$(( ( $(date +%s) - $(stat -c %Y /etc/pacman.d/mirrorlist 2>/dev/null || echo 0) ) / 86400 ))
-    if [ "$age" -le 7 ]; then _ok "mirrorlist de hace ${age}d"
-    else _note "mirrorlist de hace ${age}d — --run la refresca solo (>7d) antes de actualizar"; fi
+    if [ "$age" -le 30 ]; then _ok "mirrorlist de hace ${age}d"
+    else _note "mirrorlist de hace ${age}d — --run la refresca solo (>30d) antes de actualizar"; fi
   fi
 
   news="$(curl -fsS --max-time 8 'https://archlinux.org/feeds/news/' 2>/dev/null \
@@ -184,20 +184,36 @@ post_update_validate() {          # post_update_validate "<pre-update red names,
 # ---------- keep the mirrorlist fresh WITHOUT an always-on background timer --
 # modules/70-hygiene.sh leaves reflector.timer off by default (it can overwrite the mirrorlist
 # unattended on its own schedule). Refreshing here instead ties it to something the user actually
-# asked for (--run, right before pacman -Syu uses it) — same reflector.conf, just not silent/background.
+# asked for (--run, right before pacman -Syu uses it). Uses `--sort score` (<0.2s, zero timeout
+# warnings) and pins Arch's official global Anycast/GeoIP CDNs first so downloads are fast from
+# any region without probing 20 distant European/Asian mirrors.
+pin_arch_cdn_mirrors() {
+  local ml="${1:-/etc/pacman.d/mirrorlist}" tmp
+  [ -r "$ml" ] || return 0
+  tmp="$(mktemp)"
+  {
+    printf '# Archfrican: global Arch CDNs first (fast from any region), reflector fallbacks below\n'
+    printf 'Server = https://fastly.mirror.pkgbuild.com/$repo/os/$arch\n'
+    printf 'Server = https://geo.mirror.pkgbuild.com/$repo/os/$arch\n\n'
+    grep -vE '^Server = https://(fastly|geo)\.mirror\.pkgbuild\.com/' "$ml"
+  } > "$tmp"
+  sudo install -m 0644 "$tmp" "$ml"
+  rm -f "$tmp"
+}
 refresh_mirrors_if_stale() {
   [ "${ARCHFRICAN_SKIP_REFLECTOR:-0}" = 1 ] && { warn "mirror refresh skipped (ARCHFRICAN_SKIP_REFLECTOR=1)"; return 0; }
   command -v reflector >/dev/null 2>&1 || return 0
   [ -f /etc/pacman.d/mirrorlist ] || return 0
   local age; age=$(( ( $(date +%s) - $(stat -c %Y /etc/pacman.d/mirrorlist 2>/dev/null || echo 0) ) / 86400 ))
-  [ "$age" -gt 7 ] || return 0
+  [ "$age" -gt 30 ] || return 0
   _hd "Refresco de mirrors — la mirrorlist tiene ${age}d"
   if { if [ -r /etc/xdg/reflector/reflector.conf ]; then
-    sudo reflector @/etc/xdg/reflector/reflector.conf
+    timeout 60 sudo reflector @/etc/xdg/reflector/reflector.conf
   else
-    sudo reflector --protocol https --latest 20 --sort rate --age 12 --save /etc/pacman.d/mirrorlist
+    timeout 60 sudo reflector --protocol https --completion-percent 100 --age 12 --number 15 --sort score --save /etc/pacman.d/mirrorlist
   fi; }; then
-    _ok "mirrorlist refrescada"
+    pin_arch_cdn_mirrors /etc/pacman.d/mirrorlist || true
+    _ok "mirrorlist refrescada (CDNs globales de Arch + top 15 mirrors)"
   else
     _note "reflector falló — continuando con la mirrorlist actual"
   fi
@@ -370,7 +386,12 @@ if [ "$RUN" = 1 ]; then
   refresh_mirrors_if_stale
   _hd "Actualización del sistema (repos oficiales) — interactiva, nunca --noconfirm"
   [ "$warn_n" -gt 0 ] && printf '  \e[33m%d aviso(s) en el chequeo previo de arriba.\e[0m\n\n' "$warn_n"
-  sudo pacman -Syu || _note "pacman -Syu reportó un error — revisa arriba"
+  if sudo pacman -Syu; then
+    sudo install -d -m 0755 /var/lib/archfrican 2>/dev/null || true
+    date +%s | sudo tee /var/lib/archfrican/last-update >/dev/null 2>&1 || true
+  else
+    _note "pacman -Syu reportó un error — revisa arriba"
+  fi
   _hd "Converge — re-aplicar el estado deseado del repo (instala contra la DB fresca)"
   converge_modules || exit 1
   if [ "$NO_AUR" = 0 ] && command -v paru >/dev/null 2>&1; then

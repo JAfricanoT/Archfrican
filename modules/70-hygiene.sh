@@ -43,14 +43,18 @@ resilient_enable smartd.service
 resilient_enable fwupd-refresh.timer
 
 # reflector overwrites the mirrorlist unattended -> OPT-IN (default off). The config is written
-# either way so an opt-in (or a manual `reflector @/etc/xdg/reflector/reflector.conf`) is ready.
-substep "writing the reflector config (mirror auto-ranking is opt-in)"
+# either way so an opt-in (or archfrican-update's refresh) is fast and warning-free:
+# `--sort score` ranks mirrors from Arch's live status JSON in <0.2s with ZERO timeout warnings
+# (whereas `--latest 20 --sort rate` downloaded ~8 MB from 20 random worldwide mirrors one by one,
+# taking ~53s and spamming `failed to rate ... timed out` warnings on non-European connections).
+substep "writing the reflector config (fast --sort score, 100% complete HTTPS mirrors)"
 write_system_file /etc/xdg/reflector/reflector.conf 0644 <<'REFL'
 --save /etc/pacman.d/mirrorlist
 --protocol https
---latest 20
---sort rate
+--completion-percent 100
 --age 12
+--number 15
+--sort score
 REFL
 if [ "${ARCHFRICAN_ENABLE_REFLECTOR:-0}" = 1 ]; then
   substep "enabling reflector.timer (ARCHFRICAN_ENABLE_REFLECTOR=1)"
@@ -86,6 +90,42 @@ best_effort systemctl --user enable archfrican-health.timer
 substep "installing the archfrican-update command to /usr/local/bin"
 chmod +x "$REPO_ROOT/bin/archfrican-update"
 sudo ln -sf "$REPO_ROOT/bin/archfrican-update" /usr/local/bin/archfrican-update
+
+# --- safety-gated auto-update after >30 days without upgrades (system timer) -
+# Installed as a root-owned COPY (never a symlink into user-writable $HOME — same rule as
+# archfrican-power-auto and archfrican-multicast-route). Runs daily on AC power; is a fast no-op
+# until >30 days have elapsed since the last full upgrade, and then requires Btrfs+snapper, free
+# disk headroom, no Arch News manual-intervention notice, and a fresh pre-snapshot before running
+# official `pacman -Su --noconfirm` (never AUR, never forces a reboot). Opt out: /etc/archfrican/no-auto-update.
+substep "arming >30-day safety-gated auto-update timer (archfrican-auto-update.timer)"
+sudo install -D -m 0755 "$REPO_ROOT/bin/archfrican-auto-update" /usr/local/bin/archfrican-auto-update
+write_system_file /etc/systemd/system/archfrican-auto-update.service 0644 <<'AU_SVC'
+[Unit]
+Description=Archfrican automatic official package update (triggers after >30 days without updates)
+After=network-online.target
+Wants=network-online.target
+ConditionACPower=true
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/archfrican-auto-update
+Nice=15
+IOSchedulingClass=idle
+AU_SVC
+write_system_file /etc/systemd/system/archfrican-auto-update.timer 0644 <<'AU_TMR'
+[Unit]
+Description=Check daily whether Archfrican has gone >30 days without a system update
+
+[Timer]
+OnCalendar=daily
+Persistent=true
+RandomizedDelaySec=1h
+
+[Install]
+WantedBy=timers.target
+AU_TMR
+sudo systemctl daemon-reload
+resilient_enable archfrican-auto-update.timer
 
 # --- hourly repo-update check: a USER timer so it can notify-send to the session ---
 # Separate from archfrican-health above (that's a local config/system health report; this is

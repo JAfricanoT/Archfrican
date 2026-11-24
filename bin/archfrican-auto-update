@@ -1,0 +1,210 @@
+#!/usr/bin/env bash
+# archfrican-auto-update — safety-gated automatic system update when a workstation has gone >30 days
+# without an upgrade. Prevents huge multi-month rolling-release deltas while respecting Archfrican's
+# "nothing explodes" rule:
+#   • Runs ONLY when age >= MAX_DAYS (default: 30), on AC power (ConditionACPower=true in unit).
+#   • Fail-closed safety gates: requires Btrfs root + snapper, >=5 GiB free on / (>=150 MiB /boot),
+#     network up, no pacman lock, and no recent Arch News "manual intervention" notice.
+#   • Creates a mandatory Snapper pre-snapshot BEFORE touching pacman (aborts if snapshot fails).
+#   • Refreshes archlinux-keyring (+ cachyos-keyring) first, then runs official `pacman -Su --noconfirm`
+#     ONLY — never AUR, never --overwrite, never forces a reboot.
+#   • Notifies active graphical session(s) on completion or if manual intervention is needed.
+#
+# Opt out or tune via /etc/archfrican/auto-update.conf (shell syntax):
+#   AUTO=off       # disable automatic updates completely (or touch /etc/archfrican/no-auto-update)
+#   MAX_DAYS=30    # days without an update before auto-update triggers (default: 30)
+set -uo pipefail
+
+CONF="${ARCHFRICAN_AUTO_UPDATE_CONF:-/etc/archfrican/auto-update.conf}"
+DISABLE_FLAG="${ARCHFRICAN_AUTO_UPDATE_DISABLE:-/etc/archfrican/no-auto-update}"
+STAMP="${ARCHFRICAN_LAST_UPDATE_STAMP:-/var/lib/archfrican/last-update}"
+PACMAN_LOG="${ARCHFRICAN_PACMAN_LOG:-/var/log/pacman.log}"
+PACMAN_LOCK="${ARCHFRICAN_PACMAN_LOCK:-/var/lib/pacman/db.lck}"
+LOCKDIR="${ARCHFRICAN_AUTO_UPDATE_LOCK:-/run/archfrican-auto-update.lock.d}"
+NEWS_URL="${ARCHFRICAN_NEWS_URL:-https://archlinux.org/feeds/news/}"
+MIRRORLIST="${ARCHFRICAN_MIRRORLIST:-/etc/pacman.d/mirrorlist}"
+ROOT_MNT="${ARCHFRICAN_ROOT_MNT:-/}"
+BOOT_MNT="${ARCHFRICAN_BOOT_MNT:-/boot}"
+
+AUTO=on
+MAX_DAYS="${ARCHFRICAN_AUTO_UPDATE_DAYS:-30}"
+# shellcheck disable=SC1090
+[ -r "$CONF" ] && . "$CONF"
+
+[ "${AUTO:-on}" = off ] && exit 0
+[ -e "$DISABLE_FLAG" ] && exit 0
+case "$MAX_DAYS" in ''|*[!0-9]*) MAX_DAYS=30 ;; esac
+
+log()  { printf 'archfrican-auto-update: %s\n' "$*"; }
+warn() { printf 'archfrican-auto-update: WARN: %s\n' "$*" >&2; }
+
+# Send a desktop notification to every active graphical user session (best-effort; never fatal).
+notify_users() {                  # notify_users <urgency> <title> <body>
+  local urg="$1" title="$2" body="$3" bus uid user
+  command -v notify-send >/dev/null 2>&1 || return 0
+  for bus in /run/user/*/bus; do
+    [ -S "$bus" ] || continue
+    uid="${bus#/run/user/}"; uid="${uid%/bus}"
+    user="$(id -nu "$uid" 2>/dev/null)" || continue
+    if [ "$(id -u)" -eq 0 ] && command -v runuser >/dev/null 2>&1; then
+      runuser -u "$user" -- env "DBUS_SESSION_BUS_ADDRESS=unix:path=$bus" \
+        notify-send -u "$urg" "$title" "$body" >/dev/null 2>&1 || true
+    elif [ "$(id -u)" = "$uid" ]; then
+      DBUS_SESSION_BUS_ADDRESS="unix:path=$bus" \
+        notify-send -u "$urg" "$title" "$body" >/dev/null 2>&1 || true
+    fi
+  done
+}
+
+# Last full upgrade timestamp (epoch): max of our stamp file and the last pacman -Syu in pacman.log,
+# so both `archfrican-update --run` and manual `sudo pacman -Syu` reset the 30-day clock.
+last_update_epoch() {
+  local s=0 p=0 line ts
+  if [ -r "$STAMP" ]; then
+    s="$(tr -dc '0-9' < "$STAMP" 2>/dev/null || echo 0)"
+    [ -n "$s" ] || s=0
+  fi
+  if [ -r "$PACMAN_LOG" ]; then
+    line="$(grep -F '[PACMAN] starting full system upgrade' "$PACMAN_LOG" 2>/dev/null | tail -n 1 || true)"
+    if [ -n "$line" ]; then
+      ts="${line#\[}"; ts="${ts%%\]*}"
+      p="$(date -d "$ts" +%s 2>/dev/null || echo 0)"
+      [ -n "$p" ] || p=0
+    fi
+  fi
+  if [ "$p" -gt "$s" ]; then printf '%s\n' "$p"; else printf '%s\n' "$s"; fi
+}
+
+now="$(date +%s)"
+last="$(last_update_epoch)"
+
+# Brand-new machine with no recorded upgrade yet: seed the stamp so we don't fire on day 0.
+if [ "${last:-0}" -le 0 ]; then
+  mkdir -p "$(dirname "$STAMP")" 2>/dev/null || true
+  printf '%s\n' "$now" > "$STAMP" 2>/dev/null || true
+  log "no prior upgrade timestamp found — seeded $STAMP; skipping today"
+  exit 0
+fi
+
+age_days=$(( (now - last) / 86400 ))
+if [ "$age_days" -lt "$MAX_DAYS" ]; then
+  log "last upgrade was ${age_days}d ago (< ${MAX_DAYS}d threshold) — nothing to do"
+  exit 0
+fi
+
+# ---- concurrency guards ------------------------------------------------------
+if [ -e "$PACMAN_LOCK" ]; then
+  log "pacman database is locked ($PACMAN_LOCK) — skipping; will retry next cycle"
+  exit 0
+fi
+if ! mkdir "$LOCKDIR" 2>/dev/null; then
+  log "another archfrican-auto-update is already running — skipping"
+  exit 0
+fi
+trap 'rm -rf "$LOCKDIR"' EXIT
+
+# ---- fail-closed safety gates ------------------------------------------------
+if [ "$(findmnt -no FSTYPE -- "$ROOT_MNT" 2>/dev/null || true)" != btrfs ] \
+   || ! command -v snapper >/dev/null 2>&1; then
+  warn "Btrfs root + snapper required for unattended updates — skipping (${age_days}d since last upgrade)"
+  notify_users normal "Archfrican — actualización pendiente (${age_days} días)" \
+    "No se ejecutó la actualización automática (sin Btrfs+snapper). Ejecuta: archfrican-update --run"
+  exit 0
+fi
+
+avail_root="$(df -BM --output=avail "$ROOT_MNT" 2>/dev/null | tail -1 | tr -dc '0-9')"
+if [ -z "$avail_root" ] || [ "$avail_root" -lt 5000 ]; then
+  warn "insufficient free space on $ROOT_MNT (${avail_root:-?}M < 5000M) — skipping"
+  notify_users normal "Archfrican — poco espacio para actualizar" \
+    "Llevas ${age_days} días sin actualizar, pero solo quedan ${avail_root:-?} MiB en /. Libera espacio y corre: archfrican-update --run"
+  exit 0
+fi
+
+if mountpoint -q "$BOOT_MNT" 2>/dev/null; then
+  avail_boot="$(df -BM --output=avail "$BOOT_MNT" 2>/dev/null | tail -1 | tr -dc '0-9')"
+  if [ -z "$avail_boot" ] || [ "$avail_boot" -lt 150 ]; then
+    warn "insufficient free space on $BOOT_MNT (${avail_boot:-?}M < 150M) — skipping"
+    notify_users normal "Archfrican — poco espacio en /boot" \
+      "Solo quedan ${avail_boot:-?} MiB en /boot. Revisa y corre: archfrican-update --run"
+    exit 0
+  fi
+fi
+
+# Network + Arch News manual-intervention gate. Offline -> silent exit (timer retries next day).
+news_xml=""
+if [ -n "$NEWS_URL" ] && command -v curl >/dev/null 2>&1; then
+  if ! news_xml="$(curl -fsS --connect-timeout 8 --max-time 15 "$NEWS_URL" 2>/dev/null)"; then
+    log "network unreachable ($NEWS_URL) — skipping; will retry next cycle"
+    exit 0
+  fi
+  # Check the latest news titles/entries for "manual intervention". Better to ask a human once
+  # than to run --noconfirm straight into a documented breaking upgrade.
+  latest_titles="$(printf '%s' "$news_xml" | grep -oE '<title>[^<]+</title>' | sed '1d; s/<title>//; s/<\/title>//' | head -n 5 || true)"
+  if printf '%s\n' "$latest_titles" | grep -qi 'manual intervention'; then
+    warn "Arch News reports manual intervention required — deferring to user"
+    notify_users critical "Archfrican — intervención manual requerida" \
+      "Las noticias de Arch indican intervención manual (llevas ${age_days}d sin actualizar). Lee archlinux.org/news/ y corre: archfrican-update --run"
+    exit 0
+  fi
+fi
+
+# ---- mandatory Snapper pre-snapshot ------------------------------------------
+log "${age_days}d since last upgrade (>= ${MAX_DAYS}d) — creating mandatory Snapper pre-snapshot"
+snap_num="$(snapper -c root create --cleanup-algorithm number --userdata important=yes \
+  -p -d "archfrican-auto-update $(date +%Y-%m-%d)" 2>/dev/null || true)"
+if [ -z "$snap_num" ]; then
+  warn "failed to create Snapper pre-snapshot — aborting unattended upgrade (nothing changed)"
+  notify_users critical "Archfrican — falló el pre-snapshot" \
+    "Se canceló la actualización automática para proteger el sistema. Ejecuta: archfrican-update --run"
+  exit 1
+fi
+log "created pre-snapshot #$snap_num"
+
+# ---- refresh stale mirrorlist (>30d, best-effort; fast --sort score + global Arch CDNs) ----
+if command -v reflector >/dev/null 2>&1 && [ -f "$MIRRORLIST" ]; then
+  m_age=$(( (now - $(stat -c %Y "$MIRRORLIST" 2>/dev/null || echo 0)) / 86400 ))
+  if [ "$m_age" -gt 30 ]; then
+    if { if [ -r /etc/xdg/reflector/reflector.conf ]; then
+      timeout 60 reflector @/etc/xdg/reflector/reflector.conf >/dev/null 2>&1
+    else
+      timeout 60 reflector --protocol https --completion-percent 100 --age 12 --number 15 --sort score --save "$MIRRORLIST" >/dev/null 2>&1
+    fi; }; then
+      tmp_ml="$(mktemp)"
+      {
+        printf '# Archfrican: global Arch CDNs first (fast from any region), reflector fallbacks below\n'
+        printf 'Server = https://fastly.mirror.pkgbuild.com/$repo/os/$arch\n'
+        printf 'Server = https://geo.mirror.pkgbuild.com/$repo/os/$arch\n\n'
+        grep -vE '^Server = https://(fastly|geo)\.mirror\.pkgbuild\.com/' "$MIRRORLIST"
+      } > "$tmp_ml" && install -m 0644 "$tmp_ml" "$MIRRORLIST"
+      rm -f "$tmp_ml"
+    else
+      warn "reflector failed — continuing with existing mirrorlist"
+    fi
+  fi
+fi
+
+# ---- refresh keyrings first (essential after >30 days on Arch), then upgrade -
+keyring_pkgs=(archlinux-keyring)
+pacman -Q cachyos-keyring >/dev/null 2>&1 && keyring_pkgs+=(cachyos-keyring)
+
+log "refreshing keyrings: ${keyring_pkgs[*]}"
+if ! pacman -Sy --needed --noconfirm "${keyring_pkgs[@]}"; then
+  warn "keyring refresh failed — aborting upgrade (pre-snapshot #$snap_num intact)"
+  notify_users critical "Archfrican — actualización automática pausada" \
+    "Falló el refresco de llaves PGP (snapshot #$snap_num intacto). Ejecuta: archfrican-update --run"
+  exit 1
+fi
+
+log "running official repository upgrade (pacman -Su --noconfirm; AUR is skipped by design)"
+if pacman -Su --noconfirm; then
+  mkdir -p "$(dirname "$STAMP")" 2>/dev/null || true
+  date +%s > "$STAMP"
+  log "automatic update complete (pre-snapshot #$snap_num)"
+  notify_users normal "Archfrican actualizado automáticamente" \
+    "Llevabas ${age_days} días sin actualizar. Se actualizaron los paquetes oficiales con pre-snapshot #$snap_num. Reinicia cuando puedas."
+else
+  warn "pacman -Su failed — leaving system untouched for manual review (pre-snapshot #$snap_num intact)"
+  notify_users critical "Archfrican — actualización automática incompleta" \
+    "pacman encontró un conflicto o error (pre-snapshot #$snap_num intacto). Ejecuta: archfrican-update --run"
+  exit 1
+fi

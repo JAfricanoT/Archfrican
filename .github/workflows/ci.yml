@@ -411,6 +411,8 @@ jobs:
         run: bash tests/unit/gpu-render.sh
       - name: perf & OOM guard — earlyoom, ananicy-cpp, zram VM tuning, niri OOMPolicy, GRUB_TOP_LEVEL
         run: bash tests/unit/perf-oom.sh
+      - name: auto-update (>30d) — fail-closed safety gates (Btrfs+snapper, disk, news, snapshot-before-pacman)
+        run: bash tests/unit/auto-update.sh
       - name: fw_allow — port/proto validation (no fail-open) + persist/dedup
         run: bash tests/unit/fw_allow.sh
       - name: multiboot — ESP OS classifier (Windows/Linux, skips our own loader)

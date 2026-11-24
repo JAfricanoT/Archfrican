@@ -34,7 +34,7 @@ archfrican-update [--run] [--converge] [--prune] [--no-aur] [--notify] [-h]
 1. Pre-checks: disk space (root ≥3 GB, boot ≥100 MB), mirrorlist age, CVE status
 2. Pre-snapshot via snapper (description includes current commit SHA)
 3. `git fetch --depth 1 origin $ARCHFRICAN_REF && git reset --hard FETCH_HEAD`; run pending migrations
-4. Mirrorlist refresh (via `reflector`) if the current list is older than 7 days
+4. Mirrorlist refresh (via `reflector --sort score` + global Arch CDNs) if the current list is older than 30 days
 5. `sudo pacman -Syu` (interactive; never `--noconfirm`) — **upgrade first** so new packages are available
 6. Re-converge only modules whose content hash changed (installs against the already-upgraded system)
 7. AUR upgrade via paru (failures don't block the system upgrade)
@@ -49,6 +49,28 @@ archfrican-update --run         # full upgrade with snapshot safety net
 archfrican-update --converge    # re-apply dotfiles only (faster than --run)
 archfrican-update --run --no-aur  # upgrade system packages, skip AUR
 archfrican-update --prune       # review and remove orphaned managed packages
+```
+
+---
+
+## archfrican-auto-update
+
+Safety-gated automatic update helper run daily on AC power by `archfrican-auto-update.timer`.
+Does nothing while the machine has been upgraded within the last **30 days** (checked against both
+`/var/lib/archfrican/last-update` and `/var/log/pacman.log`). Once **>30 days** pass without an
+update, it enforces fail-closed safety gates before upgrading official packages only:
+
+- Requires Btrfs `/` + `snapper`, ≥5 GiB free on `/` (≥150 MiB on `/boot`), network up, no pacman lock,
+  and no recent Arch News "manual intervention" notice.
+- Creates a mandatory Snapper pre-snapshot before touching pacman (aborts if snapshot creation fails).
+- Refreshes `archlinux-keyring` (+ `cachyos-keyring`) first, then runs `pacman -Su --noconfirm`
+  (never AUR, never `--overwrite`, never forces a reboot) and notifies the desktop session.
+
+**Disable or tune** via `/etc/archfrican/auto-update.conf`:
+
+```bash
+AUTO=off      # disable automatic updates (or: sudo touch /etc/archfrican/no-auto-update)
+MAX_DAYS=30   # threshold in days before auto-update triggers
 ```
 
 ---
