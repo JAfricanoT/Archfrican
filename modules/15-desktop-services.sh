@@ -127,7 +127,12 @@ resilient_enable power-profiles-daemon.service
 # without power-profiles-daemon; ATTR{online} matches ONLY the mains adapter, never a battery.
 # Disable/remap per-machine via /etc/archfrican/power-auto.conf (see the helper's header).
 substep "auto power profile on AC/battery (udev)"
-sudo ln -sf "$REPO_ROOT/bin/archfrican-power-auto" /usr/local/bin/archfrican-power-auto
+# Root-owned COPY, never a symlink into the repo — the SAME rule as the multicast dispatcher above,
+# and for the same reason: udev runs RUN+= as root, and $REPO_ROOT lives in a user-writable $HOME.
+# A symlink here made every AC plug/unplug execute a user-writable file as root, so any process
+# running as the user could take root by appending one line to it. `install` also drops the setuid
+# class of surprises a dangling symlink brings (repo moved/deleted -> udev RUN+= silently fails).
+sudo install -D -m 0755 "$REPO_ROOT/bin/archfrican-power-auto" /usr/local/bin/archfrican-power-auto
 write_system_file /etc/udev/rules.d/60-archfrican-power-profile.rules 0644 <<'RULES'
 # Archfrican: set the CPU power profile from the AC-adapter state. add|change so it also applies
 # the current state at boot (a no-op until power-profiles-daemon is up, then the next event fixes it).
