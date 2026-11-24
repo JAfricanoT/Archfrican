@@ -3,4 +3,4 @@
 export RADIUS_SM="8"
 export RADIUS_MD="12"
 export RADIUS_LG="16"
-export RADIUS_WINDOW="10"
+export RADIUS_WINDOW="7"

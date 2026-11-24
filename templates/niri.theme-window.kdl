@@ -1,0 +1,14 @@
+// THEME-WINDOW-START (managed by theme-switch)
+// The window's corner radius is shape, like gaps and the focus ring, so it comes from the same
+// token cascade — and so `~/.config/archfrican/tokens.local.sh` can change it without the next
+// `archfrican-update` converge reverting the choice.
+//
+// It gets its OWN top-level window-rule rather than joining the one below because that one is
+// already co-owned: archfrican-blur splices SHADOW-START/END and BLUR-START/END inside it. Nesting
+// a second managed region in a node another splicer edits is how markers end up interleaved and
+// truncating each other. `window-rule` is repeatable and the last match wins, and this radius is
+// declared nowhere else, so an independent rule is both safe and unambiguous.
+window-rule {
+    geometry-corner-radius ${RADIUS_WINDOW}
+}
+// THEME-WINDOW-END

@@ -35,7 +35,7 @@ export RADIUS_MD="11"           # buttons, list rows, inputs, notification cards
 export RADIUS_LG="15"           # control-center / launcher / big cards / login card
 export RADIUS_XL="20"           # largest floating surfaces / modal sheets
 export RADIUS_PILL="999"        # switches, avatar, dot indicators
-export RADIUS_WINDOW="12"       # niri geometry-corner-radius (harmonised with the 12px gap)
+export RADIUS_WINDOW="7"        # niri geometry-corner-radius (harmonised with the 4px gap)
 
 # ── Spacing — the 4px grid — and structural widths ──────────────────────────────────────────────────
 export SPACE_XS="4"
@@ -44,9 +44,9 @@ export SPACE_MD="8"
 export SPACE_LG="12"
 export SPACE_XL="18"
 export SPACE_2XL="24"
-export GAP_WINDOW="12"          # niri layout gaps
+export GAP_WINDOW="4"           # niri layout gaps (struts are DERIVED from this minus the ring)
 export BORDER_WIDTH="1"         # hairline width
-export FOCUS_RING_WIDTH="2"     # niri focus-ring
+export FOCUS_RING_WIDTH="1"     # niri focus-ring (also the width struts reserve at the screen edge)
 
 # ── Motion — the signature easing + durations (ms) ──────────────────────────────────────────────────
 export MOTION_EASE_STANDARD="cubic-bezier(0.22,0.61,0.18,1.0)"   # confident, soft settle

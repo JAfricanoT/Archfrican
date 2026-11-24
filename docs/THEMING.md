@@ -162,9 +162,13 @@ The `archfrican-dark` / `archfrican-light` themes use this to restore Apple-styl
 The `high-contrast` theme uses it to disable translucency and to thicken `BORDER_WIDTH` /
 `FOCUS_RING_WIDTH` for low vision.
 
-A theme's `tokens.sh` is **not** the last word: `~/.config/archfrican/a11y-tokens.sh` is sourced
-after it and overrides it, so a user's accessibility settings survive every theme change. Don't
-try to defeat that layer from a theme.
+A theme's `tokens.sh` is **not** the last word. Two user-owned layers are sourced after it:
+`~/.config/archfrican/tokens.local.sh` (personal shape/taste — gaps, radius, ring width) and then
+`~/.config/archfrican/a11y-tokens.sh` (accessibility), in that order. Personal taste outranks a
+theme; an accommodation outranks taste. Both survive every theme change *and* every
+`archfrican-update` converge — which matters because the converge re-renders `config.kdl` with
+`chezmoi apply --force`, destroying anything edited directly in the live file. Don't try to defeat
+either layer from a theme.
 
 ### Step 3 — Test it
 
@@ -190,6 +194,8 @@ Your theme appears in the fuzzel list alongside the built-in themes.
 1. Sources `themes/tokens.defaults.sh` (shared shape/type/motion)
 2. Sources `themes/<name>/colors.sh` (color tokens)
 3. Sources `themes/<name>/tokens.sh` if present (shape/type overrides)
+3b. Sources `~/.config/archfrican/tokens.local.sh`, then `~/.config/archfrican/a11y-tokens.sh`
+    (user layers), and derives `STRUT_WINDOW` from `GAP_WINDOW - FOCUS_RING_WIDTH`
 4. Renders every `*.tmpl` config in `$HOME/.config/` via `${TOKEN}` substitution
 5. Sends `SIGUSR2` to waybar (live color reload)
 6. Calls `swaync-client --reload-config`

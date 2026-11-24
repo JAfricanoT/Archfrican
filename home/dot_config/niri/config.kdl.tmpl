@@ -33,14 +33,23 @@ input {
 }
 
 layout {
-    gaps 12
+    // gaps + struts are NOT here: they live in the THEME block below, rendered from GAP_WINDOW and
+    // FOCUS_RING_WIDTH. Declaring either here as well would not "win" or be ignored — niri rejects
+    // a duplicate `gaps` by refusing the WHOLE config, so a second copy brings the desktop down.
+    // To change them, set the token (see docs/DESIGN-LANGUAGE.md), not a literal here:
+    //   echo 'export GAP_WINDOW="4"' >> ~/.config/archfrican/tokens.local.sh && theme-switch "$(cat ~/.config/.archfrican-theme)"
     center-focused-column "on-overflow"
     preset-column-widths { proportion 0.33; proportion 0.5; proportion 0.67; }
     default-column-width { proportion 0.5; }
 
     // THEME-START (managed by theme-switch)
+    // Placeholder only — theme-switch replaces this whole region from templates/niri.theme.kdl on
+    // the first converge. It ships with the shipped-token values so the window between chezmoi
+    // writing this file and run_after_99 calling theme-switch is still a coherent config.
+    gaps 4
+    struts { left -3; right -3; top -3; bottom -3; }
     focus-ring {
-        width 2
+        width 1
         active-color "#0a84ff"
         inactive-color "#3a3a3c"
     }
@@ -50,11 +59,19 @@ layout {
 prefer-no-csd
 hotkey-overlay { skip-at-startup; }
 
+// Corner radius is shape, like gaps and the ring, so it comes from the token cascade. It gets its
+// OWN window-rule because the one below is already co-owned by archfrican-blur (SHADOW/BLUR
+// markers), and nesting a second splicer's region in that node is how markers interleave.
+// THEME-WINDOW-START (managed by theme-switch)
+window-rule {
+    geometry-corner-radius 7
+}
+// THEME-WINDOW-END
+
 // macOS-like frosted glass on windows. niri added blur in 26.04, but the exact
 // directive is version-specific — it ships COMMENTED so an older niri can't fail
 // to start. Uncomment after confirming support: `niri validate config.kdl`.
 window-rule {
-    geometry-corner-radius 12
     clip-to-geometry true
     // SHADOW-START — soft focus shadow (the "Archfrican window" look). Commented for the SAME
     // version-safety as blur (older niri lacks `shadow`); a fresh install's niri supports it.
@@ -72,6 +89,28 @@ window-rule {
     //     blur true
     // }
     // BLUR-END
+}
+
+// Focus depth cue: the window you're working in stays fully opaque, the rest sit back at 90%.
+// It carries the weight the chrome no longer does — with a thin focus-ring and next to no outer
+// gap, the ring alone is a small thing to hunt for on a busy screen.
+//
+// THE ORDER IS THE MECHANISM: niri reads window-rules top to bottom and the LAST match wins, so
+// the blanket 0.9 has to come FIRST and the active override SECOND. Swap these two blocks and
+// every window lands on 0.9 — focused included — which looks like the rule "didn't work".
+//
+// `is-active`, not `is-focused`: is-focused is raw keyboard focus, which no window holds while a
+// layer-shell surface has it (the launcher, swaync's control center). is-active tracks the active
+// column instead, so the window you're reading keeps its full opacity while an overlay is up.
+//
+// Note this stacks with a window's OWN transparency — a terminal already running a translucent
+// background lands at 0.9 x its own alpha when inactive, which reads heavier than it looks here.
+window-rule {
+    opacity 0.9
+}
+window-rule {
+    match is-active=true
+    opacity 1.0
 }
 
 // Chromium-based windows (the browser + every archfrican-webapp) remember their OWN last window
@@ -142,9 +181,12 @@ window-rule {
 // LAYER-BLUR-END
 
 environment {
-    // Electron/Chromium apps (VS Code) -> native Wayland
+    // Electron/Chromium apps (VS Code, Orca) -> native Wayland.
+    // Orca's launcher ignores ELECTRON_OZONE_PLATFORM_HINT and defaults to x11 unless
+    // ORCA_IDE_OZONE_PLATFORM is set — keeping it off XWayland prevents flicker and scale offset.
     ELECTRON_OZONE_PLATFORM_HINT "wayland"
     NIXOS_OZONE_WL "1"
+    ORCA_IDE_OZONE_PLATFORM "wayland"
     // Qt / Firefox / SDL / Java on native Wayland. Set HERE, not environment.d (niri #2731).
     // Never set GDK_BACKEND globally — it breaks the screencast portal.
     QT_QPA_PLATFORM "wayland;xcb"
@@ -157,6 +199,10 @@ environment {
     // NVIDIA-friendly defaults (harmless on AMD/Intel)
     __GL_GSYNC_ALLOWED "0"
 }
+
+// Per-GPU compositor workarounds (managed by modules/10-gpu.sh + run_after_99; empty on AMD/Intel/VM).
+// ARCHFRICAN-GPU-START (managed by 10-gpu)
+// ARCHFRICAN-GPU-END
 
 // Multi-monitor: niri auto-detects + arranges outputs (hotplug included). To make a manual layout
 // PERSIST: drag your monitors in `nwg-displays` (it applies live), then run `archfrican-displays save`

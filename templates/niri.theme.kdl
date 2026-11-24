@@ -1,10 +1,26 @@
     // THEME-START (managed by theme-switch)
+    // Gaps, struts and the focus ring are ONE decision about window shape, so they live together in
+    // the block theme-switch owns — and, critically, they live here ONLY. niri rejects a duplicate
+    // `gaps` by failing the WHOLE config (not by taking the last one), so a literal left behind in
+    // config.kdl.tmpl would brick the compositor rather than quietly lose an override.
+    //
+    // Tokenised (not literals) so `~/.config/archfrican/tokens.local.sh` can override them and have
+    // the change survive both loss vectors: `chezmoi apply --force` on every converge, which
+    // overwrites config.kdl with no backup, and every theme switch, which re-splices this block.
+    gaps ${GAP_WINDOW}
+    // DERIVED, never typed twice: -(GAP_WINDOW - FOCUS_RING_WIDTH), computed by theme-switch.
+    // niri insets every window by `gaps` from the working area, which puts the same space at the
+    // four screen borders as it does between two columns. A negative strut cancels the border half
+    // and leaves the window-to-window gap untouched — so windows sit flush to the screen edge while
+    // still breathing between each other. Holding back exactly the ring's width is the whole trick:
+    // a window flush against the edge still has somewhere to draw its focus ring instead of pushing
+    // it off-screen. Deriving it means the relationship cannot drift when either token changes —
+    // including high-contrast's thicker ring, which widens the reserve automatically.
+    struts { left -${STRUT_WINDOW}; right -${STRUT_WINDOW}; top -${STRUT_WINDOW}; bottom -${STRUT_WINDOW}; }
     focus-ring {
         // Token, not a literal: themes/high-contrast/tokens.sh raises FOCUS_RING_WIDTH to 3 for
         // low-vision users, and a hardcoded 2 here silently discarded that — the thicker ring the
-        // accessibility theme exists to provide never once reached niri. Safe to tokenise (unlike
-        // `gaps`/`geometry-corner-radius`, which live OUTSIDE these markers): focus-ring is wholly
-        // inside the spliced block, so there is no second copy to collide with.
+        // accessibility theme exists to provide never once reached niri.
         width ${FOCUS_RING_WIDTH}
         active-color "${BORDER_ACTIVE}"
         inactive-color "${BORDER_INACTIVE}"

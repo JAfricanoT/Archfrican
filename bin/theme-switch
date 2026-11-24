@@ -42,11 +42,36 @@ fi
 # archfrican-a11y's OWN "Alto contraste: activar", i.e. two adjacent items in the same accessibility
 # menu cancelling each other. Also by darkman's sunrise/sunset flips (twice a day, unattended) and by
 # every archfrican-update converge. An accommodation is a floor, not a suggestion: it goes last.
+#
+# Layer 4 — the user's own SHAPE/taste overrides (gaps, corner radius, ring width, fonts…). Sits
+# BELOW accessibility on purpose: personal taste outranks a theme, an accommodation outranks taste.
+# This layer exists because ~/.config/niri/config.kdl is a GENERATED artifact — lib/phase2.sh
+# deploys it with `chezmoi init --apply --force`, which overwrites the destination with no diff and
+# no backup — so a gap or radius tweaked by hand in the live file is destroyed by the next
+# archfrican-update, silently and with nothing to restore from. Colour and accessibility each had a
+# layer that survived the converge; shape had none. Now it does.
+LOCAL_TOKENS="${XDG_CONFIG_HOME:-$HOME/.config}/archfrican/tokens.local.sh"
+if [ -r "$LOCAL_TOKENS" ]; then
+  # shellcheck disable=SC1090
+  source "$LOCAL_TOKENS"
+fi
+# Layer 5 — the user's own ACCESSIBILITY overrides, and they outrank every theme AND personal taste.
 A11Y_TOKENS="${XDG_CONFIG_HOME:-$HOME/.config}/archfrican/a11y-tokens.sh"
 if [ -r "$A11Y_TOKENS" ]; then
   # shellcheck disable=SC1090
   source "$A11Y_TOKENS"
 fi
+
+# DERIVED token: the negative strut that cancels `gaps` at the four screen borders while leaving the
+# window-to-window gap intact, holding back exactly the focus ring's width so a window flush to the
+# edge still has somewhere to draw it. Computed, never typed twice — otherwise the two numbers drift
+# apart the moment either token moves (high-contrast's 3px ring widens the reserve on its own).
+# Clamped at 0: a ring wider than the gap would otherwise produce a POSITIVE strut, silently
+# re-introducing the outer margin this whole mechanism exists to remove.
+# shellcheck disable=SC2034  # consumed indirectly: render() expands ${!v} over the VARS list grepped
+# out of templates/, so every token reads as "unused" to a static pass. templates/niri.theme.kdl is
+# the consumer.
+STRUT_WINDOW=$(( GAP_WINDOW > FOCUS_RING_WIDTH ? GAP_WINDOW - FOCUS_RING_WIDTH : 0 ))
 
 # Variables to substitute = exactly the ${TOKEN}s the templates use (single source
 # of truth — derived, so the list can't drift or carry dead entries).
@@ -110,14 +135,36 @@ fi
 # but no THEME-END would otherwise drop everything after START — silently truncating a
 # hand-edited/corrupted config. The awk END-check also aborts (and we keep the original) if it
 # reaches EOF still inside the block, so an out-of-order/duplicate marker can't truncate either.
+#
+# TWO managed regions now: THEME (inside `layout` — gaps, struts, focus-ring) and THEME-WINDOW (a
+# top-level window-rule — corner radius). The radius gets its own region instead of joining the
+# window-rule in the template because archfrican-blur already splices SHADOW/BLUR markers inside
+# that node, and nesting a second splicer's region in it is how markers interleave and truncate.
+# index()-style exact marker matching keeps the two independent: "THEME-START" must not match
+# "THEME-WINDOW-START", so the longer name is tried first and anchored on the full marker text.
+niri_splice() {                   # niri_splice <start-marker> <end-marker> <block-file> <in> <out>
+  awk -v s="$1" -v e="$2" 'NR==FNR{blk=blk $0 ORS; next}
+       index($0, s){printf "%s", blk; skip=1; next}
+       index($0, e){skip=0; next}
+       !skip{print}
+       END{ exit (skip ? 1 : 0) }' "$3" "$4" > "$5"
+}
 if [ -f "$CFG/niri/config.kdl" ]; then
   if grep -q 'THEME-START' "$CFG/niri/config.kdl" && grep -q 'THEME-END' "$CFG/niri/config.kdl"; then
     tmpblk="$(mktemp)"; render niri.theme.kdl "$tmpblk"
-    if awk 'NR==FNR{blk=blk $0 ORS; next}
-         /THEME-START/{printf "%s", blk; skip=1; next}
-         /THEME-END/{skip=0; next}
-         !skip{print}
-         END{ exit (skip ? 1 : 0) }' "$tmpblk" "$CFG/niri/config.kdl" > "$CFG/niri/config.kdl.new"; then
+    if niri_splice '// THEME-START' '// THEME-END' "$tmpblk" "$CFG/niri/config.kdl" "$CFG/niri/config.kdl.new"; then
+      # Second region, applied to the result of the first. Absent markers (an older config.kdl that
+      # predates the radius region) are a no-op, not an error — the first region still lands.
+      if grep -q 'THEME-WINDOW-START' "$CFG/niri/config.kdl.new" && grep -q 'THEME-WINDOW-END' "$CFG/niri/config.kdl.new"; then
+        tmpwin="$(mktemp)"; render niri.theme-window.kdl "$tmpwin"
+        if niri_splice '// THEME-WINDOW-START' '// THEME-WINDOW-END' "$tmpwin" "$CFG/niri/config.kdl.new" "$CFG/niri/config.kdl.new2"; then
+          mv "$CFG/niri/config.kdl.new2" "$CFG/niri/config.kdl.new"
+        else
+          rm -f "$CFG/niri/config.kdl.new2"
+          echo "theme-switch: unbalanced THEME-WINDOW markers — kept the radius as it was" >&2
+        fi
+        rm -f "$tmpwin"
+      fi
       # Validate-or-revert, the same guarantee archfrican-displays and archfrican-blur already give
       # before writing this file — this was the ONE writer of config.kdl with no net. The marker
       # guard above only proves the SPLICE was well-formed, not that the result parses: a KDL error

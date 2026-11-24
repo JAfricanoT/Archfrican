@@ -19,7 +19,7 @@ adding or restyling anything.
 
 ## Where the identity lives
 
-Four layers, sourced by `bin/theme-switch` as a cascade (later wins):
+Five layers, sourced by `bin/theme-switch` as a cascade (later wins):
 
 1. **`themes/tokens.defaults.sh`** — the shared NON-colour identity (fonts, type scale, radius,
    spacing, motion, elevation, cursor, accent-contrast fallback). The base layer.
@@ -28,8 +28,15 @@ Four layers, sourced by `bin/theme-switch` as a cascade (later wins):
 3. **`themes/<name>/tokens.sh`** *(optional)* — per-theme shape/type overrides (`archfrican-dark`
    and `archfrican-light` restore 8/12/16 radii; `high-contrast` thickens borders and the focus
    ring, and kills blur). Overrides the two above.
-4. **`~/.config/archfrican/a11y-tokens.sh`** *(optional)* — the user's own accessibility overrides,
-   written by `archfrican-a11y`. **Wins last, over every theme, deliberately.** An accommodation is
+4. **`~/.config/archfrican/tokens.local.sh`** *(optional)* — the user's own **shape/taste**
+   overrides (`GAP_WINDOW`, `RADIUS_WINDOW`, `FOCUS_RING_WIDTH`, fonts…). Overrides every theme.
+   This layer exists because `~/.config/niri/config.kdl` is a *generated artifact*: `lib/phase2.sh`
+   deploys it with `chezmoi init --apply --force`, which overwrites the destination with no diff and
+   no backup, so a gap or radius edited by hand in the live file is destroyed by the next
+   `archfrican-update` — silently, with nothing to restore from. Colour and accessibility each had a
+   surviving layer; shape had none.
+5. **`~/.config/archfrican/a11y-tokens.sh`** *(optional)* — the user's own accessibility overrides,
+   written by `archfrican-a11y`. **Wins last, over every theme AND over personal taste, deliberately.** An accommodation is
    a floor, not a suggestion: before this layer existed, the gsettings block at the end of
    `theme-switch` re-asserted the theme's `CURSOR_SIZE` on every run, so a pointer enlarged from the
    accessibility menu was reverted by the next theme change — including the one `archfrican-a11y`
@@ -84,18 +91,28 @@ The signature progression is **7 / 11 / 15** (deliberately one px tighter than m
 | `RADIUS_LG` | 15 | control-center, launcher, big cards, login card |
 | `RADIUS_XL` | 20 | largest floating surfaces / sheets |
 | `RADIUS_PILL` | 999 | switches, avatar, dots |
-| `RADIUS_WINDOW` | 12 | niri `geometry-corner-radius` (harmonised with the 12px gap) |
+| `RADIUS_WINDOW` | 7 | niri `geometry-corner-radius` (harmonised with the 4px gap) |
 
 ## Spacing — `SPACE_*` (4px steps on a 2px grid)
 
-`SPACE_XS 4 · SM 6 · MD 8 · LG 12 · XL 18 · 2XL 24`. Structural: `GAP_WINDOW 12`,
-`BORDER_WIDTH 1`, `FOCUS_RING_WIDTH 2`.
+`SPACE_XS 4 · SM 6 · MD 8 · LG 12 · XL 18 · 2XL 24`. Structural: `GAP_WINDOW 4`,
+`BORDER_WIDTH 1`, `FOCUS_RING_WIDTH 1`.
 
 The ramp is built from 4px steps, but `SM 6` and `XL 18` are deliberate half-steps — so the real
 quantum is 2px, not 4px. (This page used to claim a strict 4px grid, which those two values have
-never satisfied.) Note that `GAP_WINDOW` and `RADIUS_WINDOW` are currently **declared but unwired**:
-niri's `gaps` and `geometry-corner-radius` are still literals in `home/dot_config/niri/config.kdl.tmpl`,
-outside the spliced `THEME` block, so changing those tokens has no effect yet.
+never satisfied.) `GAP_WINDOW`, `RADIUS_WINDOW` and `FOCUS_RING_WIDTH` are **wired**: they render
+into theme-switch's two managed regions in `config.kdl` (`THEME` inside `layout` for gaps/struts/ring,
+`THEME-WINDOW` for the corner radius). Each value is declared in exactly ONE place — niri rejects a
+duplicate `gaps` by failing the whole config, so a literal left in the template would brick the
+desktop rather than lose an override.
+
+`GAP_WINDOW` is the gap between two windows, not a margin around the screen. niri applies `gaps`
+at the screen borders too, so `theme-switch` cancels that half with a **derived** token,
+`STRUT_WINDOW = GAP_WINDOW - FOCUS_RING_WIDTH`, emitted as a negative strut. It is computed, never
+written twice, so the two can't drift — and reserving exactly the ring's width is what lets a window
+sit flush to the screen edge while still having somewhere to draw its focus ring (high-contrast's
+3px ring widens that reserve by itself). Clamped at 0 so a ring wider than the gap can't flip the
+strut positive and silently restore the outer margin.
 
 ## Motion — `MOTION_*`
 
