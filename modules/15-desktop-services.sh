@@ -44,11 +44,21 @@ Current=archfrican
 
 [General]
 DisplayServer=wayland
+Numlock=on
 
 [Users]
 RememberLastUser=true
 RememberLastSession=true
 SDDM
+
+# SDDM's `Numlock=on` applies to X11, while under DisplayServer=wayland SDDM hosts the greeter on
+# Weston — which manages its own keyboard state via /etc/xdg/weston/weston.ini. Setting both keeps
+# NumLock enabled across LUKS -> SDDM -> niri without overriding SDDM's packaged Weston command.
+substep "enabling NumLock in SDDM's Wayland greeter (/etc/xdg/weston/weston.ini)"
+write_system_file /etc/xdg/weston/weston.ini 0644 <<'WESTON'
+[keyboard]
+numlock-on=true
+WESTON
 
 # On-screen keyboard: only wire SDDM's input method when the theme opts in (the rendered theme.conf
 # knob). Default-off keeps the desktop login clean (qtvirtualkeyboard auto-raises on field focus);

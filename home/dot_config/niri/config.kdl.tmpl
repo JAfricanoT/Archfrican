@@ -9,6 +9,9 @@
 
 input {
     keyboard {
+        // Keep NumLock active on login (pairs with SDDM + Weston numlock-on so the state never drops
+        // between LUKS -> SDDM -> desktop). Safe no-op on keyboards without a numpad.
+        numlock
         // variant "altgr-intl" = Right Alt (AltGr) + a vowel/n gives the accent directly in ONE combo
         // (AltGr+e -> é, AltGr+n -> ñ, AltGr+1 -> ¡, AltGr+/ -> ¿ …), closer to the macOS "hold and
         // press" feel than a Compose key's tap-then-3-key-sequence. Normal typing (', ", `, ~ alone)

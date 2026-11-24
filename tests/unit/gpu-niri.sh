@@ -53,7 +53,11 @@ fi
 # ---- 2. splice into rendered config.kdl.tmpl + real niri validate (when installed) ---------------
 render_tmpl
 has "$KDL" 'ORCA_IDE_OZONE_PLATFORM "wayland"' "config.kdl.tmpl sets ORCA_IDE_OZONE_PLATFORM=wayland"
+has "$KDL" 'numlock'                           "config.kdl.tmpl enables NumLock on session start"
 has "$KDL" 'ARCHFRICAN-GPU-START'              "config.kdl.tmpl carries ARCHFRICAN-GPU-START marker"
+has "$ROOT/modules/10-gpu.sh"            'nouveau-kms.done' "10-gpu.sh enables early KMS for nouveau (clean GRUB -> Plymouth)"
+has "$ROOT/modules/15-desktop-services.sh" 'Numlock=on'     "15-desktop-services.sh enables NumLock in SDDM"
+has "$ROOT/modules/15-desktop-services.sh" 'numlock-on=true' "15-desktop-services.sh enables NumLock in Weston greeter"
 
 if splice_niri_gpu_block "$KDL" "$SIDE"; then
   _ok "splice_niri_gpu_block succeeded with nouveau debug sidecar"

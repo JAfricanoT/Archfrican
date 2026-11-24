@@ -83,7 +83,26 @@ case "$gpu" in
       [[ "$gpu" == hybrid-intel-nvidia ]] && pac_install vulkan-intel
       [[ "$gpu" == hybrid-amd-nvidia   ]] && pac_install vulkan-radeon
       apply_nouveau_niri_workarounds
-      ok "NVIDIA on nouveau — no DKMS / no early-KMS (the proprietary 390xx/470xx legacy breaks on CachyOS kernels)."
+      # Early KMS for nouveau: loads the in-kernel driver BEFORE Plymouth takes over from GRUB's
+      # EFI framebuffer, eliminating the black-and-white VRAM scanout artifacts between GRUB and
+      # the LUKS disk-unlock screen (live-confirmed on GK208B / GT 730). Gated on a sentinel so
+      # mkinitcpio only rebuilds once.
+      NOUVEAU_SENTINEL=/var/lib/archfrican/nouveau-kms.done
+      nouveau_need_build=0; [ -f "$NOUVEAU_SENTINEL" ] || nouveau_need_build=1
+      if ! grep -qE '^MODULES=\(.*\bnouveau\b' /etc/mkinitcpio.conf; then
+        substep "adding nouveau to initramfs MODULES for clean GRUB → Plymouth handoff"
+        sudo sed -i 's/^MODULES=(\(.*\))/MODULES=(\1 nouveau)/' /etc/mkinitcpio.conf
+        sudo sed -i 's/^MODULES=( /MODULES=(/' /etc/mkinitcpio.conf
+        grep -qE '^MODULES=\(.*\bnouveau\b' /etc/mkinitcpio.conf \
+          || die "could not add nouveau to MODULES in /etc/mkinitcpio.conf — edit by hand"
+        nouveau_need_build=1
+      fi
+      if [ "$nouveau_need_build" = 1 ]; then
+        substep "regenerating initramfs with early nouveau KMS"
+        sudo mkinitcpio -P
+        sudo install -d "$(dirname "$NOUVEAU_SENTINEL")"; sudo touch "$NOUVEAU_SENTINEL"
+      fi
+      ok "NVIDIA on nouveau — early KMS enabled (no DKMS; proprietary 390xx/470xx breaks on CachyOS kernels)."
       warn "If already in a niri session, log out and back in (Mod+Shift+E) for the DRM/KMS workaround to apply."
     else
       clear_nouveau_niri_workarounds
