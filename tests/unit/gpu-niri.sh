@@ -58,6 +58,9 @@ has "$KDL" 'ARCHFRICAN-GPU-START'              "config.kdl.tmpl carries ARCHFRIC
 has "$ROOT/modules/10-gpu.sh"            'nouveau-kms.done' "10-gpu.sh enables early KMS for nouveau (clean GRUB -> Plymouth)"
 has "$ROOT/modules/15-desktop-services.sh" 'Numlock=on'     "15-desktop-services.sh enables NumLock in SDDM"
 has "$ROOT/modules/15-desktop-services.sh" 'numlock-on=true' "15-desktop-services.sh enables NumLock in Weston greeter"
+has "$ROOT/modules/15-desktop-services.sh" 'renderer=pixman' "15-desktop-services.sh uses pixman renderer in Weston on nouveau"
+has "$ROOT/modules/15-desktop-services.sh" 'Conflicts=plymouth-quit.service' "15-desktop-services.sh suppresses stock plymouth-quit on graphical boot"
+has "$ROOT/modules/15-desktop-services.sh" 'plymouth quit --retain-splash'   "15-desktop-services.sh retains Plymouth splash until SDDM paints"
 
 if splice_niri_gpu_block "$KDL" "$SIDE"; then
   _ok "splice_niri_gpu_block succeeded with nouveau debug sidecar"

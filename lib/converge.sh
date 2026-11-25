@@ -24,7 +24,7 @@ module_inputs() {                 # module_inputs <name>
     # SDDM theme/wallpaper inputs include the palettes (themes/) + templates so editing a palette
     # is seen by drift detection and re-converges the rendered login theme (audit H1/M1).
     # module_hash tree-hashes a directory, so the bare dir names cover every file + stay future-proof.
-    15-desktop-services) printf ' templates/sddm.theme.conf assets/sddm/archfrican assets/wallpapers themes' ;;
+    15-desktop-services) printf ' lib/detect-gpu.sh templates/sddm.theme.conf assets/sddm/archfrican assets/wallpapers themes' ;;
     20-niri-desktop) printf ' packages/niri-desktop.txt' ;;
     # lib/plasma-theme.sh: runtime-sourced by apply_plasma_theme (lib/common.sh) — the pending
     # BreezeDark format correction must re-converge Plasma machines (the b731642 bug class).

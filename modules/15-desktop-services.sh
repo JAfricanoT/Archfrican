@@ -11,6 +11,7 @@
 # is added and doesn't happen to also be layered after 20-niri-desktop. Runs between 10-gpu and
 # 20-niri-desktop (both niri and Plasma need these ready before their own module runs).
 source "$(dirname "$0")/../lib/common.sh"
+source "$REPO_ROOT/lib/detect-gpu.sh"
 
 # --- graphical login: SDDM + the Archfrican theme (macOS, themed from the active palette) ----
 # SDDM lists Wayland sessions from /usr/share/wayland-sessions/*.desktop (niri ships niri.desktop,
@@ -54,11 +55,49 @@ SDDM
 # SDDM's `Numlock=on` applies to X11, while under DisplayServer=wayland SDDM hosts the greeter on
 # Weston — which manages its own keyboard state via /etc/xdg/weston/weston.ini. Setting both keeps
 # NumLock enabled across LUKS -> SDDM -> niri without overriding SDDM's packaged Weston command.
-substep "enabling NumLock in SDDM's Wayland greeter (/etc/xdg/weston/weston.ini)"
-write_system_file /etc/xdg/weston/weston.ini 0644 <<'WESTON'
+# On NVIDIA Fermi/Kepler (nouveau), Weston's default gl-renderer initializes GBM tiled buffers and
+# hardware cursor planes on NV106, triggering black-and-white VRAM artifacts during the LUKS -> SDDM
+# handoff; switching Weston's greeter to `renderer=pixman` uses linear DRM dumb buffers (same clean
+# path as Plymouth), disables cursor planes, and cuts ~1.3s off greeter startup.
+_weston_nouveau=0
+case "$(detect_gpu)" in
+  nvidia|hybrid-intel-nvidia|hybrid-amd-nvidia)
+    [ "$(nvidia_tier)" = nouveau ] && _weston_nouveau=1
+    ;;
+esac
+if [ "$_weston_nouveau" = 1 ]; then
+  substep "configuring SDDM's Weston greeter (NumLock + pixman renderer for nouveau)"
+  write_system_file /etc/xdg/weston/weston.ini 0644 <<'WESTON'
+[core]
+renderer=pixman
+
 [keyboard]
 numlock-on=true
 WESTON
+else
+  substep "enabling NumLock in SDDM's Wayland greeter (/etc/xdg/weston/weston.ini)"
+  write_system_file /etc/xdg/weston/weston.ini 0644 <<'WESTON'
+[keyboard]
+numlock-on=true
+WESTON
+fi
+unset _weston_nouveau
+
+# Seamless Plymouth -> SDDM handoff: stock Arch plymouth-quit.service runs `plymouth quit` WITHOUT
+# --retain-splash BEFORE SDDM starts, tearing down the splash and exposing raw fbcon/uninitialized
+# VRAM for ~3-4s while Weston starts. Conflicting with plymouth-quit.service here suppresses it ONLY
+# on graphical.target (when SDDM boots), so multi-user.target / rescue boots still get stock
+# plymouth-quit.service and a visible tty1 login prompt. The leading `-` makes ExecStartPre a clean
+# no-op on installs without Plymouth.
+substep "configuring seamless Plymouth -> SDDM handoff (retain-splash)"
+write_system_file /etc/systemd/system/sddm.service.d/10-archfrican-plymouth.conf 0644 <<'DROPIN'
+[Unit]
+Conflicts=plymouth-quit.service
+
+[Service]
+ExecStartPre=-/usr/bin/plymouth quit --retain-splash
+DROPIN
+best_effort sudo systemctl daemon-reload
 
 # On-screen keyboard: only wire SDDM's input method when the theme opts in (the rendered theme.conf
 # knob). Default-off keeps the desktop login clean (qtvirtualkeyboard auto-raises on field focus);
